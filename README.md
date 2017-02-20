@@ -23,6 +23,7 @@ Stuff to remember when writing documentation:
 #### Drivers
 
 - `exec` - a native OS process
+- `shell` - currently executes using `/bin/sh -c`
 
 #### Retention
 
