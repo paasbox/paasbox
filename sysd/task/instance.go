@@ -13,6 +13,7 @@ import (
 )
 
 var errWaitingForProcess = errors.New("error waiting for process")
+var errUpdateBoltDBFailed = errors.New("error updating boltdb")
 
 // Instance ...
 type Instance interface {
@@ -84,6 +85,12 @@ func RecoveredInstance(instanceID string, store state.Store, config InstanceConf
 	i.process = proc
 	i.pid = proc.Pid
 	i.recovered = true
+
+	err := i.store.Set("recovered", "true")
+	if err != nil {
+		i.error(errUpdateBoltDBFailed, err, log.Data{"recovered": true})
+	}
+
 	return i
 }
 
