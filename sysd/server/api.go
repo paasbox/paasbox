@@ -13,9 +13,11 @@ type workspacesOutput struct {
 }
 
 type workspacesOutputWorkspace struct {
-	ID           string `json:"id"`
-	WorkspaceURL string `json:"workspace_url"`
-	TasksURL     string `json:"tasks_url"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	Env          []string `json:"env"`
+	WorkspaceURL string   `json:"workspace_url"`
+	TasksURL     string   `json:"tasks_url"`
 }
 
 type tasksOutput struct {
@@ -24,10 +26,12 @@ type tasksOutput struct {
 
 type tasksOutputTask struct {
 	ID      string   `json:"id"`
+	Name    string   `json:"name"`
 	Service bool     `json:"is_service"`
 	Driver  string   `json:"driver"`
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
+	Env     []string `json:"env"`
 
 	TaskURL      string `json:"task_url"`
 	WorkspaceURL string `json:"workspace_url"`
@@ -46,6 +50,8 @@ func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
 	for _, ws := range workspaces {
 		o.Workspaces = append(o.Workspaces, workspacesOutputWorkspace{
 			ID:           ws.ID(),
+			Name:         ws.Name(),
+			Env:          ws.Env(),
 			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 			TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
 		})
@@ -72,6 +78,8 @@ func (s *srv) workspace(w http.ResponseWriter, req *http.Request) {
 
 	o := workspacesOutputWorkspace{
 		ID:           ws.ID(),
+		Name:         ws.Name(),
+		Env:          ws.Env(),
 		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 		TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
 	}
@@ -108,10 +116,12 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 		}
 		o.Tasks = append(o.Tasks, tasksOutputTask{
 			ID:      t.ID(),
+			Name:    t.Name(),
 			Service: t.Service(),
 			Driver:  t.Driver(),
 			Command: t.Command(),
 			Args:    t.Args(),
+			Env:     t.Env(),
 
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 			InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
@@ -159,10 +169,12 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 
 	o := tasksOutputTask{
 		ID:      t.ID(),
+		Name:    t.Name(),
 		Service: t.Service(),
 		Driver:  t.Driver(),
 		Command: t.Command(),
 		Args:    t.Args(),
+		Env:     t.Env(),
 
 		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 		InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),

@@ -18,22 +18,24 @@ func TestNewTask(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", false, "driver", "command", []string{"args"}}, logger)
+		t, err := NewTask(storage, Config{"taskID", "Example task", false, "driver", "command", []string{"args"}, []string{"FOO=bar"}}, logger)
 		t2 := t.(*task)
 		So(err, ShouldBeNil)
 		So(t2, ShouldNotBeNil)
 		So(t2.taskID, ShouldEqual, "taskID")
+		So(t2.name, ShouldEqual, "Example task")
 		So(t2.driver, ShouldEqual, "driver")
 		So(t2.command, ShouldEqual, "command")
 		So(t2.logger, ShouldEqual, logger)
 		So(t2.args, ShouldResemble, []string{"args"})
+		So(t2.env, ShouldResemble, []string{"FOO=bar"})
 	})
 
 	Convey("Start starts a task", t, func() {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", false, "shell", "echo", []string{"foo"}}, logger)
+		t, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "echo", []string{"foo"}, []string{}}, logger)
 		t2 := t.(*task)
 		So(err, ShouldBeNil)
 		So(t2, ShouldNotBeNil)
@@ -52,7 +54,7 @@ func TestNewTask(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", false, "shell", "sleep", []string{"2"}}, logger)
+		t, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "sleep", []string{"2"}, []string{}}, logger)
 		So(err, ShouldBeNil)
 		t2 := t.(*task)
 		So(t2, ShouldNotBeNil)
@@ -64,7 +66,7 @@ func TestNewTask(t *testing.T) {
 		So(t2.instance, ShouldNotBeNil)
 		So(t2.doneCh, ShouldNotBeNil)
 
-		t3, err := NewTask(storage, Config{"taskID", false, "shell", "sleep", []string{"2"}}, logger)
+		t3, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "sleep", []string{"2"}, []string{}}, logger)
 		So(err, ShouldBeNil)
 		t4 := t3.(*task)
 		So(t4, ShouldNotBeNil)
@@ -96,7 +98,7 @@ func TestNewTask(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", true, "shell", "sleep", []string{"1"}}, logger)
+		t, err := NewTask(storage, Config{"taskID", "Example task", true, "shell", "sleep", []string{"1"}, []string{}}, logger)
 		So(err, ShouldBeNil)
 		t2 := t.(*task)
 		So(t2, ShouldNotBeNil)

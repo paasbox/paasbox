@@ -15,13 +15,18 @@ func TestNewWorkspace(t *testing.T) {
 
 	Convey("New creates a new workspace with correct field data", t, func() {
 		cfg := Config{
+			ID:   "example-workspace",
+			Name: "Example workspace",
+			Env:  []string{"FOO=bar"},
 			Tasks: []task.Config{
 				task.Config{
 					ID:      "taskID",
+					Name:    "Example task",
 					Service: false,
 					Driver:  "driver",
 					Command: "command",
 					Args:    []string{"args"},
+					Env:     []string{"FOO=bar"},
 				},
 			},
 		}
@@ -32,6 +37,8 @@ func TestNewWorkspace(t *testing.T) {
 		So(ws.id, ShouldEqual, cfg.ID)
 		So(ws.taskConfigs, ShouldResemble, cfg.Tasks)
 		So(ws.tasks, ShouldHaveLength, 1)
+		So(ws.name, ShouldEqual, cfg.Name)
+		So(ws.env, ShouldResemble, cfg.Env)
 
 		wsTask := ws.tasks["taskID"]
 
@@ -70,4 +77,29 @@ func TestNewWorkspace(t *testing.T) {
 		err = ws.Shutdown()
 		So(err, ShouldBeNil)
 	})
+
+	Convey("Workspace env is passed through", t, func() {
+		cfg := Config{
+			Env: []string{"FOO=1"},
+			Tasks: []task.Config{
+				task.Config{
+					ID:      "sleep",
+					Service: true,
+					Driver:  "shell",
+					Command: "sleep",
+					Args:    []string{"5"},
+					Env:     []string{"BAR=2"},
+				},
+			},
+		}
+		w, err := New(storage, cfg)
+		So(err, ShouldBeNil)
+		ws := w.(*workspace)
+		task := ws.tasks["sleep"]
+		i := task.Instance()
+		So(i, ShouldBeNil)
+
+		So(task.Env(), ShouldResemble, []string{"FOO=1", "BAR=2"})
+	})
+
 }

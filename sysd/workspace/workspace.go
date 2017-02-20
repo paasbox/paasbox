@@ -21,17 +21,23 @@ type Workspace interface {
 	Shutdown() error
 	Tasks() map[string]task.Task
 	ID() string
+	Name() string
+	Env() []string
 }
 
 // Config ...
 type Config struct {
-	ID    string
-	Tasks []task.Config
+	ID    string        `json:"id"`
+	Name  string        `json:"name"`
+	Tasks []task.Config `json:"tasks"`
+	Env   []string      `json:"env"`
 }
 
 type workspace struct {
 	id          string
+	name        string
 	taskConfigs []task.Config
+	env         []string
 
 	tasks map[string]task.Task
 	store state.Store
@@ -42,7 +48,9 @@ func New(store state.Store, config Config) (Workspace, error) {
 	log.Debug("creating workspace", log.Data{"id": config.ID, "tasks": config.Tasks})
 	ws := &workspace{
 		id:          config.ID,
+		name:        config.Name,
 		taskConfigs: config.Tasks,
+		env:         config.Env,
 		tasks:       make(map[string]task.Task),
 	}
 
@@ -56,7 +64,7 @@ func New(store state.Store, config Config) (Workspace, error) {
 		if err != nil {
 			return nil, err
 		}
-		t2, err := task.NewTask(s, t, ws.log)
+		t2, err := task.NewTask(s, t.WithEnv(ws.Env()), ws.log)
 		if err != nil {
 			return nil, err
 		}
@@ -72,6 +80,14 @@ func (ws *workspace) ID() string {
 
 func (ws *workspace) Tasks() map[string]task.Task {
 	return ws.tasks
+}
+
+func (ws *workspace) Name() string {
+	return ws.name
+}
+
+func (ws *workspace) Env() []string {
+	return ws.env
 }
 
 func (ws *workspace) log(event string, data log.Data) {

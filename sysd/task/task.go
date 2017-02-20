@@ -30,28 +30,40 @@ type Task interface {
 	Instance() Instance
 
 	ID() string
+	Name() string
 	Service() bool
 	Driver() string
 	Command() string
 	Args() []string
+	Env() []string
 }
 
 // Config ...
 type Config struct {
-	ID      string
-	Service bool
-	Driver  string
-	Command string
-	Args    []string
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Service bool     `json:"service"`
+	Driver  string   `json:"driver"`
+	Command string   `json:"command"`
+	Args    []string `json:"args"`
+	Env     []string `json:"env"`
+}
+
+// WithEnv ...
+func (c Config) WithEnv(env []string) Config {
+	c2 := Config(c)
+	c2.Env = append(env, c2.Env...)
+	return c2
 }
 
 type task struct {
 	taskID  string
+	name    string
 	service bool
 	driver  string
 	command string
 	args    []string
-	env     map[string]string
+	env     []string
 	logger  func(event string, data log.Data)
 
 	store         state.Store
@@ -70,10 +82,12 @@ func NewTask(store state.Store, config Config, logger func(event string, data lo
 	var t *task
 	t = &task{
 		taskID:  config.ID,
+		name:    config.Name,
 		service: config.Service,
 		driver:  config.Driver,
 		command: config.Command,
 		args:    config.Args,
+		env:     config.Env,
 		logger:  logger,
 		stopped: false,
 		tempFile: func(name string) (*os.File, error) {
@@ -105,6 +119,10 @@ func (t *task) ID() string {
 	return t.taskID
 }
 
+func (t *task) Name() string {
+	return t.name
+}
+
 func (t *task) Service() bool {
 	return t.service
 }
@@ -119,6 +137,10 @@ func (t *task) Command() string {
 
 func (t *task) Args() []string {
 	return t.args
+}
+
+func (t *task) Env() []string {
+	return t.env
 }
 
 func (t *task) Recover() (bool, error) {
@@ -190,8 +212,8 @@ func (t *task) Start() error {
 
 func (t *task) getEnv() []string {
 	var env []string
-	for k, v := range t.env {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	for _, v := range t.env {
+		env = append(env, fmt.Sprintf("%s", v))
 	}
 	return env
 }

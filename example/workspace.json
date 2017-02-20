@@ -1,14 +1,9 @@
 {
   "id": "example-workspace",
   "name": "Example workspace",
-  "retention": {
-    "tasks": {
-      "type": "retain"
-    },
-    "logs": {
-      "type": "retain"
-    }
-  },
+  "env": [
+    "FOO=1"
+  ],
   "tasks": [
     {
       "id": "sleep",
@@ -17,9 +12,9 @@
       "driver": "exec",
       "command": "/bin/sleep",
       "args": [ "10" ],
-      "env": {
-        "TEST_ENV": "foo"
-      }
+      "env": [
+        "BAR=2"
+      ]
     },
     {
       "id": "echo",
@@ -28,9 +23,9 @@
       "driver": "exec",
       "command": "echo",
       "args": [ "something" ],
-      "env": {
-        "TEST_ENV": "bar"
-      }
+      "env": [
+        "BAR=3"
+      ]
     }
   ]
 }
