@@ -20,7 +20,7 @@
       "id": "echo",
       "name": "Echo something",
       "service": false,
-      "driver": "exec",
+      "driver": "shell",
       "command": "echo",
       "args": [ "something" ],
       "env": [
