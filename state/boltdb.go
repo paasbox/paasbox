@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/ian-kent/service.go/log"
@@ -20,7 +21,7 @@ type boltDBStore struct {
 
 // NewBoltDB ...
 func NewBoltDB(file string) (Storage, error) {
-	boltDB, err := bolt.Open(file, 0600, nil)
+	boltDB, err := bolt.Open(file, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, err
 	}

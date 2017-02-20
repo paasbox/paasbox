@@ -46,13 +46,15 @@ var (
 func New(exitCh chan struct{}) Sysd {
 	log.Debug("starting sysd", nil)
 
+	var workspaceFile string
+
 	if len(os.Args) < 2 {
-		log.Error(errMissingFilenameArgument, nil)
-		os.Exit(1)
-		return nil
+		workspaceFile = "workspace.json"
+	} else {
+		workspaceFile = os.Args[1]
 	}
 
-	b, err := ioutil.ReadFile(os.Args[1])
+	b, err := ioutil.ReadFile(workspaceFile)
 	if err != nil {
 		log.Error(errReadFileError, log.Data{"reason": err})
 		os.Exit(2)
