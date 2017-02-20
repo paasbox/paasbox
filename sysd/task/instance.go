@@ -195,6 +195,11 @@ func (i *instance) waitForChildInstance() {
 			return
 		}
 
+		err = i.store.Set("exitStatus", fmt.Sprintf("%d", status.ExitStatus()))
+		if err != nil {
+			i.error(errUpdateBoltDBFailed, err, log.Data{"exitStatus": status.ExitStatus()})
+		}
+
 		i.log("process finished", log.Data{"status": status, "rusage": rusage, "pid1": pid})
 	}()
 }
