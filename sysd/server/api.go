@@ -32,6 +32,9 @@ type tasksOutputTask struct {
 	TaskURL      string `json:"task_url"`
 	WorkspaceURL string `json:"workspace_url"`
 	InstancesURL string `json:"instances_url"`
+
+	CurrentInstanceID  string `json:"current_instance_id,omitempty"`
+	CurrentInstanceURL string `json:"current_instance_url,omitempty"`
 }
 
 func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
@@ -97,6 +100,12 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 	}
 
 	for _, t := range ws.Tasks() {
+		i := t.Instance()
+		var instanceID, instanceURL string
+		if i != nil {
+			instanceID = i.InstanceID()
+			instanceURL = fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), instanceID)
+		}
 		o.Tasks = append(o.Tasks, tasksOutputTask{
 			ID:      t.ID(),
 			Service: t.Service(),
@@ -107,6 +116,9 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 			InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
 			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
+
+			CurrentInstanceID:  instanceID,
+			CurrentInstanceURL: instanceURL,
 		})
 	}
 
@@ -138,6 +150,13 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	i := t.Instance()
+	var instanceID, instanceURL string
+	if i != nil {
+		instanceID = i.InstanceID()
+		instanceURL = fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), instanceID)
+	}
+
 	o := tasksOutputTask{
 		ID:      t.ID(),
 		Service: t.Service(),
@@ -148,6 +167,9 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 		InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
 		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
+
+		CurrentInstanceID:  instanceID,
+		CurrentInstanceURL: instanceURL,
 	}
 
 	b, err := json.Marshal(o)

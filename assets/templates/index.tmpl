@@ -2,8 +2,22 @@
 <html>
   <head>
     <title>paasbox</title>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script>
+      $(document).ready(function() {
+        $.get("/workspaces", function(data) {
+          console.log(data)
+          var l = $('#workspaces');
+          $.each(data.workspaces, function(k, v) {
+            l.append($('<li>' + v.id + '</li>'));
+          })
+        })
+      })
+    </script>
   </head>
   <body>
-
+    <h1>workspaces</h1>
+    <ul id="workspaces">
+    </ul>
   </body>
 </html>
