@@ -15,22 +15,10 @@ paasbox
 
 Stuff to remember when writing documentation:
 
-#### Task types
-
-- `task` - a one-off or recurring task
-- `service` - a long-running task
-
 #### Drivers
 
 - `exec` - a native OS process
 - `shell` - currently executes using `/bin/sh -c`
-
-#### Retention
-
-Retention strategy types:
-
-- `retain`
-- `discard`
 
 ### Licence
 
