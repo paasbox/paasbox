@@ -3,6 +3,14 @@ paasbox
 
 `paasbox` is a rewrite of [websysd](https://github.com/websysd/websysd) - and currently a work in progress.
 
+### Getting started
+
+Start paasbox with the example workspace:
+
+- `go get github.com/paasbox/paasbox/cmd/pb`
+- `curl -O https://raw.githubusercontent.com/paasbox/paasbox/master/example/workspace.json`
+- `pb`
+
 ### Todo
 
 - support multiple instances of a task
