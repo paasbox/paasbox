@@ -58,6 +58,8 @@ func (s *srv) Start(bindAddr string) error {
 	p.Delete("/workspaces/{workspace_id}/tasks/{task_id}", TODO /* delete task */)
 	p.Put("/workspaces/{workspace_id}/tasks/{task_id}", TODO /* update task */)
 	p.Get("/workspaces/{workspace_id}/tasks/{task_id}", s.task /* get task */)
+	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/stdout", TODO /* get task stdout */)
+	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/stderr", TODO /* get task stderr */)
 
 	p.Delete("/workspaces/{workspace_id}/tasks", TODO /* delete all tasks */)
 	p.Post("/workspaces/{workspace_id}/tasks", TODO /* create task */)

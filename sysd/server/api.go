@@ -517,7 +517,11 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			flusher = f
 		}
 		for line := range t.Lines {
-			w.Write([]byte(line.Text + "\n"))
+			err := w.Write([]byte(line.Text + "\n"))
+			if err != nil {
+				t.Stop()
+				break
+			}
 			if flusher != nil {
 				flusher.Flush()
 			}
