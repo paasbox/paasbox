@@ -47,31 +47,31 @@ func (s *srv) Start(bindAddr string) error {
 	p := pat.New()
 	var TODO = func(w http.ResponseWriter, req *http.Request) { w.WriteHeader(http.StatusNotImplemented) }
 
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stdout", s.getInstanceStdout /* get instance stdout */)
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stderr", s.getInstanceStderr /* get instance stderr */)
-	p.Post("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stop", s.stopInstance /* stop instance */)
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}", s.instance /* get instance */)
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances", s.instances /* list instances */)
+	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stdout", s.getInstanceStdout /* get instance stdout */)
+	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stderr", s.getInstanceStderr /* get instance stderr */)
+	p.Post("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stop", s.stopInstance /* stop instance */)
+	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}", s.instance /* get instance */)
+	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/instances", s.instances /* list instances */)
 
-	p.Post("/workspaces/{workspace_id}/tasks/{task_id}/start", s.startTask /* start task */)
+	p.Post("/api/workspaces/{workspace_id}/tasks/{task_id}/start", s.startTask /* start task */)
 
-	p.Delete("/workspaces/{workspace_id}/tasks/{task_id}", TODO /* delete task */)
-	p.Put("/workspaces/{workspace_id}/tasks/{task_id}", TODO /* update task */)
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}", s.task /* get task */)
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/stdout", TODO /* get task stdout */)
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/stderr", TODO /* get task stderr */)
+	p.Delete("/api/workspaces/{workspace_id}/tasks/{task_id}", TODO /* delete task */)
+	p.Put("/api/workspaces/{workspace_id}/tasks/{task_id}", TODO /* update task */)
+	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}", s.task /* get task */)
+	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/stdout", TODO /* get task stdout */)
+	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/stderr", TODO /* get task stderr */)
 
-	p.Delete("/workspaces/{workspace_id}/tasks", TODO /* delete all tasks */)
-	p.Post("/workspaces/{workspace_id}/tasks", TODO /* create task */)
-	p.Get("/workspaces/{workspace_id}/tasks", s.tasks /* list tasks */)
+	p.Delete("/api/workspaces/{workspace_id}/tasks", TODO /* delete all tasks */)
+	p.Post("/api/workspaces/{workspace_id}/tasks", TODO /* create task */)
+	p.Get("/api/workspaces/{workspace_id}/tasks", s.tasks /* list tasks */)
 
-	p.Delete("/workspaces/{workspace_id}", TODO /* delete workspace */)
-	p.Put("/workspaces/{workspace_id}", TODO /* update workspace */)
-	p.Get("/workspaces/{workspace_id}", s.workspace /* get workspace */)
+	p.Delete("/api/workspaces/{workspace_id}", TODO /* delete workspace */)
+	p.Put("/api/workspaces/{workspace_id}", TODO /* update workspace */)
+	p.Get("/api/workspaces/{workspace_id}", s.workspace /* get workspace */)
 
-	p.Delete("/workspaces", TODO /* delete all workspaces */)
-	p.Post("/workspaces", TODO /* create workspace */)
-	p.Get("/workspaces", s.workspaces /* list workspaces */)
+	p.Delete("/api/workspaces", TODO /* delete all workspaces */)
+	p.Post("/api/workspaces", TODO /* create workspace */)
+	p.Get("/api/workspaces", s.workspaces /* list workspaces */)
 
 	p.Get("/", s.home)
 

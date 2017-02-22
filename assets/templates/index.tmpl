@@ -5,11 +5,18 @@
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script>
       $(document).ready(function() {
-        $.get("/workspaces", function(data) {
-          console.log(data)
+        $.get("/api/workspaces", function(data) {
           var l = $('#workspaces');
           $.each(data.workspaces, function(k, v) {
             l.append($('<li>' + v.id + '</li>'));
+            var list = $('<ol></ol>')
+            $.get("/api/workspaces/" + v.id + "/tasks", function(data) {
+              $.each(data.tasks, function(k, v) {
+                var task = $('<li>' + v.id + '</li>');
+                list.append(task)
+              })
+            })
+            l.append(list);
           })
         })
       })
