@@ -81,6 +81,24 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 		instanceID:     instanceID,
 		store:          store,
 	}
+
+	err := store.Set("driver", config.Driver)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.Set("command", config.Command)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.SetArray("args", config.Args)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.SetArray("env", config.Env)
+	if err != nil {
+		log.Error(err, nil)
+	}
+
 	return i
 }
 

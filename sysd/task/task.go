@@ -26,7 +26,8 @@ type Task interface {
 	Start() error
 	Stop() error
 	Recover() (ok bool, err error)
-	Instance() Instance
+	CurrentInstance() Instance
+	Instance(id string) (Instance, error)
 	Instances(start, count uint) []Instance
 
 	ID() string
@@ -126,8 +127,12 @@ func NewTask(store state.Store, config Config, logger func(event string, data lo
 	return t, nil
 }
 
-func (t *task) Instance() Instance {
+func (t *task) CurrentInstance() Instance {
 	return t.instance
+}
+
+func (t *task) Instance(id string) (Instance, error) {
+	return t.getArchivedInstance(id)
 }
 
 func (t *task) getArchivedInstance(id string) (Instance, error) {
@@ -136,11 +141,36 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		return nil, err
 	}
 
-	// FIXME handle errors
-	driver, _ := instanceStorage.Get("driver")
-	command, _ := instanceStorage.Get("command")
-	args, _ := instanceStorage.GetArray("args")
-	env, _ := instanceStorage.GetArray("env")
+	driver, err := instanceStorage.Get("driver")
+	if err != nil {
+		log.Error(err, nil)
+	}
+	command, err := instanceStorage.Get("command")
+	if err != nil {
+		log.Error(err, nil)
+	}
+	args, err := instanceStorage.GetArray("args")
+	if err != nil {
+		log.Error(err, nil)
+	}
+	env, err := instanceStorage.GetArray("env")
+	if err != nil {
+		log.Error(err, nil)
+	}
+	stdout, err := instanceStorage.Get("stdout")
+	if err != nil {
+		log.Error(err, nil)
+	}
+	stderr, err := instanceStorage.Get("stderr")
+	if err != nil {
+		log.Error(err, nil)
+	}
+	pid, err := instanceStorage.Get("pid")
+	if err != nil {
+		log.Error(err, nil)
+	}
+
+	pidN, _ := strconv.Atoi(pid)
 
 	i := &instance{
 		//doneCh:         config.DoneCh,
@@ -152,6 +182,9 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		env:     env,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
+		stderr:     stderr,
+		stdout:     stdout,
+		pid:        pidN,
 		//store:          store,
 	}
 	return i, nil
@@ -159,7 +192,7 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 
 func (t *task) Instances(start, count uint) []Instance {
 	var instances []Instance
-	for i := start + 1; i <= count; i++ {
+	for i := start + 1; i <= start+count; i++ {
 		instance, err := t.getArchivedInstance(fmt.Sprintf("%d", i))
 		if err != nil {
 			log.Error(err, nil)

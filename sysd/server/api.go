@@ -133,7 +133,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 	}
 
 	for _, t := range ws.Tasks() {
-		i := t.Instance()
+		i := t.CurrentInstance()
 		var instanceID, instanceURL string
 		if i != nil {
 			instanceID = i.ID()
@@ -185,7 +185,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	i := t.Instance()
+	i := t.CurrentInstance()
 	var instanceID, instanceURL string
 	if i != nil {
 		instanceID = i.ID()
@@ -300,6 +300,63 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), task.ID()),
 			InstanceURL:  fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), task.ID(), i.ID()),
 		})
+	}
+
+	b, err := json.Marshal(o)
+	if err != nil {
+		log.ErrorR(req, err, nil)
+		w.WriteHeader(500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+}
+
+func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":workspace_id")
+	taskID := req.URL.Query().Get(":task_id")
+	instanceID := req.URL.Query().Get(":instance_id")
+
+	ws, ok := s.sysd.Workspace(wsID)
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	task, ok := ws.Tasks()[taskID]
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	i, err := task.Instance(instanceID)
+	if err != nil {
+		log.ErrorR(req, err, nil)
+		w.WriteHeader(500)
+		return
+	}
+	if i == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	o := instancesOutputInstance{
+		ID: i.ID(),
+
+		Stdout:    i.Stdout(),
+		StdoutURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s/stdout", ws.ID(), task.ID(), i.ID()),
+		Stderr:    i.Stderr(),
+		StderrURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s/stdout", ws.ID(), task.ID(), i.ID()),
+		Pid:       i.Pid(),
+
+		Driver:  i.Driver(),
+		Command: i.Command(),
+		Args:    i.Args(),
+		Env:     i.Env(),
+
+		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
+		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), task.ID()),
+		InstanceURL:  fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), task.ID(), i.ID()),
 	}
 
 	b, err := json.Marshal(o)
