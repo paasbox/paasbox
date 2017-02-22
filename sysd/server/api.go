@@ -256,6 +256,12 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 	wsID := req.URL.Query().Get(":workspace_id")
 	taskID := req.URL.Query().Get(":task_id")
 
+	order := req.URL.Query().Get("order")
+	order = strings.ToLower(order)
+	if order != "asc" && order != "desc" {
+		order = "desc"
+	}
+
 	ws, ok := s.sysd.Workspace(wsID)
 	if !ok {
 		w.WriteHeader(404)
@@ -314,7 +320,13 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 		o.PreviousPageURL = fmt.Sprintf("/workspaces/%s/tasks/%s/instances?start=%d&count=%d", wsID, taskID, prevStart, count)
 	}
 
-	for _, i := range task.Instances(uint(start), uint(count)) {
+	desc := true
+	if order == "asc" {
+		desc = false
+	}
+	instances := task.Instances(uint(start), uint(count), desc)
+
+	for _, i := range instances {
 		o.Instances = append(o.Instances, instancesOutputInstance{
 			ID: i.ID(),
 

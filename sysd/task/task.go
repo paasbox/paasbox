@@ -28,7 +28,7 @@ type Task interface {
 	Recover() (ok bool, err error)
 	CurrentInstance() Instance
 	Instance(id string) (Instance, error)
-	Instances(start, count uint) []Instance
+	Instances(start, count uint, desc bool) []Instance
 
 	ID() string
 	Name() string
@@ -200,14 +200,30 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	return i, nil
 }
 
-func (t *task) Instances(start, count uint) []Instance {
+func (t *task) Instances(start, count uint, desc bool) []Instance {
 	var instances []Instance
-	for i := start + 1; i <= start+count; i++ {
-		instance, err := t.getArchivedInstance(fmt.Sprintf("%d", i))
-		if err != nil {
-			log.Error(err, nil)
+	if desc {
+		for i := t.ExecCount() - int(start); i > t.ExecCount()-int(start)-int(count); i-- {
+			instance, err := t.getArchivedInstance(fmt.Sprintf("%d", i))
+			if err != nil {
+				log.Error(err, nil)
+				continue
+			}
+			if instance != nil {
+				instances = append(instances, instance)
+			}
 		}
-		instances = append(instances, instance)
+	} else {
+		for i := start + 1; i <= start+count; i++ {
+			instance, err := t.getArchivedInstance(fmt.Sprintf("%d", i))
+			if err != nil {
+				log.Error(err, nil)
+				continue
+			}
+			if instance != nil {
+				instances = append(instances, instance)
+			}
+		}
 	}
 	return instances
 }
