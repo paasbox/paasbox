@@ -13,7 +13,7 @@
       "command": "/bin/sleep",
       "args": [ "10" ],
       "env": [
-        "BAR=2"
+        "BAR=1"
       ]
     },
     {
@@ -23,7 +23,7 @@
       "driver": "exec",
       "command": "go run example/main.go",
       "env": [
-        "BAR=3"
+        "BAR=2"
       ]
     },
     {
