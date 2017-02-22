@@ -4,9 +4,9 @@ import "fmt"
 
 const (
 	// Version is the version
-	Version = "2.0.0-alpha"
+	Version = "0.1.0-alpha"
 	// BuildDate is the build date
-	BuildDate = "2017-02-22 22:59"
+	BuildDate = "2017-02-22 23:02"
 )
 
 // String returns a formatted version and build date string

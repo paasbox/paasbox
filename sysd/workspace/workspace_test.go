@@ -59,7 +59,7 @@ func TestNewWorkspace(t *testing.T) {
 
 		wsTask := ws.tasks["taskID"]
 
-		i := wsTask.Instance()
+		i := wsTask.CurrentInstance()
 		So(i, ShouldBeNil)
 	})
 
@@ -80,16 +80,18 @@ func TestNewWorkspace(t *testing.T) {
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]
-		i := task.Instance()
+		i := task.CurrentInstance()
 		So(i, ShouldBeNil)
+		So(err, ShouldBeNil)
 
 		err = ws.Start()
 		So(err, ShouldBeNil)
 
 		time.Sleep(time.Millisecond * 250)
 
-		i = task.Instance()
+		i = task.CurrentInstance()
 		So(i, ShouldNotBeNil)
+		So(err, ShouldBeNil)
 		So(i.Pid(), ShouldBeGreaterThan, 0)
 
 		err = ws.Shutdown()
@@ -115,7 +117,7 @@ func TestNewWorkspace(t *testing.T) {
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]
-		i := task.Instance()
+		i := task.CurrentInstance()
 		So(i, ShouldBeNil)
 
 		So(task.Env(), ShouldResemble, []string{"FOO=1", "BAR=2"})
