@@ -1,6 +1,8 @@
 package workspace
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -13,11 +15,26 @@ func TestNewWorkspace(t *testing.T) {
 	s := state.NewMock(func(string) string { return "" }, func(string, string) {})
 	storage, _ := s.Wrap("workspaces")
 
+	logTemp, err := ioutil.TempDir("", "paasbox")
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+		return
+	}
+
+	defer func() {
+		err := os.RemoveAll(logTemp)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
+
 	Convey("New creates a new workspace with correct field data", t, func() {
 		cfg := Config{
-			ID:   "example-workspace",
-			Name: "Example workspace",
-			Env:  []string{"FOO=bar"},
+			ID:      "example-workspace",
+			Name:    "Example workspace",
+			Env:     []string{"FOO=bar"},
+			LogPath: logTemp,
 			Tasks: []task.Config{
 				task.Config{
 					ID:      "taskID",
@@ -48,6 +65,7 @@ func TestNewWorkspace(t *testing.T) {
 
 	Convey("Start starts a workspace", t, func() {
 		cfg := Config{
+			LogPath: logTemp,
 			Tasks: []task.Config{
 				task.Config{
 					ID:      "sleep",
@@ -80,7 +98,8 @@ func TestNewWorkspace(t *testing.T) {
 
 	Convey("Workspace env is passed through", t, func() {
 		cfg := Config{
-			Env: []string{"FOO=1"},
+			LogPath: logTemp,
+			Env:     []string{"FOO=1"},
 			Tasks: []task.Config{
 				task.Config{
 					ID:      "sleep",

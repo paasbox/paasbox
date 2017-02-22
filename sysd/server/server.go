@@ -50,7 +50,7 @@ func (s *srv) Start(bindAddr string) error {
 
 	p.Post("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stop", TODO /* stop instance */)
 	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}", TODO /* get instance */)
-	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances", TODO /* list instances */)
+	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances", s.instances /* list instances */)
 
 	p.Post("/workspaces/{workspace_id}/tasks/{task_id}/start", TODO /* start task */)
 

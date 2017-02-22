@@ -1,6 +1,7 @@
 package state
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -65,6 +66,19 @@ func (b *boltDBStore) Get(key string) (s string, err error) {
 	return
 }
 
+func (b *boltDBStore) GetArray(key string) (s []string, err error) {
+	log.Debug("boltdb: getArray", log.Data{"prefix": b.prefix, "key": key})
+
+	var v string
+	v, err = b.Get(key)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal([]byte(v), &s)
+	return
+}
+
 func (b *boltDBStore) Set(key string, value string) (err error) {
 	log.Debug("boltdb: set", log.Data{"prefix": b.prefix, "key": key, "value": value})
 
@@ -73,6 +87,18 @@ func (b *boltDBStore) Set(key string, value string) (err error) {
 		return bucket.Put([]byte(key), []byte(value))
 	})
 	return
+}
+
+func (b *boltDBStore) SetArray(key string, value []string) (err error) {
+	log.Debug("boltdb: setArray", log.Data{"prefix": b.prefix, "key": key, "value": value})
+
+	var d []byte
+	d, err = json.Marshal(&value)
+	if err != nil {
+		return
+	}
+
+	return b.Set(key, string(d))
 }
 
 func (b *boltDBStore) Wrap(name string) (Store, error) {

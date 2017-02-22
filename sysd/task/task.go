@@ -3,12 +3,11 @@ package task
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
+	"sync"
 	"syscall"
 
-	"github.com/google/uuid"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
 )
@@ -28,6 +27,7 @@ type Task interface {
 	Stop() error
 	Recover() (ok bool, err error)
 	Instance() Instance
+	Instances(start, count uint) []Instance
 
 	ID() string
 	Name() string
@@ -36,6 +36,8 @@ type Task interface {
 	Command() string
 	Args() []string
 	Env() []string
+
+	ExecCount() int
 }
 
 // Config ...
@@ -68,30 +70,32 @@ type task struct {
 
 	store         state.Store
 	instanceStore state.Store
-	tempFile      func(name string) (*os.File, error)
+	fileCreator   func(name string) (*os.File, error)
 	instance      Instance
 	doneCh        chan struct{}
 	stopped       bool
 	execCount     int
+	execMutex     *sync.Mutex
 }
 
 var _ Task = &task{}
 
 // NewTask ...
-func NewTask(store state.Store, config Config, logger func(event string, data log.Data)) (Task, error) {
+func NewTask(store state.Store, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
 	var t *task
 	t = &task{
-		taskID:  config.ID,
-		name:    config.Name,
-		service: config.Service,
-		driver:  config.Driver,
-		command: config.Command,
-		args:    config.Args,
-		env:     config.Env,
-		logger:  logger,
-		stopped: false,
-		tempFile: func(name string) (*os.File, error) {
-			return ioutil.TempFile("", t.instance.InstanceID()+"-"+name)
+		taskID:    config.ID,
+		name:      config.Name,
+		service:   config.Service,
+		driver:    config.Driver,
+		command:   config.Command,
+		args:      config.Args,
+		env:       config.Env,
+		logger:    logger,
+		stopped:   false,
+		execMutex: new(sync.Mutex),
+		fileCreator: func(name string) (*os.File, error) {
+			return fileCreator(t.instance.ID(), name)
 		},
 		store: store,
 	}
@@ -100,6 +104,17 @@ func NewTask(store state.Store, config Config, logger func(event string, data lo
 		return nil, err
 	}
 	t.instanceStore = instanceStore
+
+	c, err := t.store.Get("execCount")
+	if err != nil {
+		return nil, err
+	}
+	if len(c) > 0 {
+		t.execCount, err = strconv.Atoi(c)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	logger("created task", log.Data{
 		"id":      t.taskID,
@@ -113,6 +128,49 @@ func NewTask(store state.Store, config Config, logger func(event string, data lo
 
 func (t *task) Instance() Instance {
 	return t.instance
+}
+
+func (t *task) getArchivedInstance(id string) (Instance, error) {
+	instanceStorage, err := t.instanceStore.Wrap(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME handle errors
+	driver, _ := instanceStorage.Get("driver")
+	command, _ := instanceStorage.Get("command")
+	args, _ := instanceStorage.GetArray("args")
+	env, _ := instanceStorage.GetArray("env")
+
+	i := &instance{
+		//doneCh:         config.DoneCh,
+		//logger:         config.Logger,
+		//fileCreator:    config.FileCreator,
+		driver:  driver,
+		command: command,
+		args:    args,
+		env:     env,
+		//signalInterval: time.Second * 10,
+		instanceID: id,
+		//store:          store,
+	}
+	return i, nil
+}
+
+func (t *task) Instances(start, count uint) []Instance {
+	var instances []Instance
+	for i := start + 1; i <= count; i++ {
+		instance, err := t.getArchivedInstance(fmt.Sprintf("%d", i))
+		if err != nil {
+			log.Error(err, nil)
+		}
+		instances = append(instances, instance)
+	}
+	return instances
+}
+
+func (t *task) ExecCount() int {
+	return t.execCount
 }
 
 func (t *task) ID() string {
@@ -182,7 +240,7 @@ func (t *task) Recover() (bool, error) {
 	}
 
 	t.doneCh = make(chan struct{})
-	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.tempFile, t.driver, t.command, t.args, nil}, proc)
+	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil}, proc)
 
 	return true, t.waitLoop()
 }
@@ -192,20 +250,29 @@ func (t *task) Start() error {
 		return errAlreadyStarted
 	}
 
-	instanceID := uuid.New().String()
+	var instanceID string
+	t.execMutex.Lock()
+	t.execCount++
+	instanceID = fmt.Sprintf("%d", t.execCount)
+	t.execMutex.Unlock()
+
+	err := t.store.Set("instanceID", instanceID)
+	if err != nil {
+		return err
+	}
+
+	err = t.store.Set("execCount", fmt.Sprintf("%d", t.execCount))
+	if err != nil {
+		return err
+	}
+
 	instanceStore, err := t.instanceStore.Wrap(instanceID)
 	if err != nil {
 		return err
 	}
 
-	err = t.store.Set("instanceID", instanceID)
-	if err != nil {
-		return err
-	}
-
-	t.execCount++
 	t.doneCh = make(chan struct{})
-	t.instance = NewInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.tempFile, t.driver, t.command, t.args, t.getEnv()})
+	t.instance = NewInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv()})
 
 	return t.waitLoop()
 }

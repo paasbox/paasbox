@@ -2,6 +2,8 @@ package task
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -14,14 +16,19 @@ func TestNewTask(t *testing.T) {
 	s := state.NewMock(func(string) string { return "" }, func(string, string) {})
 	storage, _ := s.Wrap("workspaces")
 
+	fileCreator := func(instanceID, name string) (*os.File, error) {
+		return ioutil.TempFile("", instanceID+"-"+name)
+	}
+
 	Convey("NewTask creates a new task with correct field data", t, func() {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", "Example task", false, "driver", "command", []string{"args"}, []string{"FOO=bar"}}, logger)
-		t2 := t.(*task)
+		t, err := NewTask(storage, Config{"taskID", "Example task", false, "driver", "command", []string{"args"}, []string{"FOO=bar"}}, logger, fileCreator)
 		So(err, ShouldBeNil)
-		So(t2, ShouldNotBeNil)
+
+		So(t, ShouldNotBeNil)
+		t2 := t.(*task)
 		So(t2.taskID, ShouldEqual, "taskID")
 		So(t2.name, ShouldEqual, "Example task")
 		So(t2.driver, ShouldEqual, "driver")
@@ -35,10 +42,10 @@ func TestNewTask(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "echo", []string{"foo"}, []string{}}, logger)
-		t2 := t.(*task)
+		t, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "echo", []string{"foo"}, []string{}}, logger, fileCreator)
 		So(err, ShouldBeNil)
-		So(t2, ShouldNotBeNil)
+		So(t, ShouldNotBeNil)
+		t2 := t.(*task)
 		So(t2.instance, ShouldBeNil)
 		So(t2.doneCh, ShouldBeNil)
 
@@ -54,7 +61,7 @@ func TestNewTask(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "sleep", []string{"2"}, []string{}}, logger)
+		t, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "sleep", []string{"2"}, []string{}}, logger, fileCreator)
 		So(err, ShouldBeNil)
 		t2 := t.(*task)
 		So(t2, ShouldNotBeNil)
@@ -66,7 +73,7 @@ func TestNewTask(t *testing.T) {
 		So(t2.instance, ShouldNotBeNil)
 		So(t2.doneCh, ShouldNotBeNil)
 
-		t3, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "sleep", []string{"2"}, []string{}}, logger)
+		t3, err := NewTask(storage, Config{"taskID", "Example task", false, "shell", "sleep", []string{"2"}, []string{}}, logger, fileCreator)
 		So(err, ShouldBeNil)
 		t4 := t3.(*task)
 		So(t4, ShouldNotBeNil)
@@ -79,7 +86,7 @@ func TestNewTask(t *testing.T) {
 			case "pid":
 				return fmt.Sprintf("%d", i.process.Pid)
 			case "instanceID":
-				return t2.instance.InstanceID()
+				return t2.instance.ID()
 			}
 			return ""
 		}
@@ -98,7 +105,7 @@ func TestNewTask(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t, err := NewTask(storage, Config{"taskID", "Example task", true, "shell", "sleep", []string{"1"}, []string{}}, logger)
+		t, err := NewTask(storage, Config{"taskID", "Example task", true, "shell", "sleep", []string{"1"}, []string{}}, logger, fileCreator)
 		So(err, ShouldBeNil)
 		t2 := t.(*task)
 		So(t2, ShouldNotBeNil)

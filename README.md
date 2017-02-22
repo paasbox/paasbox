@@ -13,6 +13,8 @@ Start paasbox with the example workspace:
 
 ### Todo
 
+- NEXT: use sequence as instance key, to support []Instance on {task_id}/instances endpoint
+
 - support multiple instances of a task
 - handle retention strategy for tasks/logs
 - load workspace from http(s)/s3/gist(?)

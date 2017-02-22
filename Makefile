@@ -2,7 +2,9 @@ VERSION := 2.0.0-alpha
 BUILD_DATE := `date +%Y-%m-%d\ %H:%M`
 VERSIONFILE := version/version.go
 
-all: version test
+all: build test
+
+build: version
 	go install -tags 'production' ./cmd/...
 
 test: generate
@@ -40,7 +42,7 @@ generate: ${GOPATH}/bin/go-bindata
 ${GOPATH}/bin/go-bindata:
 	go get -u github.com/jteeuwen/go-bindata/go-bindata
 
-debug: all
+debug: build
 	go build -tags 'debug' -o ./build/pb ./cmd/pb
 	HUMAN_LOG=1 ./build/pb example/workspace.json
 

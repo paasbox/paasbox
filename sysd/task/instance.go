@@ -20,21 +20,26 @@ type Instance interface {
 	Start() error
 	Stop() error
 
-	InstanceID() string
+	ID() string
 	Stdout() string
 	Stderr() string
 	Pid() int
+
+	Driver() string
+	Command() string
+	Args() []string
+	Env() []string
 }
 
 // InstanceConfig ...
 type InstanceConfig struct {
-	DoneCh   chan struct{}
-	Logger   func(event string, data log.Data)
-	TempFile func(name string) (*os.File, error)
-	Driver   string
-	Command  string
-	Args     []string
-	Env      []string
+	DoneCh      chan struct{}
+	Logger      func(event string, data log.Data)
+	FileCreator func(name string) (*os.File, error)
+	Driver      string
+	Command     string
+	Args        []string
+	Env         []string
 }
 
 var _ Instance = &instance{}
@@ -42,13 +47,13 @@ var _ Instance = &instance{}
 type instance struct {
 	instanceID string
 
-	doneCh   chan struct{}
-	logger   func(event string, data log.Data)
-	tempFile func(name string) (*os.File, error)
-	driver   string
-	command  string
-	args     []string
-	env      []string
+	doneCh      chan struct{}
+	logger      func(event string, data log.Data)
+	fileCreator func(name string) (*os.File, error)
+	driver      string
+	command     string
+	args        []string
+	env         []string
 
 	store     state.Store
 	process   *os.Process
@@ -67,7 +72,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	i := &instance{
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,
-		tempFile:       config.TempFile,
+		fileCreator:    config.FileCreator,
 		driver:         config.Driver,
 		command:        config.Command,
 		args:           config.Args,
@@ -94,7 +99,7 @@ func RecoveredInstance(instanceID string, store state.Store, config InstanceConf
 	return i
 }
 
-func (i *instance) InstanceID() string {
+func (i *instance) ID() string {
 	return i.instanceID
 }
 
@@ -108,6 +113,22 @@ func (i *instance) Stderr() string {
 
 func (i *instance) Pid() int {
 	return i.pid
+}
+
+func (i *instance) Driver() string {
+	return i.driver
+}
+
+func (i *instance) Command() string {
+	return i.command
+}
+
+func (i *instance) Args() []string {
+	return i.args
+}
+
+func (i *instance) Env() []string {
+	return i.env
 }
 
 func (i *instance) Start() error {
@@ -263,7 +284,7 @@ func (i *instance) start() error {
 		}
 		i.log("created stdin file", log.Data{"stdin": stdin.Name()})
 
-		stdout, err := i.tempFile("stdout")
+		stdout, err := i.fileCreator("stdout")
 		if err != nil {
 			stdin.Close()
 			return err
@@ -276,7 +297,7 @@ func (i *instance) start() error {
 			return err
 		}
 
-		stderr, err := i.tempFile("stderr")
+		stderr, err := i.fileCreator("stderr")
 		if err != nil {
 			stdin.Close()
 			stdout.Close()

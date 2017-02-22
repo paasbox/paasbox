@@ -10,5 +10,9 @@ type Storage interface {
 type Store interface {
 	Get(name string) (string, error)
 	Set(name string, value string) error
+
+	GetArray(name string) ([]string, error)
+	SetArray(name string, value []string) error
+
 	Wrap(name string) (Store, error)
 }

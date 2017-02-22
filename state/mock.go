@@ -1,5 +1,7 @@
 package state
 
+import "encoding/json"
+
 var _ Storage = &MockStorage{}
 var _ Store = &MockStore{}
 
@@ -39,6 +41,22 @@ func (m *MockStore) Get(key string) (s string, err error) {
 // Set ...
 func (m *MockStore) Set(key string, value string) (err error) {
 	m.Storage.Set(key, value)
+	return
+}
+
+// GetArray ...
+func (m *MockStore) GetArray(key string) (s []string, err error) {
+	err = json.Unmarshal([]byte(m.Storage.Get(key)), &s)
+	return
+}
+
+// SetArray ...
+func (m *MockStore) SetArray(key string, value []string) (err error) {
+	v, err := json.Marshal(&value)
+	if err != nil {
+		return err
+	}
+	m.Storage.Set(key, string(v))
 	return
 }
 
