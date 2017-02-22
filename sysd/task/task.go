@@ -332,8 +332,8 @@ func (t *task) waitLoop() error {
 	}
 	go func() {
 		<-t.doneCh
+		t.instance = nil
 		if !t.stopped && t.service {
-			t.instance = nil
 			go t.Start()
 		}
 	}()

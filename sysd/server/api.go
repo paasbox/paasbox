@@ -220,6 +220,34 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 	w.Write(b)
 }
 
+func (s *srv) startTask(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":workspace_id")
+	taskID := req.URL.Query().Get(":task_id")
+
+	ws, ok := s.sysd.Workspace(wsID)
+
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	t, ok := ws.Tasks()[taskID]
+
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	err := t.Start()
+	if err != nil {
+		w.WriteHeader(400)
+		log.ErrorR(req, err, nil)
+		return
+	}
+
+	w.WriteHeader(201)
+}
+
 func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 	wsID := req.URL.Query().Get(":workspace_id")
 	taskID := req.URL.Query().Get(":task_id")
