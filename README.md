@@ -14,7 +14,8 @@ Start paasbox with the example workspace:
 ### Todo
 
 - support multiple instances of a task
-- handle retention strategy for tasks/logs
+- handle log/instance retention
+- auto-tail latest/all instances from task endpoint
 - load workspace from http(s)/s3/gist(?)
 - store state in remote db/s3/api(?)
 - port allocation and load balancing
