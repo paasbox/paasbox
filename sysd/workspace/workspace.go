@@ -27,6 +27,7 @@ type Workspace interface {
 	ID() string
 	Name() string
 	Env() []string
+	LogPath() string
 }
 
 // Config ...
@@ -132,6 +133,10 @@ func (ws *workspace) Name() string {
 
 func (ws *workspace) Env() []string {
 	return ws.env
+}
+
+func (ws *workspace) LogPath() string {
+	return ws.logPath
 }
 
 func (ws *workspace) log(event string, data log.Data) {

@@ -6,23 +6,11 @@
   ],
   "tasks": [
     {
-      "id": "sleep",
-      "name": "Sleep for 60 seconds",
+      "id": "log-test",
+      "name": "Output a log line every second",
       "service": true,
-      "driver": "exec",
-      "command": "/bin/sleep",
-      "args": [ "10" ],
-      "env": [
-        "BAR=2"
-      ]
-    },
-    {
-      "id": "echo",
-      "name": "Echo something",
-      "service": false,
       "driver": "shell",
-      "command": "echo",
-      "args": [ "something" ],
+      "command": "go run example/main.go",
       "env": [
         "BAR=3"
       ]

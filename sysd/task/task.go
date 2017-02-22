@@ -145,6 +145,9 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	if len(driver) == 0 {
+		return nil, nil
+	}
 	command, err := instanceStorage.Get("command")
 	if err != nil {
 		log.Error(err, nil)

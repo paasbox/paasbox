@@ -339,7 +339,7 @@ func (i *instance) start() error {
 		i.log("created stderr file", log.Data{"stderr": stderr.Name()})
 		i.stderr = stderr.Name()
 
-		err = i.store.Set("stderr", i.stdout)
+		err = i.store.Set("stderr", i.stderr)
 		if err != nil {
 			return err
 		}

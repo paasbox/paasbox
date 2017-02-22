@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/pat"
 	"github.com/ian-kent/service.go/handlers/requestID"
-	"github.com/ian-kent/service.go/handlers/timeout"
 	"github.com/ian-kent/service.go/log"
 	"github.com/justinas/alice"
 	"github.com/paasbox/paasbox/sysd/workspace"
@@ -48,6 +47,8 @@ func (s *srv) Start(bindAddr string) error {
 	p := pat.New()
 	var TODO = func(w http.ResponseWriter, req *http.Request) { w.WriteHeader(http.StatusNotImplemented) }
 
+	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stdout", s.getInstanceStdout /* get instance stdout */)
+	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stderr", s.getInstanceStderr /* get instance stderr */)
 	p.Post("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stop", s.stopInstance /* stop instance */)
 	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}", s.instance /* get instance */)
 	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances", s.instances /* list instances */)
@@ -75,15 +76,15 @@ func (s *srv) Start(bindAddr string) error {
 	m := []alice.Constructor{
 		requestID.Handler(16),
 		log.Handler,
-		timeout.DefaultHandler,
+		//timeout.DefaultHandler,
 	}
 	a := alice.New(m...).Then(p)
 
 	s.server = &http.Server{
-		Addr:         bindAddr,
-		Handler:      a,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		Addr:        bindAddr,
+		Handler:     a,
+		ReadTimeout: 5 * time.Second,
+		//WriteTimeout: 10 * time.Second,
 	}
 
 	log.Debug("listening", log.Data{"bind_addr": bindAddr})
