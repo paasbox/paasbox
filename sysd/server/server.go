@@ -48,7 +48,7 @@ func (s *srv) Start(bindAddr string) error {
 	p := pat.New()
 	var TODO = func(w http.ResponseWriter, req *http.Request) { w.WriteHeader(http.StatusNotImplemented) }
 
-	p.Post("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stop", TODO /* stop instance */)
+	p.Post("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stop", s.stopInstance /* stop instance */)
 	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}", s.instance /* get instance */)
 	p.Get("/workspaces/{workspace_id}/tasks/{task_id}/instances", s.instances /* list instances */)
 

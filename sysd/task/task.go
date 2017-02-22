@@ -169,8 +169,13 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	running, err := instanceStorage.Get("running")
+	if err != nil {
+		log.Error(err, nil)
+	}
 
 	pidN, _ := strconv.Atoi(pid)
+	runningB, _ := strconv.ParseBool(running)
 
 	i := &instance{
 		//doneCh:         config.DoneCh,
@@ -186,6 +191,8 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		stdout:     stdout,
 		pid:        pidN,
 		//store:          store,
+		started: true,
+		isDone:  !runningB,
 	}
 	return i, nil
 }

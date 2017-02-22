@@ -19,6 +19,7 @@ var errUpdateBoltDBFailed = errors.New("error updating boltdb")
 type Instance interface {
 	Start() error
 	Stop() error
+	Running() bool
 
 	ID() string
 	Stdout() string
@@ -59,6 +60,7 @@ type instance struct {
 	process   *os.Process
 	recovered bool
 
+	started        bool
 	isDone         bool
 	signalInterval time.Duration
 
@@ -108,6 +110,7 @@ func RecoveredInstance(instanceID string, store state.Store, config InstanceConf
 	i.process = proc
 	i.pid = proc.Pid
 	i.recovered = true
+	i.started = true
 
 	err := i.store.Set("recovered", "true")
 	if err != nil {
@@ -115,6 +118,10 @@ func RecoveredInstance(instanceID string, store state.Store, config InstanceConf
 	}
 
 	return i
+}
+
+func (i *instance) Running() bool {
+	return i.started && !i.isDone
 }
 
 func (i *instance) ID() string {
@@ -158,6 +165,10 @@ func (i *instance) Start() error {
 	}
 
 	err := i.store.Set("pid", fmt.Sprintf("%d", i.pid))
+	if err != nil {
+		return err
+	}
+	err = i.store.Set("running", "true")
 	if err != nil {
 		return err
 	}
@@ -206,6 +217,10 @@ func (i *instance) done() {
 		return
 	}
 	i.isDone = true
+	err := i.store.Set("running", "false")
+	if err != nil {
+		log.Error(err, nil)
+	}
 	close(i.doneCh)
 }
 

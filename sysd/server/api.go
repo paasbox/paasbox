@@ -55,6 +55,7 @@ type instancesOutputInstance struct {
 	Stderr    string `json:"stderr"`
 	StderrURL string `json:"stderr_url"`
 	Pid       int    `json:"pid"`
+	Running   bool   `json:"running"`
 
 	Driver  string   `json:"driver"`
 	Command string   `json:"command"`
@@ -295,6 +296,7 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 			Command: i.Command(),
 			Args:    i.Args(),
 			Env:     i.Env(),
+			Running: i.Running(),
 
 			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), task.ID()),
@@ -353,6 +355,7 @@ func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
 		Command: i.Command(),
 		Args:    i.Args(),
 		Env:     i.Env(),
+		Running: i.Running(),
 
 		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), task.ID()),
@@ -367,4 +370,47 @@ func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
+}
+
+func (s *srv) stopInstance(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":workspace_id")
+	taskID := req.URL.Query().Get(":task_id")
+	instanceID := req.URL.Query().Get(":instance_id")
+
+	ws, ok := s.sysd.Workspace(wsID)
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	task, ok := ws.Tasks()[taskID]
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	i, err := task.Instance(instanceID)
+	if err != nil {
+		log.ErrorR(req, err, nil)
+		w.WriteHeader(500)
+		return
+	}
+	if i == nil {
+		w.WriteHeader(404)
+		return
+	}
+
+	if !i.Running() {
+		w.WriteHeader(400)
+		return
+	}
+
+	err = i.Stop()
+	if err != nil {
+		w.WriteHeader(500)
+		log.ErrorR(req, err, nil)
+		return
+	}
+
+	w.WriteHeader(200)
 }
