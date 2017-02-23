@@ -18,11 +18,18 @@ type workspacesOutput struct {
 }
 
 type workspacesOutputWorkspace struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Env          []string `json:"env"`
-	WorkspaceURL string   `json:"workspace_url"`
-	TasksURL     string   `json:"tasks_url"`
+	ID           string       `json:"id"`
+	Name         string       `json:"name"`
+	Env          workspaceEnv `json:"env"`
+	WorkspaceURL string       `json:"workspace_url"`
+	TasksURL     string       `json:"tasks_url"`
+}
+
+type workspaceEnv struct {
+	InheritAll bool     `json:"inherit_all"`
+	Inherit    []string `json:"inherit"`
+	Remove     []string `json:"remove"`
+	Set        []string `json:"set"`
 }
 
 type tasksOutput struct {
@@ -81,7 +88,7 @@ func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
 		o.Workspaces = append(o.Workspaces, workspacesOutputWorkspace{
 			ID:           ws.ID(),
 			Name:         ws.Name(),
-			Env:          ws.Env(),
+			Env:          workspaceEnv(ws.Env()),
 			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 			TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
 		})
@@ -109,7 +116,7 @@ func (s *srv) workspace(w http.ResponseWriter, req *http.Request) {
 	o := workspacesOutputWorkspace{
 		ID:           ws.ID(),
 		Name:         ws.Name(),
-		Env:          ws.Env(),
+		Env:          workspaceEnv(ws.Env()),
 		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 		TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
 	}

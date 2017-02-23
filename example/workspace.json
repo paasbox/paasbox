@@ -1,9 +1,22 @@
 {
   "id": "example-workspace",
   "name": "Example workspace",
-  "env": [
-    "FOO=1"
-  ],
+  "log_path": "./logs",
+  "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+  "env": {
+    "inherit_all": false,
+    "inherit": [
+      "PATH",
+      "USER",
+      "HOME"
+    ],
+    "remove": [
+
+    ],
+    "set": [
+      "FOO=1"
+    ]
+  },
   "tasks": [
     {
       "id": "sleep",

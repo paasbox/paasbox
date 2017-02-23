@@ -33,7 +33,7 @@ func TestNewWorkspace(t *testing.T) {
 		cfg := Config{
 			ID:      "example-workspace",
 			Name:    "Example workspace",
-			Env:     []string{"FOO=bar"},
+			Env:     EnvConfig{Set: []string{"FOO=bar"}},
 			LogPath: logTemp,
 			Tasks: []task.Config{
 				task.Config{
@@ -101,7 +101,7 @@ func TestNewWorkspace(t *testing.T) {
 	Convey("Workspace env is passed through", t, func() {
 		cfg := Config{
 			LogPath: logTemp,
-			Env:     []string{"FOO=1"},
+			Env:     EnvConfig{Set: []string{"FOO=1"}},
 			Tasks: []task.Config{
 				task.Config{
 					ID:      "sleep",

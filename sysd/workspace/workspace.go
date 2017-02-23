@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,7 @@ type Workspace interface {
 	Tasks() map[string]task.Task
 	ID() string
 	Name() string
-	Env() []string
+	Env() EnvConfig
 	LogPath() string
 }
 
@@ -35,16 +36,24 @@ type Config struct {
 	ID         string        `json:"id"`
 	Name       string        `json:"name"`
 	Tasks      []task.Config `json:"tasks"`
-	Env        []string      `json:"env"`
 	LogPath    string        `json:"log_path"`
 	LogPattern string        `json:"log_pattern"`
+	Env        EnvConfig     `json:"env"`
+}
+
+// EnvConfig ...
+type EnvConfig struct {
+	InheritAll bool     `json:"inherit_all"`
+	Inherit    []string `json:"inherit"`
+	Remove     []string `json:"remove"`
+	Set        []string `json:"set"`
 }
 
 type workspace struct {
 	id          string
 	name        string
 	taskConfigs []task.Config
-	env         []string
+	env         EnvConfig
 	logPath     string
 	logPattern  string
 
@@ -94,7 +103,34 @@ func New(store state.Store, config Config) (Workspace, error) {
 			return nil, err
 		}
 		taskID := t.ID
-		t2, err := task.NewTask(s, t.WithEnv(ws.Env()), ws.log, func(instanceID, name string) (*os.File, error) {
+
+		// FIXME this all feels really nasty
+		var env []string
+		if ws.env.InheritAll {
+			env = append(env, os.Environ()...)
+		} else {
+			for _, v := range ws.env.Inherit {
+				if s := os.Getenv(v); len(s) > 0 {
+					env = append(env, fmt.Sprintf("%s=%s", v, s))
+				}
+			}
+		}
+		origEnv := append([]string{}, env...)
+		env = []string{}
+		for _, v := range origEnv {
+			a := true
+			for _, r := range ws.env.Remove {
+				if strings.HasPrefix(v, fmt.Sprintf("%s=", r)) {
+					a = false
+				}
+			}
+			if a {
+				env = append(env, v)
+			}
+		}
+		env = append(env, ws.env.Set...)
+
+		t2, err := task.NewTask(s, t.WithEnv(env), ws.log, func(instanceID, name string) (*os.File, error) {
 			logPattern := ws.logPattern
 			logPattern = strings.Replace(logPattern, "$WORKSPACE_ID$", ws.ID(), -1)
 			logPattern = strings.Replace(logPattern, "$TASK_ID$", taskID, -1)
@@ -131,7 +167,7 @@ func (ws *workspace) Name() string {
 	return ws.name
 }
 
-func (ws *workspace) Env() []string {
+func (ws *workspace) Env() EnvConfig {
 	return ws.env
 }
 
