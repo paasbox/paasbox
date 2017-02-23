@@ -49,6 +49,16 @@
       "env": [
         "BAR=3"
       ]
+    },
+    {
+      "id": "server",
+      "name": "Some web server",
+      "service": false,
+      "driver": "shell",
+      "command": "echo",
+      "args": [ "$PORT" ],
+      "ports": [ 9000 ],
+      "env": []
     }
   ]
 }

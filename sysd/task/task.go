@@ -38,6 +38,7 @@ type Task interface {
 	Args() []string
 	Env() []string
 	Pwd() string
+	Ports() []int
 
 	ExecCount() int
 }
@@ -52,6 +53,7 @@ type Config struct {
 	Args    []string `json:"args"`
 	Env     []string `json:"env"`
 	Pwd     string   `json:"pwd"`
+	Ports   []int    `json:"ports"`
 }
 
 // WithEnv ...
@@ -69,6 +71,7 @@ type task struct {
 	command string
 	args    []string
 	env     []string
+	ports   []int
 	pwd     string
 	logger  func(event string, data log.Data)
 
@@ -96,6 +99,7 @@ func NewTask(store state.Store, config Config, logger func(event string, data lo
 		args:      config.Args,
 		env:       config.Env,
 		pwd:       config.Pwd,
+		ports:     config.Ports,
 		logger:    logger,
 		stopped:   false,
 		execMutex: new(sync.Mutex),
@@ -273,6 +277,10 @@ func (t *task) Pwd() string {
 	return t.pwd
 }
 
+func (t *task) Ports() []int {
+	return t.ports
+}
+
 func (t *task) Recover() (bool, error) {
 	t.log("fetching instanceID", nil)
 	instanceID, err := t.store.Get("instanceID")
@@ -312,7 +320,7 @@ func (t *task) Recover() (bool, error) {
 	}
 
 	t.doneCh = make(chan struct{})
-	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, ""}, proc)
+	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", []int{}}, proc)
 
 	return true, t.waitLoop()
 }
@@ -344,7 +352,7 @@ func (t *task) Start() error {
 	}
 
 	t.doneCh = make(chan struct{})
-	t.instance = NewInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd})
+	t.instance = NewInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts()})
 
 	return t.waitLoop()
 }
@@ -355,6 +363,11 @@ func (t *task) getEnv() []string {
 		env = append(env, fmt.Sprintf("%s", v))
 	}
 	return env
+}
+
+func (t *task) getInstancePorts() []int {
+	// TODO don't use 'service' ports
+	return t.ports
 }
 
 func (t *task) waitLoop() error {

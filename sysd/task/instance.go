@@ -31,6 +31,7 @@ type Instance interface {
 	Args() []string
 	Env() []string
 	Pwd() string
+	Ports() []int
 }
 
 // InstanceConfig ...
@@ -43,6 +44,7 @@ type InstanceConfig struct {
 	Args        []string
 	Env         []string
 	Pwd         string
+	Ports       []int
 }
 
 var _ Instance = &instance{}
@@ -58,6 +60,7 @@ type instance struct {
 	args        []string
 	env         []string
 	pwd         string
+	ports       []int
 
 	store     state.Store
 	process   *os.Process
@@ -83,6 +86,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 		args:           config.Args,
 		env:            config.Env,
 		pwd:            config.Pwd,
+		ports:          config.Ports,
 		signalInterval: time.Second * 10,
 		instanceID:     instanceID,
 		store:          store,
@@ -105,6 +109,10 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 		log.Error(err, nil)
 	}
 	err = store.SetArray("env", config.Env)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.SetIntArray("ports", config.Ports)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -166,6 +174,10 @@ func (i *instance) Env() []string {
 
 func (i *instance) Pwd() string {
 	return i.pwd
+}
+
+func (i *instance) Ports() []int {
+	return i.ports
 }
 
 func (i *instance) Start() error {

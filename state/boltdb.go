@@ -3,6 +3,8 @@ package state
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/boltdb/bolt"
@@ -79,6 +81,19 @@ func (b *boltDBStore) GetArray(key string) (s []string, err error) {
 	return
 }
 
+func (b *boltDBStore) GetIntArray(key string) (s []int, err error) {
+	log.Debug("boltdb: getIntArray", log.Data{"prefix": b.prefix, "key": key})
+
+	var v string
+	v, err = b.Get(key)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal([]byte(v), &s)
+	return
+}
+
 func (b *boltDBStore) Set(key string, value string) (err error) {
 	log.Debug("boltdb: set", log.Data{"prefix": b.prefix, "key": key, "value": value})
 
@@ -89,8 +104,32 @@ func (b *boltDBStore) Set(key string, value string) (err error) {
 	return
 }
 
+func (b *boltDBStore) GetInt(key string) (i int, err error) {
+	s, err := b.Get(key)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(s)
+}
+
+func (b *boltDBStore) SetInt(key string, value int) (err error) {
+	return b.Set(key, fmt.Sprintf("%d", value))
+}
+
 func (b *boltDBStore) SetArray(key string, value []string) (err error) {
 	log.Debug("boltdb: setArray", log.Data{"prefix": b.prefix, "key": key, "value": value})
+
+	var d []byte
+	d, err = json.Marshal(&value)
+	if err != nil {
+		return
+	}
+
+	return b.Set(key, string(d))
+}
+
+func (b *boltDBStore) SetIntArray(key string, value []int) (err error) {
+	log.Debug("boltdb: setIntArray", log.Data{"prefix": b.prefix, "key": key, "value": value})
 
 	var d []byte
 	d, err = json.Marshal(&value)

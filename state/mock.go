@@ -1,6 +1,10 @@
 package state
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+)
 
 var _ Storage = &MockStorage{}
 var _ Store = &MockStore{}
@@ -44,6 +48,20 @@ func (m *MockStore) Set(key string, value string) (err error) {
 	return
 }
 
+// GetInt ...
+func (m *MockStore) GetInt(key string) (i int, err error) {
+	s, err := m.Get(key)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(s)
+}
+
+// SetInt ...
+func (m *MockStore) SetInt(key string, value int) (err error) {
+	return m.Set(key, fmt.Sprintf("%d", value))
+}
+
 // GetArray ...
 func (m *MockStore) GetArray(key string) (s []string, err error) {
 	err = json.Unmarshal([]byte(m.Storage.Get(key)), &s)
@@ -52,6 +70,22 @@ func (m *MockStore) GetArray(key string) (s []string, err error) {
 
 // SetArray ...
 func (m *MockStore) SetArray(key string, value []string) (err error) {
+	v, err := json.Marshal(&value)
+	if err != nil {
+		return err
+	}
+	m.Storage.Set(key, string(v))
+	return
+}
+
+// GetIntArray ...
+func (m *MockStore) GetIntArray(key string) (s []int, err error) {
+	err = json.Unmarshal([]byte(m.Storage.Get(key)), &s)
+	return
+}
+
+// SetIntArray ...
+func (m *MockStore) SetIntArray(key string, value []int) (err error) {
 	v, err := json.Marshal(&value)
 	if err != nil {
 		return err
