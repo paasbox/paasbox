@@ -4,7 +4,7 @@ VERSIONFILE := version/version.go
 
 all: build test
 
-build: version
+build: generate version
 	go install -tags 'production' ./cmd/...
 
 test: generate
