@@ -40,7 +40,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, ""}).(*instance)
 		So(t, ShouldNotBeNil)
 		So(t.doneCh, ShouldEqual, doneCh)
 		So(t.isDone, ShouldEqual, false)
@@ -60,7 +60,7 @@ func TestInstance(t *testing.T) {
 			fData = data
 			calls++
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, ""}).(*instance)
 		t.log("test", nil)
 		So(fEvent, ShouldEqual, "test")
 		So(fData, ShouldHaveSameTypeAs, log.Data{})
@@ -79,7 +79,7 @@ func TestInstance(t *testing.T) {
 			fData = data
 			calls++
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, ""}).(*instance)
 		t.error(errors.New("foo"), errors.New("bar"), nil)
 		So(fEvent, ShouldEqual, "error")
 		So(fData, ShouldResemble, log.Data{"error": errors.New("foo"), "reason": errors.New("bar"), "instance_id": t.instanceID})
@@ -91,7 +91,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		t.done()
 		So(t.isDone, ShouldEqual, true)
@@ -104,7 +104,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldEqual, errUnsupportedDriver)
@@ -116,7 +116,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -134,7 +134,7 @@ func TestInstance(t *testing.T) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
 		start := time.Now()
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 1"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 1"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -150,7 +150,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -168,7 +168,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -187,7 +187,7 @@ func TestInstance(t *testing.T) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
 		start := time.Now()
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "shell", "sleep", []string{"1"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "shell", "sleep", []string{"1"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -204,7 +204,7 @@ func TestInstance(t *testing.T) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
 		start := time.Now()
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -232,14 +232,14 @@ func TestInstance(t *testing.T) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
 		start := time.Now()
-		cfg1 := InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env}
+		cfg1 := InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env, ""}
 		t := NewInstance("instanceID", storage, cfg1).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
 
 		doneCh2 := make(chan struct{})
-		cfg2 := InstanceConfig{doneCh2, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env}
+		cfg2 := InstanceConfig{doneCh2, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env, ""}
 		proc, err := os.FindProcess(t.process.Pid)
 		So(err, ShouldBeNil)
 		So(proc, ShouldNotBeNil)
@@ -284,7 +284,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -298,7 +298,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, ""}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		So(t.Stop(), ShouldBeNil)
 	})
@@ -308,7 +308,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env}).(*instance)
+		t := NewInstance("instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, ""}).(*instance)
 		t.isDone = true
 		t.wait()
 		So(func() { close(doneCh) }, ShouldNotPanic)

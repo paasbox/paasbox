@@ -44,6 +44,7 @@ type tasksOutputTask struct {
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
 	Env     []string `json:"env"`
+	Pwd     string   `json:"pwd"`
 
 	TaskURL      string `json:"task_url"`
 	WorkspaceURL string `json:"workspace_url"`
@@ -72,6 +73,7 @@ type instancesOutputInstance struct {
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
 	Env     []string `json:"env"`
+	Pwd     string   `json:"pwd"`
 
 	InstanceURL  string `json:"instance_url"`
 	TaskURL      string `json:"task_url"`
@@ -159,6 +161,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			Command: t.Command(),
 			Args:    t.Args(),
 			Env:     t.Env(),
+			Pwd:     t.Pwd(),
 
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 			InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
@@ -212,6 +215,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		Command: t.Command(),
 		Args:    t.Args(),
 		Env:     t.Env(),
+		Pwd:     t.Pwd(),
 
 		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 		InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
@@ -347,6 +351,7 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 			Command: i.Command(),
 			Args:    i.Args(),
 			Env:     i.Env(),
+			Pwd:     i.Pwd(),
 			Running: i.Running(),
 
 			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
@@ -406,6 +411,7 @@ func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
 		Command: i.Command(),
 		Args:    i.Args(),
 		Env:     i.Env(),
+		Pwd:     i.Pwd(),
 		Running: i.Running(),
 
 		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),

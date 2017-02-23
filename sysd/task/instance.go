@@ -30,6 +30,7 @@ type Instance interface {
 	Command() string
 	Args() []string
 	Env() []string
+	Pwd() string
 }
 
 // InstanceConfig ...
@@ -41,6 +42,7 @@ type InstanceConfig struct {
 	Command     string
 	Args        []string
 	Env         []string
+	Pwd         string
 }
 
 var _ Instance = &instance{}
@@ -55,6 +57,7 @@ type instance struct {
 	command     string
 	args        []string
 	env         []string
+	pwd         string
 
 	store     state.Store
 	process   *os.Process
@@ -79,6 +82,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 		command:        config.Command,
 		args:           config.Args,
 		env:            config.Env,
+		pwd:            config.Pwd,
 		signalInterval: time.Second * 10,
 		instanceID:     instanceID,
 		store:          store,
@@ -89,6 +93,10 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 		log.Error(err, nil)
 	}
 	err = store.Set("command", config.Command)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.Set("pwd", config.Pwd)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -154,6 +162,10 @@ func (i *instance) Args() []string {
 
 func (i *instance) Env() []string {
 	return i.env
+}
+
+func (i *instance) Pwd() string {
+	return i.pwd
 }
 
 func (i *instance) Start() error {
@@ -345,7 +357,7 @@ func (i *instance) start() error {
 		}
 
 		attr := os.ProcAttr{
-			Dir: "",
+			Dir: i.pwd,
 			Env: i.env,
 			Files: []*os.File{
 				stdin,

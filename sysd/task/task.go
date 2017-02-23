@@ -37,6 +37,7 @@ type Task interface {
 	Command() string
 	Args() []string
 	Env() []string
+	Pwd() string
 
 	ExecCount() int
 }
@@ -50,6 +51,7 @@ type Config struct {
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
 	Env     []string `json:"env"`
+	Pwd     string   `json:"pwd"`
 }
 
 // WithEnv ...
@@ -67,6 +69,7 @@ type task struct {
 	command string
 	args    []string
 	env     []string
+	pwd     string
 	logger  func(event string, data log.Data)
 
 	store         state.Store
@@ -92,6 +95,7 @@ func NewTask(store state.Store, config Config, logger func(event string, data lo
 		command:   config.Command,
 		args:      config.Args,
 		env:       config.Env,
+		pwd:       config.Pwd,
 		logger:    logger,
 		stopped:   false,
 		execMutex: new(sync.Mutex),
@@ -168,6 +172,10 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	pwd, err := instanceStorage.Get("pwd")
+	if err != nil {
+		log.Error(err, nil)
+	}
 	pid, err := instanceStorage.Get("pid")
 	if err != nil {
 		log.Error(err, nil)
@@ -188,6 +196,7 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		command: command,
 		args:    args,
 		env:     env,
+		pwd:     pwd,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
 		stderr:     stderr,
@@ -260,6 +269,10 @@ func (t *task) Env() []string {
 	return t.env
 }
 
+func (t *task) Pwd() string {
+	return t.pwd
+}
+
 func (t *task) Recover() (bool, error) {
 	t.log("fetching instanceID", nil)
 	instanceID, err := t.store.Get("instanceID")
@@ -299,7 +312,7 @@ func (t *task) Recover() (bool, error) {
 	}
 
 	t.doneCh = make(chan struct{})
-	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil}, proc)
+	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, ""}, proc)
 
 	return true, t.waitLoop()
 }
@@ -331,7 +344,7 @@ func (t *task) Start() error {
 	}
 
 	t.doneCh = make(chan struct{})
-	t.instance = NewInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv()})
+	t.instance = NewInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd})
 
 	return t.waitLoop()
 }
