@@ -78,6 +78,12 @@ type instance struct {
 // NewInstance ...
 func NewInstance(instanceID string, store state.Store, config InstanceConfig) Instance {
 	env := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
+	if len(config.Ports) > 0 {
+		env = append(env, fmt.Sprintf("PORT=%d", config.Ports[0]))
+		for i, p := range config.Ports {
+			env = append(env, fmt.Sprintf("PORT%d=%d", i, p))
+		}
+	}
 	i := &instance{
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,

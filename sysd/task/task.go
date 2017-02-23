@@ -188,6 +188,10 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	ports, err := instanceStorage.GetIntArray("ports")
+	if err != nil {
+		log.Error(err, nil)
+	}
 
 	pidN, _ := strconv.Atoi(pid)
 	runningB, _ := strconv.ParseBool(running)
@@ -201,6 +205,7 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		args:    args,
 		env:     env,
 		pwd:     pwd,
+		ports:   ports,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
 		stderr:     stderr,
