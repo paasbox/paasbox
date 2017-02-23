@@ -33,7 +33,7 @@
       "id": "log-test",
       "name": "Output a log line every second",
       "service": true,
-      "driver": "exec",
+      "driver": "shell",
       "command": "go run example/main.go",
       "env": [
         "BAR=2"
