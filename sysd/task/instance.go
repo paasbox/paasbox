@@ -77,6 +77,7 @@ type instance struct {
 
 // NewInstance ...
 func NewInstance(instanceID string, store state.Store, config InstanceConfig) Instance {
+	env := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
 	i := &instance{
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,
@@ -84,7 +85,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 		driver:         config.Driver,
 		command:        config.Command,
 		args:           config.Args,
-		env:            config.Env,
+		env:            env,
 		pwd:            config.Pwd,
 		ports:          config.Ports,
 		signalInterval: time.Second * 10,
@@ -108,7 +109,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	if err != nil {
 		log.Error(err, nil)
 	}
-	err = store.SetArray("env", config.Env)
+	err = store.SetArray("env", env)
 	if err != nil {
 		log.Error(err, nil)
 	}

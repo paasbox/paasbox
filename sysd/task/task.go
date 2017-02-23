@@ -362,6 +362,7 @@ func (t *task) getEnv() []string {
 	for _, v := range t.env {
 		env = append(env, fmt.Sprintf("%s", v))
 	}
+	env = append(env, fmt.Sprintf("PAASBOX_TASKID=%s", t.taskID))
 	return env
 }
 

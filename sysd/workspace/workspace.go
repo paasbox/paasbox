@@ -129,6 +129,7 @@ func New(store state.Store, config Config) (Workspace, error) {
 			}
 		}
 		env = append(env, ws.env.Set...)
+		env = append(env, fmt.Sprintf("PAASBOX_WSID=%s", ws.id))
 
 		t2, err := task.NewTask(s, t.WithEnv(env), ws.log, func(instanceID, name string) (*os.File, error) {
 			logPattern := ws.logPattern
