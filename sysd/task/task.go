@@ -8,6 +8,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/facebookgo/freeport"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
 )
@@ -372,8 +373,26 @@ func (t *task) getEnv() []string {
 }
 
 func (t *task) getInstancePorts() []int {
-	// TODO don't use 'service' ports
-	return t.ports
+	var ports []int
+	if len(t.ports) > 0 {
+		var attempts int
+		for {
+			attempts++
+			port, err := freeport.Get()
+			if err == nil {
+				ports = append(ports, port)
+				if len(ports) == len(t.ports) {
+					break
+				}
+				continue
+			}
+
+			if attempts > 10 {
+				panic("TODO! how to gracefully handle this?")
+			}
+		}
+	}
+	return ports
 }
 
 func (t *task) waitLoop() error {
