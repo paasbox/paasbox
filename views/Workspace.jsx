@@ -5,7 +5,7 @@ export default class Layout extends Component {
     render() {
         return (
             <div>
-                {this.props.children}
+                <p>Hello</p>
             </div>
         )
     }
