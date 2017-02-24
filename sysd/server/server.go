@@ -73,7 +73,11 @@ func (s *srv) Start(bindAddr string) error {
 	p.Post("/api/workspaces", TODO /* create workspace */)
 	p.Get("/api/workspaces", s.workspaces /* list workspaces */)
 
+	p.Get("/js", s.staticFiles)
+	p.Get("/css", s.staticFiles)
+
 	p.Get("/", s.home)
+
 
 	m := []alice.Constructor{
 		requestID.Handler(16),

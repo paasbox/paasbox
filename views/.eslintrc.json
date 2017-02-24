@@ -1,0 +1,21 @@
+{
+    "extends": ["inferno-app"],
+    "plugins": [
+        "inferno"
+    ],
+    "settings": {
+        "inferno": {
+            "pragma": "Inferno",  // Pragma to use, default to "Inferno"
+            "version": "1.0" // Inferno version, default to the latest Inferno stable release
+        }
+    },
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        }
+    },
+    "rules": {
+        "inferno/jsx-uses-inferno": "error",
+        "inferno/jsx-uses-vars": "error"
+    }
+}
