@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/mailhog/mh2/version"
+	"github.com/paasbox/paasbox/version"
 )
 
 // Hooks ...
