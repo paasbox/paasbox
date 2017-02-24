@@ -1,15 +1,14 @@
 // inferno module
-import Inferno from 'inferno';
+import React from 'react';
 
 // scss module
 import './scss/main.scss';
 
 // routing modules
-import { Router, Route } from 'inferno-router';
 import createBrowserHistory from 'history/createBrowserHistory';
 
 // state modules
-import { Provider } from 'inferno-redux';
+import { Provider } from 'react-redux';
 import store from './shared/store';
 
 // app component
@@ -30,7 +29,7 @@ const routes = (
     </Provider>
 );
 
-Inferno.render(<App/>, document.getElementById('app-root'));
+Inferno.render(routes, document.getElementById('app-root'));
 
 if (module.hot) {
     module.hot.accept()

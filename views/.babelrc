@@ -2,10 +2,10 @@
     "env": {
         "development": {
             "presets": [
-                "es2015", "stage-0"
+                "es2015", "stage-0", "react"
             ]
         }
     },
     /* Add plugins here**/
-    "plugins": ["babel-plugin-syntax-jsx", "babel-plugin-inferno"]
+    "plugins": ["babel-plugin-syntax-jsx"]
 }
