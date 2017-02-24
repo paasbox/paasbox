@@ -1,7 +1,10 @@
 import Inferno from 'inferno';
+import Component from 'inferno-component';
 
-function App () {
-    return <p>This is a application</p>
+export default class App extends Component {
+    render() {
+        return (
+            <p>This is an application</p>
+        )
+    }
 }
-
-export default App;
