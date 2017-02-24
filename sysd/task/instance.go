@@ -90,6 +90,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	for _, a := range config.Args {
 		args = append(args, env.Replace(a, e))
 	}
+	pwd := env.Replace(config.Pwd, e)
 
 	i := &instance{
 		doneCh:         config.DoneCh,
@@ -99,7 +100,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 		command:        command,
 		args:           args,
 		env:            e,
-		pwd:            config.Pwd,
+		pwd:            pwd,
 		ports:          config.Ports,
 		signalInterval: time.Second * 10,
 		instanceID:     instanceID,
