@@ -24,9 +24,10 @@
       "service": true,
       "driver": "exec",
       "command": "/bin/sleep",
-      "args": [ "10" ],
+      "args": [ "$DURATION" ],
       "env": [
-        "BAR=1"
+        "BAR=1",
+        "DURATION=10"
       ]
     },
     {

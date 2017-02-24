@@ -10,6 +10,7 @@ import (
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/util/env"
 )
 
 var errWaitingForProcess = errors.New("error waiting for process")
@@ -77,21 +78,27 @@ type instance struct {
 
 // NewInstance ...
 func NewInstance(instanceID string, store state.Store, config InstanceConfig) Instance {
-	env := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
+	e := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
 	if len(config.Ports) > 0 {
-		env = append(env, fmt.Sprintf("PORT=%d", config.Ports[0]))
+		e = append(e, fmt.Sprintf("PORT=%d", config.Ports[0]))
 		for i, p := range config.Ports {
-			env = append(env, fmt.Sprintf("PORT%d=%d", i, p))
+			e = append(e, fmt.Sprintf("PORT%d=%d", i, p))
 		}
 	}
+	command := env.Replace(config.Command, e)
+	var args []string
+	for _, a := range config.Args {
+		args = append(args, env.Replace(a, e))
+	}
+
 	i := &instance{
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,
 		fileCreator:    config.FileCreator,
 		driver:         config.Driver,
-		command:        config.Command,
-		args:           config.Args,
-		env:            env,
+		command:        command,
+		args:           args,
+		env:            e,
 		pwd:            config.Pwd,
 		ports:          config.Ports,
 		signalInterval: time.Second * 10,
@@ -103,7 +110,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	if err != nil {
 		log.Error(err, nil)
 	}
-	err = store.Set("command", config.Command)
+	err = store.Set("command", command)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -111,11 +118,11 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	if err != nil {
 		log.Error(err, nil)
 	}
-	err = store.SetArray("args", config.Args)
+	err = store.SetArray("args", args)
 	if err != nil {
 		log.Error(err, nil)
 	}
-	err = store.SetArray("env", env)
+	err = store.SetArray("env", e)
 	if err != nil {
 		log.Error(err, nil)
 	}
