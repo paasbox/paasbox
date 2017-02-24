@@ -68,7 +68,7 @@
 	
 	var _App2 = _interopRequireDefault(_App);
 	
-	var _Workspace = __webpack_require__(275);
+	var _Workspace = __webpack_require__(276);
 	
 	var _Workspace2 = _interopRequireDefault(_Workspace);
 	
@@ -29094,7 +29094,7 @@
 /* 273 */
 /***/ function(module, exports, __webpack_require__) {
 
-	"use strict";
+	'use strict';
 	
 	Object.defineProperty(exports, "__esModule", {
 	    value: true
@@ -29102,19 +29102,34 @@
 	
 	var _redux = __webpack_require__(246);
 	
-	var initialState = {};
+	var _actions = __webpack_require__(277);
+	
+	var initialState = {
+	    workspaces: [],
+	    activeWorkspace: {}
+	};
 	
 	function reducer() {
 	    var state = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : initialState;
 	    var action = arguments[1];
 	
+	
+	    var updatedState = JSON.parse(JSON.stringify(state));
+	
 	    switch (action.type) {
+	        case _actions.UPDATE_WORKSPACES:
+	            {
+	                updatedState.workspaces = action.workspaces;
+	                break;
+	            }
 	        default:
 	            {
 	                console.log("Action type '%s' unrecognised", action.type);
-	                return state;
+	                break;
 	            }
 	    }
+	
+	    return updatedState;
 	}
 	
 	var store = (0, _redux.createStore)(reducer, window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__());
@@ -29137,6 +29152,14 @@
 	
 	var _react2 = _interopRequireDefault(_react);
 	
+	var _reactRedux = __webpack_require__(237);
+	
+	var _get = __webpack_require__(275);
+	
+	var _get2 = _interopRequireDefault(_get);
+	
+	var _actions = __webpack_require__(277);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -29155,6 +29178,15 @@
 	    }
 	
 	    _createClass(App, [{
+	        key: 'componentWillMount',
+	        value: function componentWillMount() {
+	            var _this2 = this;
+	
+	            _get2.default.workspace().then(function (response) {
+	                _this2.props.dispatch((0, _actions.updateWorkspaces)(response));
+	            });
+	        }
+	    }, {
 	        key: 'render',
 	        value: function render() {
 	            return _react2.default.createElement(
@@ -29168,10 +29200,67 @@
 	    return App;
 	}(_react.Component);
 	
-	exports.default = App;
+	exports.default = (0, _reactRedux.connect)()(App);
 
 /***/ },
 /* 275 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _templateObject = _taggedTemplateLiteral([' '], [' ']);
+	
+	function _taggedTemplateLiteral(strings, raw) { return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var get = function () {
+	    function get() {
+	        _classCallCheck(this, get);
+	    }
+	
+	    _createClass(get, null, [{
+	        key: 'workspace',
+	        value: function workspace() {
+	            return new Promise(function (resolve, reject) {
+	                getRequest('/api/workspaces').then(function (response) {
+	                    resolve(response.workspaces);
+	                }).catch(function (error) {
+	                    console.log('Fetching workspaces returned \n' + error.status(_templateObject) + error.statusText);
+	                });
+	            });
+	        }
+	    }]);
+	
+	    return get;
+	}();
+	
+	exports.default = get;
+	
+	
+	function getRequest(url) {
+	    return new Promise(function (resolve, reject) {
+	        fetch(url).then(function (response) {
+	            if (!response.ok) {
+	                reject(response);
+	            }
+	            return response.json();
+	        }).then(function (response) {
+	            resolve(response);
+	        }).catch(function (error) {
+	            console.log('Error fetching from \'' + url + '\' \n' + error);
+	        });
+	    });
+	}
+
+/***/ },
+/* 276 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29222,6 +29311,25 @@
 	}(_react.Component);
 	
 	exports.default = Layout;
+
+/***/ },
+/* 277 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	exports.updateWorkspaces = updateWorkspaces;
+	var UPDATE_WORKSPACES = exports.UPDATE_WORKSPACES = 'UPDATE_WORKSPACES';
+	
+	function updateWorkspaces(workspaces) {
+	    return {
+	        type: UPDATE_WORKSPACES,
+	        workspaces: workspaces
+	    };
+	}
 
 /***/ }
 /******/ ]);
