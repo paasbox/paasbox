@@ -19,16 +19,16 @@ module.exports = {
                 test: /\.scss$/,
                 loader: ExtractTextPlugin.extract("style-loader", "css-loader!sass-loader")
             },
-            // {
-            //     test: /\.jsx$/,
-            //     loader: "eslint-loader"
-            // }
+            {
+                test: /\.jsx$/,
+                loader: "eslint-loader"
+            }
         ]
     },
     plugins: [
         new ExtractTextPlugin("css/main.css")
     ],
-    // eslint: {
-    //     configFile: '.eslintrc.json'
-    // }
+    eslint: {
+        configFile: '.eslintrc.json'
+    }
 };
