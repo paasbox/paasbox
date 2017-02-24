@@ -14,10 +14,6 @@ import store from './shared/store';
 // app component
 import App from './App.jsx';
 
-if (module.hot) {
-    require('inferno-devtools');
-}
-
 const browserHistory = createBrowserHistory();
 
 const routes = (
@@ -29,8 +25,5 @@ const routes = (
     </Provider>
 );
 
-Inferno.render(routes, document.getElementById('app-root'));
+React.render(routes, document.getElementById('app-root'));
 
-if (module.hot) {
-    module.hot.accept()
-}
