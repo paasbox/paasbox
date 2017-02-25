@@ -40,6 +40,7 @@ type tasksOutputTask struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	Service bool     `json:"is_service"`
+	Persist bool     `json:"persist"` // FIXME `is_persist` would be wrong, but `persist` breaks bool pattern
 	Driver  string   `json:"driver"`
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
@@ -159,6 +160,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			ID:      t.ID(),
 			Name:    t.Name(),
 			Service: t.Service(),
+			Persist: t.Persist(),
 			Driver:  t.Driver(),
 			Command: t.Command(),
 			Args:    t.Args(),
@@ -214,6 +216,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		ID:      t.ID(),
 		Name:    t.Name(),
 		Service: t.Service(),
+		Persist: t.Persist(),
 		Driver:  t.Driver(),
 		Command: t.Command(),
 		Args:    t.Args(),

@@ -40,6 +40,7 @@ type Task interface {
 	Env() []string
 	Pwd() string
 	Ports() []int
+	Persist() bool
 
 	ExecCount() int
 }
@@ -49,6 +50,7 @@ type Config struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	Service bool     `json:"service"`
+	Persist bool     `json:"persist"`
 	Driver  string   `json:"driver"`
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
@@ -68,6 +70,7 @@ type task struct {
 	taskID  string
 	name    string
 	service bool
+	persist bool
 	driver  string
 	command string
 	args    []string
@@ -95,6 +98,7 @@ func NewTask(store state.Store, config Config, logger func(event string, data lo
 		taskID:    config.ID,
 		name:      config.Name,
 		service:   config.Service,
+		persist:   config.Persist,
 		driver:    config.Driver,
 		command:   config.Command,
 		args:      config.Args,
@@ -261,6 +265,10 @@ func (t *task) Name() string {
 
 func (t *task) Service() bool {
 	return t.service
+}
+
+func (t *task) Persist() bool {
+	return t.persist
 }
 
 func (t *task) Driver() string {

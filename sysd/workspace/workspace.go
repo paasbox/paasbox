@@ -218,7 +218,7 @@ func (ws *workspace) Start() error {
 }
 
 func (ws *workspace) Shutdown() error {
-	ws.log("stopping workspace, stopping tasks", nil)
+	ws.log("shutting down workspace, stopping tasks", nil)
 	for _, t := range ws.taskConfigs {
 		if task, ok := ws.tasks[t.ID]; ok {
 			ws.log("stopping task", log.Data{"task_id": t.ID})
@@ -232,5 +232,15 @@ func (ws *workspace) Shutdown() error {
 }
 
 func (ws *workspace) Stop() error {
+	ws.log("stopping workspace, stopping tasks", nil)
+	for _, t := range ws.taskConfigs {
+		if task, ok := ws.tasks[t.ID]; ok && !task.Persist() {
+			ws.log("task doesn't persist, stopping task", log.Data{"task_id": t.ID})
+			err := task.Stop()
+			if err != nil {
+				ws.error(errStopTaskFailed, err, log.Data{"task_id": t.ID})
+			}
+		}
+	}
 	return nil
 }
