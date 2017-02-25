@@ -41,7 +41,7 @@ func TestNewTask(t *testing.T) {
 		So(t2.command, ShouldEqual, "command")
 		So(t2.logger, ShouldEqual, logger)
 		So(t2.args, ShouldResemble, []string{"args"})
-		So(t2.env, ShouldResemble, []string{"FOO=bar"})
+		So(t2.env, ShouldResemble, []string{"FOO=bar", "PAASBOX_TASKID=taskID"})
 	})
 
 	Convey("Start starts a task", t, func() {

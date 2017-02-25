@@ -103,6 +103,7 @@ var _ Task = &task{}
 
 // NewTask ...
 func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
+	e := append(config.Env, fmt.Sprintf("PAASBOX_TASKID=%s", config.ID))
 	var t *task
 	t = &task{
 		taskID:          config.ID,
@@ -112,7 +113,7 @@ func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(e
 		driver:          config.Driver,
 		command:         config.Command,
 		args:            config.Args,
-		env:             config.Env,
+		env:             e,
 		pwd:             config.Pwd,
 		ports:           config.Ports,
 		targetInstances: config.Instances,
