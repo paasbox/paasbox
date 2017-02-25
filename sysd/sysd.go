@@ -9,6 +9,7 @@ import (
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/server"
 	"github.com/paasbox/paasbox/sysd/workspace"
 )
@@ -23,8 +24,9 @@ type sysd struct {
 	workspaces       map[string]workspace.Workspace
 	exitCh           chan struct{}
 
-	storage state.Storage
-	server  server.Server
+	storage      state.Storage
+	server       server.Server
+	loadBalancer loadbalancer.LB
 }
 
 var _ Sysd = &sysd{}
@@ -40,6 +42,7 @@ var (
 	errOpenBoltWorkspacesFailed  = errors.New("error opening bolt workspaces")
 	errOpenBoltWorkspaceFailed   = errors.New("error opening bolt workspace")
 	errCreateWorkspaceFailed     = errors.New("error creating workspace")
+	errCreateLoadbalancerFailed  = errors.New("error creating load balancer")
 )
 
 // New ...
@@ -75,6 +78,12 @@ func New(exitCh chan struct{}) Sysd {
 		os.Exit(4)
 	}
 
+	lb, err := loadbalancer.New()
+	if err != nil {
+		log.Error(errCreateLoadbalancerFailed, log.Data{"reason": err})
+		os.Exit(7)
+	}
+
 	workspaces := make(map[string]workspace.Workspace)
 
 	workspacesState, err := boltDB.Wrap("workspaces")
@@ -88,14 +97,14 @@ func New(exitCh chan struct{}) Sysd {
 		log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
 		os.Exit(6)
 	}
-	ws, err := workspace.New(state, conf)
+	ws, err := workspace.New(state, lb, conf)
 	if err != nil {
 		log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
 		os.Exit(6)
 	}
 	workspaces[conf.ID] = ws
 
-	s := &sysd{[]workspace.Config{conf}, workspaces, exitCh, boltDB, nil}
+	s := &sysd{[]workspace.Config{conf}, workspaces, exitCh, boltDB, nil, lb}
 
 	srv := server.New(s)
 	s.server = srv

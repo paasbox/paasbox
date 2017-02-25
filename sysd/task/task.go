@@ -11,6 +11,7 @@ import (
 	"github.com/facebookgo/freeport"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/loadbalancer"
 )
 
 var (
@@ -81,6 +82,8 @@ type task struct {
 
 	store         state.Store
 	instanceStore state.Store
+	loadBalancer  loadbalancer.LB
+	lbListeners   map[int]loadbalancer.Listener
 	fileCreator   func(name string) (*os.File, error)
 	instance      Instance
 	doneCh        chan struct{}
@@ -92,22 +95,24 @@ type task struct {
 var _ Task = &task{}
 
 // NewTask ...
-func NewTask(store state.Store, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
+func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
 	var t *task
 	t = &task{
-		taskID:    config.ID,
-		name:      config.Name,
-		service:   config.Service,
-		persist:   config.Persist,
-		driver:    config.Driver,
-		command:   config.Command,
-		args:      config.Args,
-		env:       config.Env,
-		pwd:       config.Pwd,
-		ports:     config.Ports,
-		logger:    logger,
-		stopped:   false,
-		execMutex: new(sync.Mutex),
+		taskID:       config.ID,
+		name:         config.Name,
+		service:      config.Service,
+		persist:      config.Persist,
+		driver:       config.Driver,
+		command:      config.Command,
+		args:         config.Args,
+		env:          config.Env,
+		pwd:          config.Pwd,
+		ports:        config.Ports,
+		loadBalancer: lb,
+		lbListeners:  make(map[int]loadbalancer.Listener),
+		logger:       logger,
+		stopped:      false,
+		execMutex:    new(sync.Mutex),
 		fileCreator: func(name string) (*os.File, error) {
 			return fileCreator(t.instance.ID(), name)
 		},
@@ -324,6 +329,12 @@ func (t *task) Recover() (bool, error) {
 		return false, err
 	}
 
+	t.log("fetching ports", nil)
+	ports, err := instanceStore.GetIntArray("ports")
+	if err != nil {
+		return false, err
+	}
+
 	if pid == 0 || len(instanceID) == 0 {
 		return false, errZeroPid
 	}
@@ -334,7 +345,7 @@ func (t *task) Recover() (bool, error) {
 	}
 
 	t.doneCh = make(chan struct{})
-	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", []int{}}, proc)
+	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports}, proc)
 
 	return true, t.waitLoop()
 }
@@ -403,13 +414,42 @@ func (t *task) getInstancePorts() []int {
 	return ports
 }
 
+func (t *task) getListener(port int) (loadbalancer.Listener, error) {
+	if l, ok := t.lbListeners[port]; ok {
+		return l, nil
+	}
+	l, err := t.loadBalancer.AddListener(port)
+	if err != nil {
+		return nil, err
+	}
+	t.lbListeners[port] = l
+	return l, nil
+}
+
 func (t *task) waitLoop() error {
 	t.stopped = false
 	if err := t.instance.Start(); err != nil {
 		return err
 	}
+	for i, p := range t.ports {
+		l, err := t.getListener(p)
+		if err != nil {
+			return err
+		}
+		l.AddInstances(fmt.Sprintf("127.0.0.1:%d", t.instance.Ports()[i]))
+	}
 	go func() {
 		<-t.doneCh
+
+		for i, p := range t.ports {
+			l, err := t.getListener(p)
+			if err != nil {
+				log.Error(err, nil)
+				return
+			}
+			l.RemoveInstance(fmt.Sprintf("127.0.0.1:%d", t.instance.Ports()[i]))
+		}
+
 		t.instance = nil
 		if !t.stopped && t.service {
 			go t.Start()

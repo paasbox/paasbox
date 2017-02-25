@@ -92,6 +92,10 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	}
 	pwd := env.Replace(config.Pwd, e)
 
+	for i, e2 := range e {
+		e[i] = env.Replace(e2, e)
+	}
+
 	i := &instance{
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,

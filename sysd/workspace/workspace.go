@@ -9,6 +9,7 @@ import (
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/task"
 )
 
@@ -57,21 +58,23 @@ type workspace struct {
 	logPath     string
 	logPattern  string
 
-	tasks map[string]task.Task
-	store state.Store
+	tasks        map[string]task.Task
+	store        state.Store
+	loadBalancer loadbalancer.LB
 }
 
 // New ...
-func New(store state.Store, config Config) (Workspace, error) {
+func New(store state.Store, lb loadbalancer.LB, config Config) (Workspace, error) {
 	log.Debug("creating workspace", log.Data{"id": config.ID, "tasks": config.Tasks})
 	ws := &workspace{
-		id:          config.ID,
-		name:        config.Name,
-		taskConfigs: config.Tasks,
-		env:         config.Env,
-		tasks:       make(map[string]task.Task),
-		logPath:     config.LogPath,
-		logPattern:  config.LogPattern,
+		id:           config.ID,
+		name:         config.Name,
+		taskConfigs:  config.Tasks,
+		env:          config.Env,
+		tasks:        make(map[string]task.Task),
+		logPath:      config.LogPath,
+		logPattern:   config.LogPattern,
+		loadBalancer: lb,
 	}
 
 	if len(config.LogPath) == 0 {
@@ -131,7 +134,7 @@ func New(store state.Store, config Config) (Workspace, error) {
 		env = append(env, ws.env.Set...)
 		env = append(env, fmt.Sprintf("PAASBOX_WSID=%s", ws.id))
 
-		t2, err := task.NewTask(s, t.WithEnv(env), ws.log, func(instanceID, name string) (*os.File, error) {
+		t2, err := task.NewTask(s, ws.loadBalancer, t.WithEnv(env), ws.log, func(instanceID, name string) (*os.File, error) {
 			logPattern := ws.logPattern
 			logPattern = strings.Replace(logPattern, "$WORKSPACE_ID$", ws.ID(), -1)
 			logPattern = strings.Replace(logPattern, "$TASK_ID$", taskID, -1)

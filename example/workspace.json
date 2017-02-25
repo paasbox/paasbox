@@ -57,13 +57,15 @@
     {
       "id": "server",
       "name": "Some web server",
-      "service": false,
+      "service": true,
       "persist": false,
       "driver": "shell",
-      "command": "echo",
-      "args": [ "$PORT" ],
+      "command": "go run example/server.go",
+      "args": [],
       "ports": [ 9000 ],
-      "env": []
+      "env": [
+        "BIND_ADDR=:$PORT"
+      ]
     }
   ]
 }

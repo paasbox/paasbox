@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/task"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -21,6 +22,8 @@ func TestNewWorkspace(t *testing.T) {
 		t.Fail()
 		return
 	}
+
+	lb, _ := loadbalancer.New()
 
 	defer func() {
 		err := os.RemoveAll(logTemp)
@@ -47,7 +50,7 @@ func TestNewWorkspace(t *testing.T) {
 				},
 			},
 		}
-		w, err := New(storage, cfg)
+		w, err := New(storage, lb, cfg)
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		So(ws, ShouldNotBeNil)
@@ -76,7 +79,7 @@ func TestNewWorkspace(t *testing.T) {
 				},
 			},
 		}
-		w, err := New(storage, cfg)
+		w, err := New(storage, lb, cfg)
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]
@@ -113,14 +116,14 @@ func TestNewWorkspace(t *testing.T) {
 				},
 			},
 		}
-		w, err := New(storage, cfg)
+		w, err := New(storage, lb, cfg)
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]
 		i := task.CurrentInstance()
 		So(i, ShouldBeNil)
 
-		So(task.Env(), ShouldResemble, []string{"FOO=1", "BAR=2"})
+		So(task.Env(), ShouldResemble, []string{"FOO=1", "PAASBOX_WSID=", "BAR=2"})
 	})
 
 }
