@@ -63,6 +63,7 @@
       "command": "go run example/server.go",
       "args": [],
       "ports": [ 9000 ],
+      "instances": 2,
       "env": [
         "BIND_ADDR=:$PORT"
       ]

@@ -39,7 +39,7 @@ type Instance interface {
 type InstanceConfig struct {
 	DoneCh      chan struct{}
 	Logger      func(event string, data log.Data)
-	FileCreator func(name string) (*os.File, error)
+	FileCreator func(instanceID, name string) (*os.File, error)
 	Driver      string
 	Command     string
 	Args        []string
@@ -55,7 +55,7 @@ type instance struct {
 
 	doneCh      chan struct{}
 	logger      func(event string, data log.Data)
-	fileCreator func(name string) (*os.File, error)
+	fileCreator func(instanceID, name string) (*os.File, error)
 	driver      string
 	command     string
 	args        []string
@@ -360,7 +360,7 @@ func (i *instance) start() error {
 		}
 		i.log("created stdin file", log.Data{"stdin": stdin.Name()})
 
-		stdout, err := i.fileCreator("stdout")
+		stdout, err := i.fileCreator(i.instanceID, "stdout")
 		if err != nil {
 			stdin.Close()
 			return err
@@ -373,7 +373,7 @@ func (i *instance) start() error {
 			return err
 		}
 
-		stderr, err := i.fileCreator("stderr")
+		stderr, err := i.fileCreator(i.instanceID, "stderr")
 		if err != nil {
 			stdin.Close()
 			stdout.Close()

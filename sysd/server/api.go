@@ -37,23 +37,28 @@ type tasksOutput struct {
 }
 
 type tasksOutputTask struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Service bool     `json:"is_service"`
-	Persist bool     `json:"persist"` // FIXME `is_persist` would be wrong, but `persist` breaks bool pattern
-	Driver  string   `json:"driver"`
-	Command string   `json:"command"`
-	Args    []string `json:"args"`
-	Env     []string `json:"env"`
-	Pwd     string   `json:"pwd"`
-	Ports   []int    `json:"ports"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Service   bool     `json:"is_service"`
+	Persist   bool     `json:"persist"` // FIXME `is_persist` would be wrong, but `persist` breaks bool pattern
+	Driver    string   `json:"driver"`
+	Command   string   `json:"command"`
+	Args      []string `json:"args"`
+	Env       []string `json:"env"`
+	Pwd       string   `json:"pwd"`
+	Ports     []int    `json:"ports"`
+	Instances int      `json:"instances"`
 
 	TaskURL      string `json:"task_url"`
 	WorkspaceURL string `json:"workspace_url"`
 	InstancesURL string `json:"instances_url"`
 
-	CurrentInstanceID  string `json:"current_instance_id,omitempty"`
-	CurrentInstanceURL string `json:"current_instance_url,omitempty"`
+	CurrentInstances []tasksOutputTaskInstances `json:"current_instances,omitempty"`
+}
+
+type tasksOutputTaskInstances struct {
+	ID  string `json:"id"`
+	URL string `json:"url"`
 }
 
 type instancesOutput struct {
@@ -150,30 +155,31 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 	}
 
 	for _, t := range ws.Tasks() {
-		i := t.CurrentInstance()
-		var instanceID, instanceURL string
-		if i != nil {
-			instanceID = i.ID()
-			instanceURL = fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), instanceID)
+		var instances []tasksOutputTaskInstances
+		for _, inst := range t.CurrentInstances() {
+			instances = append(instances, tasksOutputTaskInstances{
+				ID:  inst.ID(),
+				URL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), inst.ID()),
+			})
 		}
 		o.Tasks = append(o.Tasks, tasksOutputTask{
-			ID:      t.ID(),
-			Name:    t.Name(),
-			Service: t.Service(),
-			Persist: t.Persist(),
-			Driver:  t.Driver(),
-			Command: t.Command(),
-			Args:    t.Args(),
-			Env:     t.Env(),
-			Pwd:     t.Pwd(),
-			Ports:   t.Ports(),
+			ID:        t.ID(),
+			Name:      t.Name(),
+			Service:   t.Service(),
+			Persist:   t.Persist(),
+			Driver:    t.Driver(),
+			Command:   t.Command(),
+			Args:      t.Args(),
+			Env:       t.Env(),
+			Pwd:       t.Pwd(),
+			Ports:     t.Ports(),
+			Instances: t.TargetInstances(),
 
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 			InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
 			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 
-			CurrentInstanceID:  instanceID,
-			CurrentInstanceURL: instanceURL,
+			CurrentInstances: instances,
 		})
 	}
 
@@ -205,31 +211,32 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	i := t.CurrentInstance()
-	var instanceID, instanceURL string
-	if i != nil {
-		instanceID = i.ID()
-		instanceURL = fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), instanceID)
+	var instances []tasksOutputTaskInstances
+	for _, inst := range t.CurrentInstances() {
+		instances = append(instances, tasksOutputTaskInstances{
+			ID:  inst.ID(),
+			URL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), inst.ID()),
+		})
 	}
 
 	o := tasksOutputTask{
-		ID:      t.ID(),
-		Name:    t.Name(),
-		Service: t.Service(),
-		Persist: t.Persist(),
-		Driver:  t.Driver(),
-		Command: t.Command(),
-		Args:    t.Args(),
-		Env:     t.Env(),
-		Pwd:     t.Pwd(),
-		Ports:   t.Ports(),
+		ID:        t.ID(),
+		Name:      t.Name(),
+		Service:   t.Service(),
+		Persist:   t.Persist(),
+		Driver:    t.Driver(),
+		Command:   t.Command(),
+		Args:      t.Args(),
+		Env:       t.Env(),
+		Pwd:       t.Pwd(),
+		Ports:     t.Ports(),
+		Instances: t.TargetInstances(),
 
 		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 		InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
 		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 
-		CurrentInstanceID:  instanceID,
-		CurrentInstanceURL: instanceURL,
+		CurrentInstances: instances,
 	}
 
 	b, err := json.Marshal(o)

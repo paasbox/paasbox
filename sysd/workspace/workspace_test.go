@@ -62,8 +62,7 @@ func TestNewWorkspace(t *testing.T) {
 
 		wsTask := ws.tasks["taskID"]
 
-		i := wsTask.CurrentInstance()
-		So(i, ShouldBeNil)
+		So(wsTask.CurrentInstances(), ShouldHaveLength, 0)
 	})
 
 	Convey("Start starts a workspace", t, func() {
@@ -71,11 +70,12 @@ func TestNewWorkspace(t *testing.T) {
 			LogPath: logTemp,
 			Tasks: []task.Config{
 				task.Config{
-					ID:      "sleep",
-					Service: true,
-					Driver:  "shell",
-					Command: "sleep",
-					Args:    []string{"5"},
+					ID:        "sleep",
+					Service:   true,
+					Driver:    "shell",
+					Command:   "sleep",
+					Args:      []string{"5"},
+					Instances: 1,
 				},
 			},
 		}
@@ -83,16 +83,15 @@ func TestNewWorkspace(t *testing.T) {
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]
-		i := task.CurrentInstance()
-		So(i, ShouldBeNil)
+		So(task.CurrentInstances(), ShouldHaveLength, 0)
 		So(err, ShouldBeNil)
 
 		err = ws.Start()
 		So(err, ShouldBeNil)
 
-		time.Sleep(time.Millisecond * 250)
+		time.Sleep(time.Millisecond * 500)
 
-		i = task.CurrentInstance()
+		i := task.CurrentInstances()[0]
 		So(i, ShouldNotBeNil)
 		So(err, ShouldBeNil)
 		So(i.Pid(), ShouldBeGreaterThan, 0)
@@ -120,8 +119,7 @@ func TestNewWorkspace(t *testing.T) {
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]
-		i := task.CurrentInstance()
-		So(i, ShouldBeNil)
+		So(task.CurrentInstances(), ShouldHaveLength, 0)
 
 		So(task.Env(), ShouldResemble, []string{"FOO=1", "PAASBOX_WSID=", "BAR=2"})
 	})

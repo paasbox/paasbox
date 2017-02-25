@@ -28,7 +28,7 @@ type Task interface {
 	Start() error
 	Stop() error
 	Recover() (ok bool, err error)
-	CurrentInstance() Instance
+	CurrentInstances() []Instance
 	Instance(id string) (Instance, error)
 	Instances(start, count uint, desc bool) []Instance
 
@@ -42,22 +42,24 @@ type Task interface {
 	Pwd() string
 	Ports() []int
 	Persist() bool
+	TargetInstances() int
 
 	ExecCount() int
 }
 
 // Config ...
 type Config struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Service bool     `json:"service"`
-	Persist bool     `json:"persist"`
-	Driver  string   `json:"driver"`
-	Command string   `json:"command"`
-	Args    []string `json:"args"`
-	Env     []string `json:"env"`
-	Pwd     string   `json:"pwd"`
-	Ports   []int    `json:"ports"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Service   bool     `json:"service"`
+	Persist   bool     `json:"persist"`
+	Driver    string   `json:"driver"`
+	Command   string   `json:"command"`
+	Args      []string `json:"args"`
+	Env       []string `json:"env"`
+	Pwd       string   `json:"pwd"`
+	Ports     []int    `json:"ports"`
+	Instances int      `json:"instances"`
 }
 
 // WithEnv ...
@@ -68,28 +70,33 @@ func (c Config) WithEnv(env []string) Config {
 }
 
 type task struct {
-	taskID  string
-	name    string
-	service bool
-	persist bool
-	driver  string
-	command string
-	args    []string
-	env     []string
-	ports   []int
-	pwd     string
-	logger  func(event string, data log.Data)
+	taskID          string
+	name            string
+	service         bool
+	persist         bool
+	driver          string
+	command         string
+	args            []string
+	env             []string
+	ports           []int
+	pwd             string
+	targetInstances int
+	logger          func(event string, data log.Data)
 
 	store         state.Store
 	instanceStore state.Store
 	loadBalancer  loadbalancer.LB
 	lbListeners   map[int]loadbalancer.Listener
-	fileCreator   func(name string) (*os.File, error)
-	instance      Instance
-	doneCh        chan struct{}
+	fileCreator   func(instanceID, name string) (*os.File, error)
+	instances     map[string]taskInstance
 	stopped       bool
 	execCount     int
 	execMutex     *sync.Mutex
+}
+
+type taskInstance struct {
+	doneCh   chan struct{}
+	instance Instance
 }
 
 var _ Task = &task{}
@@ -98,26 +105,34 @@ var _ Task = &task{}
 func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
 	var t *task
 	t = &task{
-		taskID:       config.ID,
-		name:         config.Name,
-		service:      config.Service,
-		persist:      config.Persist,
-		driver:       config.Driver,
-		command:      config.Command,
-		args:         config.Args,
-		env:          config.Env,
-		pwd:          config.Pwd,
-		ports:        config.Ports,
-		loadBalancer: lb,
-		lbListeners:  make(map[int]loadbalancer.Listener),
-		logger:       logger,
-		stopped:      false,
-		execMutex:    new(sync.Mutex),
-		fileCreator: func(name string) (*os.File, error) {
-			return fileCreator(t.instance.ID(), name)
+		taskID:          config.ID,
+		name:            config.Name,
+		service:         config.Service,
+		persist:         config.Persist,
+		driver:          config.Driver,
+		command:         config.Command,
+		args:            config.Args,
+		env:             config.Env,
+		pwd:             config.Pwd,
+		ports:           config.Ports,
+		targetInstances: config.Instances,
+		loadBalancer:    lb,
+		lbListeners:     make(map[int]loadbalancer.Listener),
+		logger:          logger,
+		stopped:         false,
+		execMutex:       new(sync.Mutex),
+		fileCreator: func(instanceID string, name string) (*os.File, error) {
+			return fileCreator(instanceID, name)
 		},
-		store: store,
+		instances: make(map[string]taskInstance),
+		store:     store,
 	}
+	if t.service && t.targetInstances == 0 {
+		// FIXME this works for now if `instances` isn't set, but means
+		// setting `instances` to 0 won't prevent the service starting
+		t.targetInstances = 1
+	}
+
 	instanceStore, err := store.Wrap("instances")
 	if err != nil {
 		return nil, err
@@ -145,8 +160,11 @@ func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(e
 	return t, nil
 }
 
-func (t *task) CurrentInstance() Instance {
-	return t.instance
+func (t *task) CurrentInstances() (inst []Instance) {
+	for _, i := range t.instances {
+		inst = append(inst, i.instance)
+	}
+	return
 }
 
 func (t *task) Instance(id string) (Instance, error) {
@@ -300,86 +318,108 @@ func (t *task) Ports() []int {
 	return t.ports
 }
 
+func (t *task) TargetInstances() int {
+	return t.targetInstances
+}
+
 func (t *task) Recover() (bool, error) {
 	t.log("fetching instanceID", nil)
-	instanceID, err := t.store.Get("instanceID")
+	instanceIDs, err := t.store.GetArray("instanceIDs")
 	if err != nil {
 		return false, err
 	}
 
-	if len(instanceID) == 0 {
+	if len(instanceIDs) == 0 {
 		return false, errNoInstanceID
 	}
 
-	t.log("wrapping instanceStore", nil)
-	instanceStore, err := t.instanceStore.Wrap(instanceID)
-	if err != nil {
-		return false, err
+	for _, instanceID := range instanceIDs {
+		t.log("wrapping instanceStore", nil)
+		instanceStore, err := t.instanceStore.Wrap(instanceID)
+		if err != nil {
+			return false, err
+		}
+
+		t.log("fetching pid", nil)
+		p, err := instanceStore.Get("pid")
+		if err != nil {
+			return false, err
+		}
+
+		t.log("converting pid to int", log.Data{"pid": p})
+		pid, err := strconv.Atoi(p)
+		if err != nil {
+			return false, err
+		}
+
+		t.log("fetching ports", nil)
+		ports, err := instanceStore.GetIntArray("ports")
+		if err != nil {
+			return false, err
+		}
+
+		if pid == 0 || len(instanceID) == 0 {
+			return false, errZeroPid
+		}
+
+		proc, err := t.getProcess(pid)
+		if err != nil {
+			return false, err
+		}
+
+		doneCh := make(chan struct{})
+		inst := RecoveredInstance(instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports}, proc)
+		t.instances[instanceID] = taskInstance{doneCh, inst}
+
+		// TODO handle waitLoop errors
+		go t.waitLoop(inst, doneCh)
 	}
 
-	t.log("fetching pid", nil)
-	p, err := instanceStore.Get("pid")
-	if err != nil {
-		return false, err
-	}
-
-	t.log("converting pid to int", log.Data{"pid": p})
-	pid, err := strconv.Atoi(p)
-	if err != nil {
-		return false, err
-	}
-
-	t.log("fetching ports", nil)
-	ports, err := instanceStore.GetIntArray("ports")
-	if err != nil {
-		return false, err
-	}
-
-	if pid == 0 || len(instanceID) == 0 {
-		return false, errZeroPid
-	}
-
-	proc, err := t.getProcess(pid)
-	if err != nil {
-		return false, err
-	}
-
-	t.doneCh = make(chan struct{})
-	t.instance = RecoveredInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports}, proc)
-
-	return true, t.waitLoop()
+	return true, nil
 }
 
 func (t *task) Start() error {
-	if t.instance != nil {
-		return errAlreadyStarted
+	// if len(t.instances) > 0 {
+	// 	return errAlreadyStarted
+	// }
+
+	need := t.targetInstances - len(t.instances)
+	log.Debug("creating target instances", log.Data{"target": t.targetInstances, "current": len(t.instances), "need": need})
+	for i := 0; i < need; i++ {
+		var instanceID string
+		t.execMutex.Lock()
+		t.execCount++
+		instanceID = fmt.Sprintf("%d", t.execCount)
+		err := t.store.Set("execCount", fmt.Sprintf("%d", t.execCount))
+		if err != nil {
+			t.execMutex.Unlock()
+			return err
+		}
+		t.execMutex.Unlock()
+
+		instanceStore, err := t.instanceStore.Wrap(instanceID)
+		if err != nil {
+			return err
+		}
+
+		doneCh := make(chan struct{})
+		inst := NewInstance(instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts()})
+		t.instances[instanceID] = taskInstance{doneCh, inst}
+
+		// TODO handle waitLoop errors properly
+		go func() {
+			err := t.waitLoop(inst, doneCh)
+			if err != nil {
+				log.Error(err, nil)
+			}
+		}()
 	}
 
-	var instanceID string
-	t.execMutex.Lock()
-	t.execCount++
-	instanceID = fmt.Sprintf("%d", t.execCount)
-	t.execMutex.Unlock()
-
-	err := t.store.Set("instanceID", instanceID)
-	if err != nil {
-		return err
+	var instanceIDs []string
+	for _, i := range t.instances {
+		instanceIDs = append(instanceIDs, i.instance.ID())
 	}
-
-	err = t.store.Set("execCount", fmt.Sprintf("%d", t.execCount))
-	if err != nil {
-		return err
-	}
-
-	instanceStore, err := t.instanceStore.Wrap(instanceID)
-	if err != nil {
-		return err
-	}
-
-	t.doneCh = make(chan struct{})
-	t.instance = NewInstance(instanceID, instanceStore, InstanceConfig{t.doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts()})
-
-	return t.waitLoop()
+	return t.store.SetArray("instanceIDs", instanceIDs)
 }
 
 func (t *task) getEnv() []string {
@@ -426,9 +466,9 @@ func (t *task) getListener(port int) (loadbalancer.Listener, error) {
 	return l, nil
 }
 
-func (t *task) waitLoop() error {
+func (t *task) waitLoop(inst Instance, doneCh chan struct{}) error {
 	t.stopped = false
-	if err := t.instance.Start(); err != nil {
+	if err := inst.Start(); err != nil {
 		return err
 	}
 	for i, p := range t.ports {
@@ -436,10 +476,12 @@ func (t *task) waitLoop() error {
 		if err != nil {
 			return err
 		}
-		l.AddInstances(fmt.Sprintf("127.0.0.1:%d", t.instance.Ports()[i]))
+		l.AddInstances(fmt.Sprintf("127.0.0.1:%d", inst.Ports()[i]))
 	}
 	go func() {
-		<-t.doneCh
+		<-doneCh
+
+		delete(t.instances, inst.ID())
 
 		for i, p := range t.ports {
 			l, err := t.getListener(p)
@@ -447,10 +489,9 @@ func (t *task) waitLoop() error {
 				log.Error(err, nil)
 				return
 			}
-			l.RemoveInstance(fmt.Sprintf("127.0.0.1:%d", t.instance.Ports()[i]))
+			l.RemoveInstance(fmt.Sprintf("127.0.0.1:%d", inst.Ports()[i]))
 		}
 
-		t.instance = nil
 		if !t.stopped && t.service {
 			go t.Start()
 		}
@@ -460,8 +501,9 @@ func (t *task) waitLoop() error {
 
 func (t *task) Stop() error {
 	t.stopped = true
-	if t.instance != nil {
-		return t.instance.Stop()
+	for _, i := range t.instances {
+		// TODO handle errors
+		i.instance.Stop()
 	}
 	return nil
 }
