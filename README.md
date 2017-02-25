@@ -17,6 +17,7 @@ Start paasbox with the example workspace:
 - auto-tail latest/all instances from task endpoint
 - load workspace from http(s)/s3/gist(?)
 - store state in remote db/s3/api(?)
+- support HTTP-specific load balancer and Host headers?
 
 ### Notes
 
