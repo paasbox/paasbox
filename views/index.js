@@ -12,8 +12,7 @@ import store from './shared/store';
 
 // app component
 import App from './App.jsx';
-import Workspace from './Workspace.jsx';
-import WorkspaceController from './components/workspaces/WorkspacesController.jsx';
+import WorkspaceController from './components/sidebar/WorkspacesController.jsx';
 
 const routes = (
     <Provider store={ store }>
