@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
@@ -45,6 +48,8 @@ var (
 	errCreateLoadbalancerFailed  = errors.New("error creating load balancer")
 )
 
+var cli = &http.Client{Timeout: time.Second * 5}
+
 // New ...
 func New(exitCh chan struct{}) Sysd {
 	log.Debug("starting sysd", nil)
@@ -57,11 +62,31 @@ func New(exitCh chan struct{}) Sysd {
 		workspaceFile = os.Args[1]
 	}
 
-	b, err := ioutil.ReadFile(workspaceFile)
-	if err != nil {
-		log.Error(errReadFileError, log.Data{"reason": err})
-		os.Exit(2)
-		return nil
+	var b []byte
+	var err error
+
+	if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
+		strings.HasPrefix(strings.ToLower(workspaceFile), "https://") {
+		res, e := cli.Get(workspaceFile)
+		if e != nil {
+			log.Error(errReadFileError, log.Data{"reason": e})
+			os.Exit(2)
+			return nil
+		}
+		b, err = ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			log.Error(errReadFileError, log.Data{"reason": err})
+			os.Exit(2)
+			return nil
+		}
+	} else {
+		b, err = ioutil.ReadFile(workspaceFile)
+		if err != nil {
+			log.Error(errReadFileError, log.Data{"reason": err})
+			os.Exit(2)
+			return nil
+		}
 	}
 
 	var conf workspace.Config
