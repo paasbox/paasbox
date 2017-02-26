@@ -3,10 +3,15 @@ package task
 import (
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/facebookgo/freeport"
 	"github.com/ian-kent/service.go/log"
@@ -23,6 +28,13 @@ var (
 	errAlreadyStarted     = errors.New("already started")
 )
 
+var cli = &http.Client{
+	Timeout: time.Second * 2,
+}
+
+var _ InstanceHealth = &taskInstanceTracker{}
+var _ Task = &task{}
+
 // Task ...
 type Task interface {
 	Start() error
@@ -31,6 +43,7 @@ type Task interface {
 	CurrentInstances() []Instance
 	Instance(id string) (Instance, error)
 	Instances(start, count uint, desc bool) []Instance
+	Healthchecks() []Healthcheck
 
 	ID() string
 	Name() string
@@ -47,19 +60,48 @@ type Task interface {
 	ExecCount() int
 }
 
+// Healthcheck ...
+type Healthcheck interface {
+	Type() string
+	Target() string
+	HealthyThreshold() int
+	UnhealthyThreshold() int
+	ReapThreshold() int
+	Frequency() time.Duration
+	Instances() []InstanceHealth
+}
+
+// InstanceHealth ...
+type InstanceHealth interface {
+	ID() string
+	Healthy() bool
+	Score() int
+}
+
 // Config ...
 type Config struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Service   bool     `json:"service"`
-	Persist   bool     `json:"persist"`
-	Driver    string   `json:"driver"`
-	Command   string   `json:"command"`
-	Args      []string `json:"args"`
-	Env       []string `json:"env"`
-	Pwd       string   `json:"pwd"`
-	Ports     []int    `json:"ports"`
-	Instances int      `json:"instances"`
+	ID           string              `json:"id"`
+	Name         string              `json:"name"`
+	Service      bool                `json:"service"`
+	Persist      bool                `json:"persist"`
+	Driver       string              `json:"driver"`
+	Command      string              `json:"command"`
+	Args         []string            `json:"args"`
+	Env          []string            `json:"env"`
+	Pwd          string              `json:"pwd"`
+	Ports        []int               `json:"ports"`
+	Instances    int                 `json:"instances"`
+	Healthchecks []HealthcheckConfig `json:"healthchecks"`
+}
+
+// HealthcheckConfig ...
+type HealthcheckConfig struct {
+	Type               string `json:"type"`
+	Target             string `json:"target"`
+	HealthyThreshold   int    `json:"healthy_threshold"`
+	UnhealthyThreshold int    `json:"unhealthy_threshold"`
+	ReapThreshold      int    `json:"reap_threshold"`
+	Frequency          string `json:"frequency"`
 }
 
 // WithEnv ...
@@ -86,6 +128,7 @@ type task struct {
 	store         state.Store
 	instanceStore state.Store
 	loadBalancer  loadbalancer.LB
+	healthchecks  []*taskHealthcheck
 	lbListeners   map[int]loadbalancer.Listener
 	fileCreator   func(instanceID, name string) (*os.File, error)
 	instances     map[string]taskInstance
@@ -97,6 +140,157 @@ type task struct {
 type taskInstance struct {
 	doneCh   chan struct{}
 	instance Instance
+}
+
+type taskHealthcheck struct {
+	task               *task
+	_type              string
+	target             string
+	healthyThreshold   int
+	unhealthyThreshold int
+	reapThreshold      int
+	frequency          time.Duration
+	tracker            map[Instance]*taskInstanceTracker
+}
+
+func (t *taskHealthcheck) Type() string {
+	return t._type
+}
+
+func (t *taskHealthcheck) Target() string {
+	return t.target
+}
+
+func (t *taskHealthcheck) HealthyThreshold() int {
+	return t.healthyThreshold
+}
+
+func (t *taskHealthcheck) UnhealthyThreshold() int {
+	return t.unhealthyThreshold
+}
+
+func (t *taskHealthcheck) ReapThreshold() int {
+	return t.reapThreshold
+}
+
+func (t *taskHealthcheck) Frequency() time.Duration {
+	return t.frequency
+}
+
+func (t *taskHealthcheck) Instances() (res []InstanceHealth) {
+	for _, t := range t.tracker {
+		res = append(res, t)
+	}
+	return
+}
+
+type taskInstanceTracker struct {
+	instance Instance
+	score    int
+	healthy  bool
+}
+
+func (t *taskInstanceTracker) ID() string {
+	return t.instance.ID()
+}
+
+func (t *taskInstanceTracker) Healthy() bool {
+	return t.healthy
+}
+
+func (t *taskInstanceTracker) Score() int {
+	return t.score
+}
+
+func (t *taskHealthcheck) Start() {
+	t.tracker = make(map[Instance]*taskInstanceTracker)
+	mtx := new(sync.Mutex)
+	go func() {
+		ticker := time.NewTicker(t.frequency)
+		for {
+			select {
+			case <-ticker.C:
+				for _, i := range t.task.instances {
+					if _, ok := t.tracker[i.instance]; !ok {
+						mtx.Lock()
+						t.tracker[i.instance] = &taskInstanceTracker{i.instance, 0, true}
+						mtx.Unlock()
+					}
+					go func(i taskInstance) {
+						mtx.Lock()
+						defer mtx.Unlock()
+						track := t.tracker[i.instance]
+
+						t.task.log("running healthcheck", log.Data{"instance_id": i.instance.ID(), "score": t.tracker[i.instance]})
+						healthy := t.Run(i.instance)
+						if healthy && !track.healthy {
+							track.score++
+						} else if !healthy {
+							track.score--
+						}
+						t.task.log("healthcheck complete", log.Data{"instance_id": i.instance.ID(), "score": t.tracker[i.instance], "healthy": healthy})
+						if track.healthy && track.score == 0-t.unhealthyThreshold {
+							track.healthy = false
+							err := t.task.removeInstanceFromLB(i.instance)
+							if err != nil {
+								t.task.error(errors.New("error removing instance from load balancer"), err, nil)
+							}
+						} else {
+							if track.score == 0-t.reapThreshold {
+								t.task.log("reaping instance", log.Data{"instance_id": i.instance.ID()})
+								delete(t.tracker, i.instance)
+								err := i.instance.Stop()
+								if err != nil {
+									t.task.error(errors.New("error stopping instance"), err, log.Data{"instance_id": i.instance.ID()})
+								}
+							} else if track.score > t.healthyThreshold {
+								track.healthy = true
+								track.score = 0
+								healthy := true
+								for _, h := range t.task.healthchecks {
+									if !h.tracker[i.instance].healthy {
+										healthy = false
+										break
+									}
+								}
+								if healthy {
+									err := t.task.addInstanceToLB(i.instance)
+									if err != nil {
+										t.task.error(errors.New("error removing instance from load balancer"), err, nil)
+									}
+								}
+							}
+						}
+					}(i)
+				}
+			}
+		}
+	}()
+}
+
+func (t *taskHealthcheck) Run(i Instance) bool {
+	switch t._type {
+	case "http":
+		url := t.target
+		url = strings.Replace(url, "$HOST$", "127.0.0.1", -1)
+		url = strings.Replace(url, "$PORT$", fmt.Sprintf("%d", i.Ports()[0]), -1)
+		res, err := cli.Get(url)
+		if err != nil {
+			t.task.error(errors.New("healthcheck error"), err, nil)
+			return false
+		}
+		io.Copy(ioutil.Discard, res.Body)
+		res.Body.Close()
+		if res.StatusCode < 400 {
+			return true
+		}
+		t.task.error(errors.New("healthcheck error"), errors.New("unexpected status code"), log.Data{"code": res.StatusCode})
+		return false
+	default:
+		// TODO check this sooner
+		log.Error(errors.New("unknown healthcheck type"), nil)
+	}
+	return false
 }
 
 var _ Task = &task{}
@@ -127,6 +321,29 @@ func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(e
 		},
 		instances: make(map[string]taskInstance),
 		store:     store,
+	}
+	for _, hc := range config.Healthchecks {
+		var d time.Duration
+		var err error
+		if len(hc.Frequency) == 0 {
+			d = time.Second * 30
+		} else {
+			d, err = time.ParseDuration(hc.Frequency)
+			if err != nil {
+				return nil, err
+			}
+		}
+		thc := &taskHealthcheck{
+			task:               t,
+			_type:              hc.Type,
+			target:             hc.Target,
+			healthyThreshold:   hc.HealthyThreshold,
+			unhealthyThreshold: hc.UnhealthyThreshold,
+			reapThreshold:      hc.ReapThreshold,
+			frequency:          d,
+		}
+		thc.Start()
+		t.healthchecks = append(t.healthchecks, thc)
 	}
 	if t.service && t.targetInstances == 0 {
 		// FIXME this works for now if `instances` isn't set, but means
@@ -323,6 +540,13 @@ func (t *task) TargetInstances() int {
 	return t.targetInstances
 }
 
+func (t *task) Healthchecks() (res []Healthcheck) {
+	for _, hc := range t.healthchecks {
+		res = append(res, hc)
+	}
+	return
+}
+
 func (t *task) Recover() (bool, error) {
 	t.log("fetching instanceID", nil)
 	instanceIDs, err := t.store.GetArray("instanceIDs")
@@ -383,20 +607,19 @@ func (t *task) Start() error {
 	// if len(t.instances) > 0 {
 	// 	return errAlreadyStarted
 	// }
+	t.execMutex.Lock()
+	defer t.execMutex.Unlock()
 
 	need := t.targetInstances - len(t.instances)
 	log.Debug("creating target instances", log.Data{"target": t.targetInstances, "current": len(t.instances), "need": need})
 	for i := 0; i < need; i++ {
 		var instanceID string
-		t.execMutex.Lock()
 		t.execCount++
 		instanceID = fmt.Sprintf("%d", t.execCount)
 		err := t.store.Set("execCount", fmt.Sprintf("%d", t.execCount))
 		if err != nil {
-			t.execMutex.Unlock()
 			return err
 		}
-		t.execMutex.Unlock()
 
 		instanceStore, err := t.instanceStore.Wrap(instanceID)
 		if err != nil {
@@ -467,11 +690,7 @@ func (t *task) getListener(port int) (loadbalancer.Listener, error) {
 	return l, nil
 }
 
-func (t *task) waitLoop(inst Instance, doneCh chan struct{}) error {
-	t.stopped = false
-	if err := inst.Start(); err != nil {
-		return err
-	}
+func (t *task) addInstanceToLB(inst Instance) error {
 	for i, p := range t.ports {
 		l, err := t.getListener(p)
 		if err != nil {
@@ -479,18 +698,38 @@ func (t *task) waitLoop(inst Instance, doneCh chan struct{}) error {
 		}
 		l.AddInstances(fmt.Sprintf("127.0.0.1:%d", inst.Ports()[i]))
 	}
+	return nil
+}
+
+func (t *task) removeInstanceFromLB(inst Instance) error {
+	for i, p := range t.ports {
+		l, err := t.getListener(p)
+		if err != nil {
+			return err
+		}
+		l.RemoveInstance(fmt.Sprintf("127.0.0.1:%d", inst.Ports()[i]))
+	}
+	return nil
+}
+
+func (t *task) waitLoop(inst Instance, doneCh chan struct{}) error {
+	t.stopped = false
+	if err := inst.Start(); err != nil {
+		return err
+	}
+	if err := t.addInstanceToLB(inst); err != nil {
+		return err
+	}
 	go func() {
 		<-doneCh
 
 		delete(t.instances, inst.ID())
+		for _, hc := range t.healthchecks {
+			delete(hc.tracker, inst)
+		}
 
-		for i, p := range t.ports {
-			l, err := t.getListener(p)
-			if err != nil {
-				log.Error(err, nil)
-				return
-			}
-			l.RemoveInstance(fmt.Sprintf("127.0.0.1:%d", inst.Ports()[i]))
+		if err := t.removeInstanceFromLB(inst); err != nil {
+			t.error(errors.New("error removing instance from load balancer"), err, nil)
 		}
 
 		if !t.stopped && t.service {

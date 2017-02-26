@@ -18,6 +18,10 @@ Start paasbox with the example workspace:
 - load workspace from http(s)/s3/gist(?)
 - store state in remote db/s3/api(?)
 - support HTTP-specific load balancer and Host headers?
+- workspace initialisation stage?
+- $ref to external JSON files?
+- native SCM support?
+- healthcheck
 
 ### Notes
 
