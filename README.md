@@ -21,7 +21,6 @@ Start paasbox with the example workspace:
 - workspace initialisation stage?
 - $ref to external JSON files?
 - native SCM support?
-- healthcheck
 
 ### Notes
 
