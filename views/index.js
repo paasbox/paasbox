@@ -13,12 +13,13 @@ import store from './shared/store';
 // app component
 import App from './App.jsx';
 import Workspace from './Workspace.jsx';
+import WorkspaceController from './components/workspaces/WorkspacesController.jsx';
 
 const routes = (
     <Provider store={ store }>
         <Router history={ browserHistory }>
             <Route component={ App }>
-                <Route path="/" component={ Workspace } />
+                <Route path="/" component={ WorkspaceController } />
             </Route>
         </Router>
     </Provider>

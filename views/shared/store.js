@@ -11,12 +11,8 @@ function reducer(state = initialState, action) {
     const updatedState = JSON.parse(JSON.stringify(state));
 
     switch (action.type) {
-        case (UPDATE_WORKSPACES): {
+        case ('UPDATE_WORKSPACES'): {
             updatedState.workspaces = action.workspaces;
-            break;
-        }
-        default: {
-            console.log("Action type '%s' unrecognised", action.type);
             break;
         }
     }
