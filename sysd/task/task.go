@@ -546,6 +546,7 @@ func (t *task) TargetInstances() int {
 }
 
 func (t *task) Healthchecks() (res []Healthcheck) {
+	res = make([]Healthcheck, 0)
 	for _, hc := range t.healthchecks {
 		res = append(res, hc)
 	}

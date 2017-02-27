@@ -180,18 +180,41 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 				URL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), inst.ID()),
 			})
 		}
+
+		var hcOutput []taskOutputHealthcheck
+		for _, hc := range t.Healthchecks() {
+			var insts []taskOutputInstanceHealth
+			for _, inst := range hc.Instances() {
+				insts = append(insts, taskOutputInstanceHealth{
+					Healthy:    inst.Healthy(),
+					InstanceID: inst.ID(),
+					Score:      inst.Score(),
+				})
+			}
+			hcOutput = append(hcOutput, taskOutputHealthcheck{
+				Type:               hc.Type(),
+				Target:             hc.Target(),
+				HealthyThreshold:   hc.HealthyThreshold(),
+				UnhealthyThreshold: hc.UnhealthyThreshold(),
+				ReapThreshold:      hc.ReapThreshold(),
+				Frequency:          hc.Frequency(),
+				Instances:          insts,
+			})
+		}
+
 		o.Tasks = append(o.Tasks, tasksOutputTask{
-			ID:        t.ID(),
-			Name:      t.Name(),
-			Service:   t.Service(),
-			Persist:   t.Persist(),
-			Driver:    t.Driver(),
-			Command:   t.Command(),
-			Args:      t.Args(),
-			Env:       t.Env(),
-			Pwd:       t.Pwd(),
-			Ports:     t.Ports(),
-			Instances: t.TargetInstances(),
+			ID:           t.ID(),
+			Name:         t.Name(),
+			Service:      t.Service(),
+			Persist:      t.Persist(),
+			Driver:       t.Driver(),
+			Command:      t.Command(),
+			Args:         t.Args(),
+			Env:          t.Env(),
+			Pwd:          t.Pwd(),
+			Ports:        t.Ports(),
+			Instances:    t.TargetInstances(),
+			Healthchecks: hcOutput,
 
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 			InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
