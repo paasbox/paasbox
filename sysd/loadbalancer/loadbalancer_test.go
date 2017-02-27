@@ -49,7 +49,7 @@ func TestLoadBalancer(t *testing.T) {
 		http.DefaultTransport.(*http.Transport).DisableKeepAlives = true
 
 		newServer(10000)
-		listener.AddInstance(NewInstance(10000))
+		listener.AddInstances("127.0.0.1:10000")
 		res, err := http.Get(fmt.Sprintf("http://127.0.0.1:9000"))
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
@@ -59,7 +59,7 @@ func TestLoadBalancer(t *testing.T) {
 		So(string(b), ShouldEqual, "10000")
 
 		newServer(10001)
-		listener.AddInstance(NewInstance(10001))
+		listener.AddInstances("127.0.0.1:10001")
 
 		for i := 0; i < 10; i++ {
 			res, err = http.Get(fmt.Sprintf("http://127.0.0.1:9000"))

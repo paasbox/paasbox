@@ -8,17 +8,17 @@ paasbox
 Start paasbox with the example workspace:
 
 - `go get github.com/paasbox/paasbox/cmd/pb`
-- `curl -O https://raw.githubusercontent.com/paasbox/paasbox/master/example/workspace.json`
-- `pb`
+- `pb https://raw.githubusercontent.com/paasbox/paasbox/master/example/workspace.json`
 
 ### Todo
 
-- support multiple instances of a task
 - handle log/instance retention
 - auto-tail latest/all instances from task endpoint
-- load workspace from http(s)/s3/gist(?)
 - store state in remote db/s3/api(?)
-- port allocation and load balancing
+- support HTTP-specific load balancer and Host headers?
+- workspace initialisation stage?
+- $ref to external JSON files?
+- native SCM support?
 
 ### Notes
 

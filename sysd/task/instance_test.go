@@ -24,7 +24,7 @@ func TestInstance(t *testing.T) {
 			f.Close()
 		}
 	}()
-	tempFile := func(name string) (*os.File, error) {
+	tempFile := func(instanceID, name string) (*os.File, error) {
 		f, err := ioutil.TempFile("", name)
 		if err != nil {
 			return f, err

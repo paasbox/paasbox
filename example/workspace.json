@@ -22,17 +22,20 @@
       "id": "sleep",
       "name": "Sleep for 60 seconds",
       "service": true,
+      "persist": false,
       "driver": "exec",
       "command": "/bin/sleep",
-      "args": [ "10" ],
+      "args": [ "$DURATION" ],
       "env": [
-        "BAR=1"
+        "BAR=1",
+        "DURATION=10"
       ]
     },
     {
       "id": "log-test",
       "name": "Output a log line every second",
       "service": true,
+      "persist": false,
       "driver": "shell",
       "command": "go run example/main.go",
       "env": [
@@ -43,6 +46,7 @@
       "id": "echo",
       "name": "Echo something",
       "service": false,
+      "persist": false,
       "driver": "shell",
       "command": "echo",
       "args": [ "something" ],
@@ -53,12 +57,24 @@
     {
       "id": "server",
       "name": "Some web server",
-      "service": false,
+      "service": true,
+      "persist": false,
       "driver": "shell",
-      "command": "echo",
-      "args": [ "$PORT" ],
+      "command": "go run example/server.go",
+      "args": [],
       "ports": [ 9000 ],
-      "env": []
+      "instances": 2,
+      "env": [
+        "BIND_ADDR=:$PORT"
+      ],
+      "healthchecks": [{
+        "type": "http",
+        "target": "http://$HOST$:$PORT$/healthcheck",
+        "healthy_threshold": 10,
+        "unhealthy_threshold": 2,
+        "reap_threshold": 10,
+        "frequency": "5s"
+      }]
     }
   ]
 }

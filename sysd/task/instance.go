@@ -10,6 +10,7 @@ import (
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/util/env"
 )
 
 var errWaitingForProcess = errors.New("error waiting for process")
@@ -38,7 +39,7 @@ type Instance interface {
 type InstanceConfig struct {
 	DoneCh      chan struct{}
 	Logger      func(event string, data log.Data)
-	FileCreator func(name string) (*os.File, error)
+	FileCreator func(instanceID, name string) (*os.File, error)
 	Driver      string
 	Command     string
 	Args        []string
@@ -54,7 +55,7 @@ type instance struct {
 
 	doneCh      chan struct{}
 	logger      func(event string, data log.Data)
-	fileCreator func(name string) (*os.File, error)
+	fileCreator func(instanceID, name string) (*os.File, error)
 	driver      string
 	command     string
 	args        []string
@@ -77,22 +78,33 @@ type instance struct {
 
 // NewInstance ...
 func NewInstance(instanceID string, store state.Store, config InstanceConfig) Instance {
-	env := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
+	e := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
 	if len(config.Ports) > 0 {
-		env = append(env, fmt.Sprintf("PORT=%d", config.Ports[0]))
+		e = append(e, fmt.Sprintf("PORT=%d", config.Ports[0]))
 		for i, p := range config.Ports {
-			env = append(env, fmt.Sprintf("PORT%d=%d", i, p))
+			e = append(e, fmt.Sprintf("PORT%d=%d", i, p))
 		}
 	}
+	command := env.Replace(config.Command, e)
+	var args []string
+	for _, a := range config.Args {
+		args = append(args, env.Replace(a, e))
+	}
+	pwd := env.Replace(config.Pwd, e)
+
+	for i, e2 := range e {
+		e[i] = env.Replace(e2, e)
+	}
+
 	i := &instance{
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,
 		fileCreator:    config.FileCreator,
 		driver:         config.Driver,
-		command:        config.Command,
-		args:           config.Args,
-		env:            env,
-		pwd:            config.Pwd,
+		command:        command,
+		args:           args,
+		env:            e,
+		pwd:            pwd,
 		ports:          config.Ports,
 		signalInterval: time.Second * 10,
 		instanceID:     instanceID,
@@ -103,7 +115,7 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	if err != nil {
 		log.Error(err, nil)
 	}
-	err = store.Set("command", config.Command)
+	err = store.Set("command", command)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -111,11 +123,11 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	if err != nil {
 		log.Error(err, nil)
 	}
-	err = store.SetArray("args", config.Args)
+	err = store.SetArray("args", args)
 	if err != nil {
 		log.Error(err, nil)
 	}
-	err = store.SetArray("env", env)
+	err = store.SetArray("env", e)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -218,7 +230,8 @@ func (i *instance) Stop() error {
 
 	defer i.done()
 
-	err := i.process.Kill()
+	//err := i.process.Kill()
+	err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
 	if err != nil {
 		return err
 	}
@@ -348,7 +361,7 @@ func (i *instance) start() error {
 		}
 		i.log("created stdin file", log.Data{"stdin": stdin.Name()})
 
-		stdout, err := i.fileCreator("stdout")
+		stdout, err := i.fileCreator(i.instanceID, "stdout")
 		if err != nil {
 			stdin.Close()
 			return err
@@ -361,7 +374,7 @@ func (i *instance) start() error {
 			return err
 		}
 
-		stderr, err := i.fileCreator("stderr")
+		stderr, err := i.fileCreator(i.instanceID, "stderr")
 		if err != nil {
 			stdin.Close()
 			stdout.Close()

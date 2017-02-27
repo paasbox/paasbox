@@ -19,19 +19,13 @@ type LB interface {
 
 // Listener ...
 type Listener interface {
-	Instances() []Instance
-	AddInstance(i Instance)
-	RemoveInstance(i Instance)
-}
-
-// Instance ...
-type Instance interface {
-	Port() int
+	Instances() []string
+	AddInstances(addr ...string)
+	RemoveInstance(addr ...string)
 }
 
 var _ LB = &lb{}
 var _ Listener = &lbListener{}
-var _ Instance = &lbInstance{}
 
 type lb struct {
 	listeners map[int]*lbListener
@@ -40,7 +34,7 @@ type lb struct {
 type lbListener struct {
 	net.Listener
 	port      int
-	instances []Instance
+	instances map[string]struct{}
 	mutex     *sync.RWMutex
 }
 
@@ -55,11 +49,6 @@ func New() (LB, error) {
 	}, nil
 }
 
-// NewInstance ...
-func NewInstance(port int) Instance {
-	return &lbInstance{port}
-}
-
 func (lb *lb) AddListener(port int) (Listener, error) {
 	log.Debug("adding listener", log.Data{"port": port})
 
@@ -70,7 +59,7 @@ func (lb *lb) AddListener(port int) (Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	listener := &lbListener{l, port, make([]Instance, 0), new(sync.RWMutex)}
+	listener := &lbListener{l, port, make(map[string]struct{}, 0), new(sync.RWMutex)}
 	lb.listeners[port] = listener
 	go listener.start()
 	return listener, nil
@@ -80,8 +69,11 @@ func (lb *lb) StopListener(port int) error {
 	return errors.New("not implemented")
 }
 
-func (li *lbListener) Instances() []Instance {
-	return li.instances
+func (li *lbListener) Instances() (res []string) {
+	for k := range li.instances {
+		res = append(res, k)
+	}
+	return
 }
 
 func (li *lbListener) start() {
@@ -92,11 +84,12 @@ func (li *lbListener) start() {
 			continue
 		}
 		li.mutex.RLock()
-		n := rand.Intn(len(li.instances))
+		instances := li.Instances()
+		n := rand.Intn(len(instances))
 		log.Debug("instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
-		dest := li.instances[n]
+		dest := instances[n]
 		li.mutex.RUnlock()
-		rconn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", dest.Port()))
+		rconn, err := net.Dial("tcp", dest)
 		if err != nil {
 			log.Error(err, nil)
 			continue
@@ -108,22 +101,20 @@ func (li *lbListener) start() {
 	}
 }
 
-func (li *lbListener) AddInstance(i Instance) {
+func (li *lbListener) AddInstances(addr ...string) {
 	li.mutex.Lock()
 	defer li.mutex.Unlock()
-	li.instances = append(li.instances, i)
+	for _, a := range addr {
+		li.instances[a] = struct{}{}
+	}
 }
 
-func (li *lbListener) RemoveInstance(i Instance) {
+func (li *lbListener) RemoveInstance(addr ...string) {
 	li.mutex.Lock()
 	defer li.mutex.Unlock()
-	var instances []Instance
-	for _, v := range li.instances {
-		if v != i {
-			instances = append(instances, v)
-		}
+	for _, a := range addr {
+		delete(li.instances, a)
 	}
-	li.instances = instances
 }
 
 func pipe(src, dst io.ReadWriter) error {

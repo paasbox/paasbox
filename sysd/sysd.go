@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/server"
 	"github.com/paasbox/paasbox/sysd/workspace"
 )
@@ -23,8 +27,9 @@ type sysd struct {
 	workspaces       map[string]workspace.Workspace
 	exitCh           chan struct{}
 
-	storage state.Storage
-	server  server.Server
+	storage      state.Storage
+	server       server.Server
+	loadBalancer loadbalancer.LB
 }
 
 var _ Sysd = &sysd{}
@@ -40,7 +45,10 @@ var (
 	errOpenBoltWorkspacesFailed  = errors.New("error opening bolt workspaces")
 	errOpenBoltWorkspaceFailed   = errors.New("error opening bolt workspace")
 	errCreateWorkspaceFailed     = errors.New("error creating workspace")
+	errCreateLoadbalancerFailed  = errors.New("error creating load balancer")
 )
+
+var cli = &http.Client{Timeout: time.Second * 5}
 
 // New ...
 func New(exitCh chan struct{}) Sysd {
@@ -54,11 +62,31 @@ func New(exitCh chan struct{}) Sysd {
 		workspaceFile = os.Args[1]
 	}
 
-	b, err := ioutil.ReadFile(workspaceFile)
-	if err != nil {
-		log.Error(errReadFileError, log.Data{"reason": err})
-		os.Exit(2)
-		return nil
+	var b []byte
+	var err error
+
+	if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
+		strings.HasPrefix(strings.ToLower(workspaceFile), "https://") {
+		res, e := cli.Get(workspaceFile)
+		if e != nil {
+			log.Error(errReadFileError, log.Data{"reason": e})
+			os.Exit(2)
+			return nil
+		}
+		b, err = ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			log.Error(errReadFileError, log.Data{"reason": err})
+			os.Exit(2)
+			return nil
+		}
+	} else {
+		b, err = ioutil.ReadFile(workspaceFile)
+		if err != nil {
+			log.Error(errReadFileError, log.Data{"reason": err})
+			os.Exit(2)
+			return nil
+		}
 	}
 
 	var conf workspace.Config
@@ -75,6 +103,12 @@ func New(exitCh chan struct{}) Sysd {
 		os.Exit(4)
 	}
 
+	lb, err := loadbalancer.New()
+	if err != nil {
+		log.Error(errCreateLoadbalancerFailed, log.Data{"reason": err})
+		os.Exit(7)
+	}
+
 	workspaces := make(map[string]workspace.Workspace)
 
 	workspacesState, err := boltDB.Wrap("workspaces")
@@ -88,14 +122,14 @@ func New(exitCh chan struct{}) Sysd {
 		log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
 		os.Exit(6)
 	}
-	ws, err := workspace.New(state, conf)
+	ws, err := workspace.New(state, lb, conf)
 	if err != nil {
 		log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
 		os.Exit(6)
 	}
 	workspaces[conf.ID] = ws
 
-	s := &sysd{[]workspace.Config{conf}, workspaces, exitCh, boltDB, nil}
+	s := &sysd{[]workspace.Config{conf}, workspaces, exitCh, boltDB, nil, lb}
 
 	srv := server.New(s)
 	s.server = srv
