@@ -748,7 +748,10 @@ func (t *task) Stop() error {
 	t.stopped = true
 	for _, i := range t.instances {
 		// TODO handle errors
-		i.instance.Stop()
+		err := i.instance.Stop()
+		if err != nil {
+			t.error(errors.New("error stopping process"), err, nil)
+		}
 	}
 	return nil
 }

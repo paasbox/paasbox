@@ -230,7 +230,8 @@ func (i *instance) Stop() error {
 
 	defer i.done()
 
-	err := i.process.Kill()
+	//err := i.process.Kill()
+	err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
 	if err != nil {
 		return err
 	}
