@@ -75,6 +75,18 @@
         "reap_threshold": 10,
         "frequency": "5s"
       }]
+    },
+    {
+      "id": "docker-test",
+      "name": "Docker test",
+      "service": true,
+      "persist": false,
+      "driver": "docker",
+      "image": "mongo",
+      "ports": [ 27017 ],
+      "env": [
+        "BAR=4"
+      ]
     }
   ]
 }

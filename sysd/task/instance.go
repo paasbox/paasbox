@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/ian-kent/service.go/log"
+	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/util/env"
 )
@@ -46,12 +48,15 @@ type InstanceConfig struct {
 	Env         []string
 	Pwd         string
 	Ports       []int
+	Image       string
 }
 
 var _ Instance = &instance{}
 
 type instance struct {
-	instanceID string
+	workspaceID string
+	taskID      string
+	instanceID  string
 
 	doneCh      chan struct{}
 	logger      func(event string, data log.Data)
@@ -62,6 +67,7 @@ type instance struct {
 	env         []string
 	pwd         string
 	ports       []int
+	image       string
 
 	store     state.Store
 	process   *os.Process
@@ -77,7 +83,7 @@ type instance struct {
 }
 
 // NewInstance ...
-func NewInstance(instanceID string, store state.Store, config InstanceConfig) Instance {
+func NewInstance(workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig) Instance {
 	e := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
 	if len(config.Ports) > 0 {
 		e = append(e, fmt.Sprintf("PORT=%d", config.Ports[0]))
@@ -97,10 +103,13 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	}
 
 	i := &instance{
+		workspaceID:    workspaceID,
+		taskID:         taskID,
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,
 		fileCreator:    config.FileCreator,
 		driver:         config.Driver,
+		image:          config.Image,
 		command:        command,
 		args:           args,
 		env:            e,
@@ -123,6 +132,10 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 	if err != nil {
 		log.Error(err, nil)
 	}
+	err = store.Set("image", config.Image)
+	if err != nil {
+		log.Error(err, nil)
+	}
 	err = store.SetArray("args", args)
 	if err != nil {
 		log.Error(err, nil)
@@ -140,8 +153,8 @@ func NewInstance(instanceID string, store state.Store, config InstanceConfig) In
 }
 
 // RecoveredInstance ...
-func RecoveredInstance(instanceID string, store state.Store, config InstanceConfig, proc *os.Process) Instance {
-	i := NewInstance(instanceID, store, config).(*instance)
+func RecoveredInstance(workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig, proc *os.Process) Instance {
+	i := NewInstance(workspaceID, taskID, instanceID, store, config).(*instance)
 	i.process = proc
 	i.pid = proc.Pid
 	i.recovered = true
@@ -230,10 +243,23 @@ func (i *instance) Stop() error {
 
 	defer i.done()
 
-	//err := i.process.Kill()
-	err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
-	if err != nil {
-		return err
+	switch i.driver {
+	case "docker":
+		cmd := exec.Command(config.DockerPath, "stop", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID))
+		cmd.Env = os.Environ()
+		if err := cmd.Start(); err != nil {
+			i.error(errors.New("error starting docker stop"), err, nil)
+			return err
+		}
+		if err := cmd.Wait(); err != nil {
+			i.error(errors.New("error waiting for docker stop"), err, nil)
+			return err
+		}
+	default:
+		err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -343,6 +369,23 @@ func (i *instance) waitForRecoveredInstance() {
 	}()
 }
 
+func (i *instance) startDocker() error {
+	i.log("docker pull", log.Data{"image": i.image})
+	cmd := exec.Command("docker", "pull", i.image)
+	cmd.Env = os.Environ()
+	if err := cmd.Start(); err != nil {
+		i.error(errors.New("error starting docker pull"), err, nil)
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		i.error(errors.New("error waiting for docker pull"), err, nil)
+		return err
+	}
+
+	i.log("docker run", log.Data{"image": i.image})
+	return i.startExec(config.DockerPath, []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID), i.image}, os.Environ())
+}
+
 func (i *instance) start() error {
 	i.log("starting process", nil)
 
@@ -350,78 +393,84 @@ func (i *instance) start() error {
 	args := append([]string{}, i.args...)
 
 	switch i.driver {
+	case "docker":
+		return i.startDocker()
 	case "shell":
 		args = append([]string{"-c"}, strings.Join(append([]string{cmd}, args...), " "))
 		cmd = "/bin/sh"
 		fallthrough
 	case "exec":
-		stdin, err := os.Open(os.DevNull)
-		if err != nil {
-			return err
-		}
-		i.log("created stdin file", log.Data{"stdin": stdin.Name()})
-
-		stdout, err := i.fileCreator(i.instanceID, "stdout")
-		if err != nil {
-			stdin.Close()
-			return err
-		}
-		i.log("created stdout file", log.Data{"stdout": stdout.Name()})
-		i.stdout = stdout.Name()
-
-		err = i.store.Set("stdout", i.stdout)
-		if err != nil {
-			return err
-		}
-
-		stderr, err := i.fileCreator(i.instanceID, "stderr")
-		if err != nil {
-			stdin.Close()
-			stdout.Close()
-			return err
-		}
-		i.log("created stderr file", log.Data{"stderr": stderr.Name()})
-		i.stderr = stderr.Name()
-
-		err = i.store.Set("stderr", i.stderr)
-		if err != nil {
-			return err
-		}
-
-		attr := os.ProcAttr{
-			Dir: i.pwd,
-			Env: i.env,
-			Files: []*os.File{
-				stdin,
-				stdout,
-				stderr,
-			},
-			Sys: &syscall.SysProcAttr{
-				Setpgid: true,
-			},
-		}
-
-		args = append([]string{cmd}, args...)
-
-		proc, err := os.StartProcess(cmd, args, &attr)
-		if err != nil {
-			stdin.Close()
-			stdout.Close()
-			stderr.Close()
-			return err
-		}
-
-		i.process = proc
-		i.pid = proc.Pid
-
-		err = i.store.Set("pid", fmt.Sprintf("%d", i.pid))
-		if err != nil {
-			return err
-		}
-
-		i.log("process started", log.Data{"proc_pid": proc.Pid})
-		return nil
+		return i.startExec(cmd, args, i.env)
 	default:
 		return errUnsupportedDriver
 	}
+}
+
+func (i *instance) startExec(cmd string, args []string, env []string) error {
+	stdin, err := os.Open(os.DevNull)
+	if err != nil {
+		return err
+	}
+	i.log("created stdin file", log.Data{"stdin": stdin.Name()})
+
+	stdout, err := i.fileCreator(i.instanceID, "stdout")
+	if err != nil {
+		stdin.Close()
+		return err
+	}
+	i.log("created stdout file", log.Data{"stdout": stdout.Name()})
+	i.stdout = stdout.Name()
+
+	err = i.store.Set("stdout", i.stdout)
+	if err != nil {
+		return err
+	}
+
+	stderr, err := i.fileCreator(i.instanceID, "stderr")
+	if err != nil {
+		stdin.Close()
+		stdout.Close()
+		return err
+	}
+	i.log("created stderr file", log.Data{"stderr": stderr.Name()})
+	i.stderr = stderr.Name()
+
+	err = i.store.Set("stderr", i.stderr)
+	if err != nil {
+		return err
+	}
+
+	attr := os.ProcAttr{
+		Dir: i.pwd,
+		Env: env,
+		Files: []*os.File{
+			stdin,
+			stdout,
+			stderr,
+		},
+		Sys: &syscall.SysProcAttr{
+			Setpgid: true,
+		},
+	}
+
+	args = append([]string{cmd}, args...)
+
+	proc, err := os.StartProcess(cmd, args, &attr)
+	if err != nil {
+		stdin.Close()
+		stdout.Close()
+		stderr.Close()
+		return err
+	}
+
+	i.process = proc
+	i.pid = proc.Pid
+
+	err = i.store.Set("pid", fmt.Sprintf("%d", i.pid))
+	if err != nil {
+		return err
+	}
+
+	i.log("process started", log.Data{"proc_pid": proc.Pid})
+	return nil
 }

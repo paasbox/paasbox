@@ -15,6 +15,7 @@ import (
 
 	"github.com/facebookgo/freeport"
 	"github.com/ian-kent/service.go/log"
+	pconfig "github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
 )
@@ -54,6 +55,7 @@ type Task interface {
 	Env() []string
 	Pwd() string
 	Ports() []int
+	Image() string
 	Persist() bool
 	TargetInstances() int
 
@@ -92,6 +94,7 @@ type Config struct {
 	Ports        []int               `json:"ports"`
 	Instances    int                 `json:"instances"`
 	Healthchecks []HealthcheckConfig `json:"healthchecks"`
+	Image        string              `json:"image"`
 }
 
 // HealthcheckConfig ...
@@ -112,6 +115,7 @@ func (c Config) WithEnv(env []string) Config {
 }
 
 type task struct {
+	workspaceID     string
 	taskID          string
 	name            string
 	service         bool
@@ -123,6 +127,7 @@ type task struct {
 	ports           []int
 	pwd             string
 	targetInstances int
+	image           string
 	logger          func(event string, data log.Data)
 
 	store         state.Store
@@ -301,10 +306,14 @@ func (t *taskHealthcheck) Run(i Instance) bool {
 var _ Task = &task{}
 
 // NewTask ...
-func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
+func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
+	if config.Driver == "docker" && !pconfig.HasDocker {
+		return nil, errors.New("docker is not available")
+	}
 	e := append(config.Env, fmt.Sprintf("PAASBOX_TASKID=%s", config.ID))
 	var t *task
 	t = &task{
+		workspaceID:     workspaceID,
 		taskID:          config.ID,
 		name:            config.Name,
 		service:         config.Service,
@@ -312,6 +321,7 @@ func NewTask(store state.Store, lb loadbalancer.LB, config Config, logger func(e
 		driver:          config.Driver,
 		command:         config.Command,
 		args:            config.Args,
+		image:           config.Image,
 		env:             e,
 		pwd:             config.Pwd,
 		ports:           config.Ports,
@@ -411,6 +421,10 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	image, err := instanceStorage.Get("image")
+	if err != nil {
+		log.Error(err, nil)
+	}
 	args, err := instanceStorage.GetArray("args")
 	if err != nil {
 		log.Error(err, nil)
@@ -457,6 +471,7 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		env:     env,
 		pwd:     pwd,
 		ports:   ports,
+		image:   image,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
 		stderr:     stderr,
@@ -503,6 +518,10 @@ func (t *task) ExecCount() int {
 
 func (t *task) ID() string {
 	return t.taskID
+}
+
+func (t *task) Image() string {
+	return t.image
 }
 
 func (t *task) Name() string {
@@ -599,7 +618,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance(instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports}, proc)
+		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, ""}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -633,7 +652,7 @@ func (t *task) Start() error {
 		}
 
 		doneCh := make(chan struct{})
-		inst := NewInstance(instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts()})
+		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.image})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly

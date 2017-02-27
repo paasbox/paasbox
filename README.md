@@ -28,6 +28,8 @@ Stuff to remember when writing documentation:
 
 - `exec` - a native OS process
 - `shell` - currently executes using `/bin/sh -c`
+- `docker` - runs a docker container
+  - `image` - docker image to run
 
 ### Licence
 

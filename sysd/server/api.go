@@ -43,7 +43,8 @@ type tasksOutputTask struct {
 	Service      bool                    `json:"is_service"`
 	Persist      bool                    `json:"persist"` // FIXME `is_persist` would be wrong, but `persist` breaks bool pattern
 	Driver       string                  `json:"driver"`
-	Command      string                  `json:"command"`
+	Command      string                  `json:"command,omitempty"`
+	Image        string                  `json:"image,omitempty"`
 	Args         []string                `json:"args"`
 	Env          []string                `json:"env"`
 	Pwd          string                  `json:"pwd"`
@@ -214,6 +215,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			Pwd:          t.Pwd(),
 			Ports:        t.Ports(),
 			Instances:    t.TargetInstances(),
+			Image:        t.Image(),
 			Healthchecks: hcOutput,
 
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
@@ -293,6 +295,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		Pwd:          t.Pwd(),
 		Ports:        t.Ports(),
 		Instances:    t.TargetInstances(),
+		Image:        t.Image(),
 		Healthchecks: hcOutput,
 
 		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
