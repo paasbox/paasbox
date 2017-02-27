@@ -2,29 +2,10 @@
 <html>
   <head>
     <title>paasbox</title>
-    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-    <script>
-      $(document).ready(function() {
-        $.get("/api/workspaces", function(data) {
-          var l = $('#workspaces');
-          $.each(data.workspaces, function(k, v) {
-            l.append($('<li>' + v.id + '</li>'));
-            var list = $('<ol></ol>')
-            $.get("/api/workspaces/" + v.id + "/tasks", function(data) {
-              $.each(data.tasks, function(k, v) {
-                var task = $('<li>' + v.id + '</li>');
-                list.append(task)
-              })
-            })
-            l.append(list);
-          })
-        })
-      })
-    </script>
+    <link rel="stylesheet" href="/css/main.css"></link>
   </head>
-  <body>
-    <h1>workspaces</h1>
-    <ul id="workspaces">
-    </ul>
+  <body style="padding-left: 262px;">
+    <main id="app-root"></main>
+    <script src="/js/bundle.js"></script>
   </body>
 </html>
