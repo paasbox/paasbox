@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Drawer from 'material-ui/Drawer';
 import MenuItem from 'material-ui/MenuItem';
 import RaisedButton from 'material-ui/RaisedButton';
-import WorkspaceController from './WorkspacesController.jsx'
+import Workspaces from './Workspaces.jsx';
 
 class Sidebar extends Component {
 
@@ -18,7 +18,7 @@ class Sidebar extends Component {
         return (
             <div>
                 <Drawer open={this.state.open}>
-                    <WorkspaceController/>
+                    <Workspaces workspaces={this.props.workspaces} />
                 </Drawer>
             </div>
         );
@@ -27,7 +27,7 @@ class Sidebar extends Component {
 
 function mapStateToProps(state) {
     return {
-        workspaces: state.workspaces
+        workspaces: state.state.workspaces
     }
 }
 

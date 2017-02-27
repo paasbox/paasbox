@@ -8,7 +8,7 @@ export default class TasksList extends Component {
                 <h2>{this.props.activeWorkspace.name}</h2>
                 <ul>
                     {this.props.activeWorkspace.tasks.map(task => {
-                        return <li key={task.id}><Link to={`/` + `/` + task.id}> {task.id} </Link></li>;
+                        return <li key={task.id}><Link to={`/` + task.id}> {task.id} </Link></li>;
                     })}
                 </ul>
             </div>

@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from "react-dom";
 import { Router, Route, browserHistory } from 'react-router';
+import { syncHistoryWithStore } from 'react-router-redux'
 
 // scss module
 import './scss/main.scss';
@@ -12,7 +13,7 @@ import store from './shared/store';
 
 // app component
 import App from './App.jsx';
-import WorkspaceController from './components/sidebar/WorkspacesController.jsx';
+import TaskController from './components/tasks/TasksController.jsx';
 
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
@@ -22,12 +23,22 @@ import injectTapEventPlugin from 'react-tap-event-plugin';
 // http://stackoverflow.com/a/34015469/988941
 injectTapEventPlugin();
 
+function NoMatch() {
+    return (
+        <p>404 - No page found</p>
+    )
+}
+
+const history = syncHistoryWithStore(browserHistory, store);
+
 const routes = (
     <MuiThemeProvider>
         <Provider store={ store }>
-            <Router history={ browserHistory }>
+            <Router history={ history }>
                 <Route component={ App }>
-                    <Route path="/" component={ WorkspaceController } />
+                    <Route path="/" />
+                    <Route path="/:workspace" component={ TaskController }/>
+                    <Route path="*" components={ NoMatch }/>
                 </Route>
             </Router>
         </Provider>
