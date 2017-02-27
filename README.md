@@ -29,7 +29,8 @@ Stuff to remember when writing documentation:
 - `exec` - a native OS process
 - `shell` - currently executes using `/bin/sh -c`
 - `docker` - runs a docker container
-  - `image` - docker image to run
+  - `image` - image to run
+  - `port_map` - port mapping, ports[0] -> LB -> port_map[0]
 
 ### Licence
 
