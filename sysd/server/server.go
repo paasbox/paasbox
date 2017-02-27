@@ -54,7 +54,7 @@ func (s *srv) Start(bindAddr string) error {
 	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/instances", s.instances /* list instances */)
 
 	p.Post("/api/workspaces/{workspace_id}/tasks/{task_id}/start", s.startTask /* start task */)
-
+	p.Post("/api/workspaces/{workspace_id}/tasks/{task_id}/stop", s.stopTask /* stop task */)
 	p.Delete("/api/workspaces/{workspace_id}/tasks/{task_id}", TODO /* delete task */)
 	p.Put("/api/workspaces/{workspace_id}/tasks/{task_id}", TODO /* update task */)
 	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}", s.task /* get task */)
@@ -65,6 +65,8 @@ func (s *srv) Start(bindAddr string) error {
 	p.Post("/api/workspaces/{workspace_id}/tasks", TODO /* create task */)
 	p.Get("/api/workspaces/{workspace_id}/tasks", s.tasks /* list tasks */)
 
+	p.Post("/api/workspaces/{workspace_id}/start", s.startWorkspace /* start workspace */)
+	p.Post("/api/workspaces/{workspace_id}/stop", s.stopWorkspace /* stop workspace */)
 	p.Delete("/api/workspaces/{workspace_id}", TODO /* delete workspace */)
 	p.Put("/api/workspaces/{workspace_id}", TODO /* update workspace */)
 	p.Get("/api/workspaces/{workspace_id}", s.workspace /* get workspace */)

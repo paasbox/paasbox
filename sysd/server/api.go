@@ -326,10 +326,20 @@ func (s *srv) startTask(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if !ws.Started() {
+		w.WriteHeader(400)
+		return
+	}
+
 	t, ok := ws.Tasks()[taskID]
 
 	if !ok {
 		w.WriteHeader(404)
+		return
+	}
+
+	if t.Started() {
+		w.WriteHeader(400)
 		return
 	}
 
@@ -342,6 +352,32 @@ func (s *srv) startTask(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(201)
 }
+
+func (s *srv) startWorkspace(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":workspace_id")
+
+	ws, ok := s.sysd.Workspace(wsID)
+
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	if ws.Started() {
+		w.WriteHeader(400)
+		return
+	}
+
+	err := t.Start()
+	if err != nil {
+		w.WriteHeader(400)
+		log.ErrorR(req, err, nil)
+		return
+	}
+
+	w.WriteHeader(201)
+}
+
 
 func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 	wsID := req.URL.Query().Get(":workspace_id")
@@ -570,7 +606,7 @@ func (s *srv) stopTask(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if len(task.CurrentInstances()) == 0 {
+	if !task.Started() {
 		w.WriteHeader(400)
 		return
 	}
@@ -591,6 +627,11 @@ func (s *srv) stopWorkspace(w http.ResponseWriter, req *http.Request) {
 	ws, ok := s.sysd.Workspace(wsID)
 	if !ok {
 		w.WriteHeader(404)
+		return
+	}
+
+	if !ws.Started() {
+		w.WriteHeader(400)
 		return
 	}
 

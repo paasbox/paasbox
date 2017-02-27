@@ -60,6 +60,7 @@ type Task interface {
 	TargetInstances() int
 
 	ExecCount() int
+	Started() bool
 }
 
 // Healthcheck ...
@@ -813,4 +814,8 @@ func (t *task) signal(proc *os.Process, code int) (*os.Process, error) {
 		return proc, err
 	}
 	return proc, nil
+}
+
+func (t *task) Started() bool {
+	return !t.stopped
 }
