@@ -47,6 +47,8 @@ func (s *srv) Start(bindAddr string) error {
 	p := pat.New()
 	var TODO = func(w http.ResponseWriter, req *http.Request) { w.WriteHeader(http.StatusNotImplemented) }
 
+	p.HandleFunc("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stdout.ws", s.getInstanceStdout /* get instance stdout */)
+	p.HandleFunc("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stderr.ws", s.getInstanceStderr /* get instance stderr */)
 	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stdout", s.getInstanceStdout /* get instance stdout */)
 	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stderr", s.getInstanceStderr /* get instance stderr */)
 	p.Post("/api/workspaces/{workspace_id}/tasks/{task_id}/instances/{instance_id}/stop", s.stopInstance /* stop instance */)
@@ -79,7 +81,7 @@ func (s *srv) Start(bindAddr string) error {
 
 	m := []alice.Constructor{
 		requestID.Handler(16),
-		log.Handler,
+		//log.Handler,
 		//timeout.DefaultHandler,
 	}
 	a := alice.New(m...).Then(p)

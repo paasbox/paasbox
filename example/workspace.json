@@ -84,6 +84,7 @@
       "driver": "docker",
       "image": "mongo",
       "ports": [ 27017 ],
+      "port_map": [ 27017 ],
       "env": [
         "BAR=4"
       ]
