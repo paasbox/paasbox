@@ -554,6 +554,56 @@ func (s *srv) stopInstance(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(200)
 }
 
+func (s *srv) stopTask(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":workspace_id")
+	taskID := req.URL.Query().Get(":task_id")
+
+	ws, ok := s.sysd.Workspace(wsID)
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	task, ok := ws.Tasks()[taskID]
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	if len(task.CurrentInstances()) == 0 {
+		w.WriteHeader(400)
+		return
+	}
+
+	err := task.Stop()
+	if err != nil {
+		w.WriteHeader(500)
+		log.ErrorR(req, err, nil)
+		return
+	}
+
+	w.WriteHeader(200)
+}
+
+func (s *srv) stopWorkspace(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":workspace_id")
+
+	ws, ok := s.sysd.Workspace(wsID)
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	err := ws.Stop()
+	if err != nil {
+		w.WriteHeader(500)
+		log.ErrorR(req, err, nil)
+		return
+	}
+
+	w.WriteHeader(200)
+}
+
 func (s *srv) getInstanceStderr(w http.ResponseWriter, req *http.Request) {
 	s.getInstanceLog("stderr", w, req)
 }

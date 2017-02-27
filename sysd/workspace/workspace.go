@@ -30,6 +30,8 @@ type Workspace interface {
 	Name() string
 	Env() EnvConfig
 	LogPath() string
+
+	Started() bool
 }
 
 // Config ...
@@ -61,6 +63,7 @@ type workspace struct {
 	tasks        map[string]task.Task
 	store        state.Store
 	loadBalancer loadbalancer.LB
+	stopped      bool
 }
 
 // New ...
@@ -198,6 +201,7 @@ func (ws *workspace) error(err error, reason error, data log.Data) {
 
 func (ws *workspace) Start() error {
 	ws.log("starting workspace", nil)
+	ws.stopped = false
 
 	for _, t := range ws.taskConfigs {
 		if task, ok := ws.tasks[t.ID]; ok {
@@ -235,6 +239,7 @@ func (ws *workspace) Shutdown() error {
 }
 
 func (ws *workspace) Stop() error {
+	ws.stopped = true
 	ws.log("stopping workspace, stopping tasks", nil)
 	for _, t := range ws.taskConfigs {
 		if task, ok := ws.tasks[t.ID]; ok && !task.Persist() {
@@ -246,4 +251,8 @@ func (ws *workspace) Stop() error {
 		}
 	}
 	return nil
+}
+
+func (ws *workspace) Started() bool {
+	return !ws.stopped
 }
