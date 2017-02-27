@@ -22,7 +22,10 @@ class TasksController extends Component {
         });
     }
 
-    shouldComponentUpdate() {
+    shouldComponentUpdate(nextProps) {
+        if (nextProps.params.task) {
+            console.log(nextProps.params.task);
+        }
         return !this.state.isFetchingTasks;
     }
 

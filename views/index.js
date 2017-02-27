@@ -13,7 +13,7 @@ import store from './shared/store';
 
 // app component
 import App from './App.jsx';
-import TaskController from './components/tasks/TasksController.jsx';
+import TasksController from './components/tasks/TasksController.jsx';
 
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
@@ -37,7 +37,8 @@ const routes = (
             <Router history={ history }>
                 <Route component={ App }>
                     <Route path="/" />
-                    <Route path="/:workspace" component={ TaskController }/>
+                    <Route path="/:workspace" component={ TasksController }/>
+                    <Route path="/:workspace/:task" component={ TasksController }/>
                     <Route path="*" components={ NoMatch }/>
                 </Route>
             </Router>
