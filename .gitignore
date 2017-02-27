@@ -1,2 +1,7 @@
 assets/debug.go
 build
+/views/node_modules/
+.idea
+*.DS_Store
+logs
+state.db
