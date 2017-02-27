@@ -55,6 +55,7 @@ type Task interface {
 	Env() []string
 	Pwd() string
 	Ports() []int
+	PortMap() []int
 	Image() string
 	Persist() bool
 	TargetInstances() int
@@ -93,6 +94,7 @@ type Config struct {
 	Env          []string            `json:"env"`
 	Pwd          string              `json:"pwd"`
 	Ports        []int               `json:"ports"`
+	PortMap      []int               `json:"port_map"`
 	Instances    int                 `json:"instances"`
 	Healthchecks []HealthcheckConfig `json:"healthchecks"`
 	Image        string              `json:"image"`
@@ -126,6 +128,7 @@ type task struct {
 	args            []string
 	env             []string
 	ports           []int
+	portMap         []int
 	pwd             string
 	targetInstances int
 	image           string
@@ -326,6 +329,7 @@ func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config C
 		env:             e,
 		pwd:             config.Pwd,
 		ports:           config.Ports,
+		portMap:         config.PortMap,
 		targetInstances: config.Instances,
 		loadBalancer:    lb,
 		lbListeners:     make(map[int]loadbalancer.Listener),
@@ -458,6 +462,10 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	portMap, err := instanceStorage.GetIntArray("port_map")
+	if err != nil {
+		log.Error(err, nil)
+	}
 
 	pidN, _ := strconv.Atoi(pid)
 	runningB, _ := strconv.ParseBool(running)
@@ -472,6 +480,7 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		env:     env,
 		pwd:     pwd,
 		ports:   ports,
+		portMap: portMap,
 		image:   image,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
@@ -561,6 +570,10 @@ func (t *task) Ports() []int {
 	return t.ports
 }
 
+func (t *task) PortMap() []int {
+	return t.portMap
+}
+
 func (t *task) TargetInstances() int {
 	return t.targetInstances
 }
@@ -619,7 +632,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, ""}, proc)
+		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, ""}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -653,7 +666,7 @@ func (t *task) Start() error {
 		}
 
 		doneCh := make(chan struct{})
-		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.image})
+		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly

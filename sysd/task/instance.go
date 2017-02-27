@@ -35,6 +35,7 @@ type Instance interface {
 	Env() []string
 	Pwd() string
 	Ports() []int
+	PortMap() []int
 }
 
 // InstanceConfig ...
@@ -48,6 +49,7 @@ type InstanceConfig struct {
 	Env         []string
 	Pwd         string
 	Ports       []int
+	PortMap     []int
 	Image       string
 }
 
@@ -67,6 +69,7 @@ type instance struct {
 	env         []string
 	pwd         string
 	ports       []int
+	portMap     []int
 	image       string
 
 	store     state.Store
@@ -115,6 +118,7 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		env:            e,
 		pwd:            pwd,
 		ports:          config.Ports,
+		portMap:        config.PortMap,
 		signalInterval: time.Second * 10,
 		instanceID:     instanceID,
 		store:          store,
@@ -145,6 +149,10 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		log.Error(err, nil)
 	}
 	err = store.SetIntArray("ports", config.Ports)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.SetIntArray("port_map", config.PortMap)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -210,6 +218,10 @@ func (i *instance) Pwd() string {
 
 func (i *instance) Ports() []int {
 	return i.ports
+}
+
+func (i *instance) PortMap() []int {
+	return i.portMap
 }
 
 func (i *instance) Start() error {
@@ -383,7 +395,17 @@ func (i *instance) startDocker() error {
 	}
 
 	i.log("docker run", log.Data{"image": i.image})
-	return i.startExec(config.DockerPath, []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID), i.image}, os.Environ())
+	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID)}
+	for j, p := range i.portMap {
+		var fromPort string
+		if j < len(i.ports) {
+			fromPort = fmt.Sprintf("%d:", i.ports[j])
+		}
+		args = append(args, "-p", fmt.Sprintf("%s%d", fromPort, p))
+	}
+	args = append(args, i.image)
+	i.log("docker args", log.Data{"args": args})
+	return i.startExec(config.DockerPath, args, os.Environ())
 }
 
 func (i *instance) start() error {

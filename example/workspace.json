@@ -83,7 +83,7 @@
       "persist": false,
       "driver": "docker",
       "image": "mongo",
-      "ports": [ 27017 ],
+      "ports": [ 9500 ],
       "port_map": [ 27017 ],
       "env": [
         "BAR=4"
