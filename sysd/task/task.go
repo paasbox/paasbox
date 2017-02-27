@@ -273,7 +273,12 @@ func (t *taskHealthcheck) Run(i Instance) bool {
 	case "http":
 		url := t.target
 		url = strings.Replace(url, "$HOST$", "127.0.0.1", -1)
-		url = strings.Replace(url, "$PORT$", fmt.Sprintf("%d", i.Ports()[0]), -1)
+		if len(i.Ports()) > 0 {
+			url = strings.Replace(url, "$PORT$", fmt.Sprintf("%d", i.Ports()[0]), -1)
+			for j, p := range i.Ports() {
+				url = strings.Replace(url, fmt.Sprintf("$PORT%d$", j), fmt.Sprintf("%d", p), -1)
+			}
+		}
 		res, err := cli.Get(url)
 		if err != nil {
 			t.task.error(errors.New("healthcheck error"), err, nil)
