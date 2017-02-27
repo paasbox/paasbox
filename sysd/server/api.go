@@ -24,6 +24,7 @@ type workspacesOutputWorkspace struct {
 	Env          workspaceEnv `json:"env"`
 	WorkspaceURL string       `json:"workspace_url"`
 	TasksURL     string       `json:"tasks_url"`
+	Started      bool         `json:"is_started"`
 }
 
 type workspaceEnv struct {
@@ -51,6 +52,7 @@ type tasksOutputTask struct {
 	Ports        []int                   `json:"ports"`
 	Instances    int                     `json:"instances"`
 	Healthchecks []taskOutputHealthcheck `json:"healthchecks"`
+	Started      bool                    `json:"is_started"`
 
 	TaskURL      string `json:"task_url"`
 	WorkspaceURL string `json:"workspace_url"`
@@ -120,6 +122,7 @@ func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
 			Env:          workspaceEnv(ws.Env()),
 			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 			TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
+			Started:      ws.Started(),
 		})
 	}
 
@@ -148,6 +151,7 @@ func (s *srv) workspace(w http.ResponseWriter, req *http.Request) {
 		Env:          workspaceEnv(ws.Env()),
 		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
 		TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
+		Started:      ws.Started(),
 	}
 
 	b, err := json.Marshal(o)
@@ -217,6 +221,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			Instances:    t.TargetInstances(),
 			Image:        t.Image(),
 			Healthchecks: hcOutput,
+			Started:      t.Started(),
 
 			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 			InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
@@ -297,6 +302,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		Instances:    t.TargetInstances(),
 		Image:        t.Image(),
 		Healthchecks: hcOutput,
+		Started:      t.Started(),
 
 		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
 		InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
@@ -368,7 +374,7 @@ func (s *srv) startWorkspace(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := t.Start()
+	err := ws.Start()
 	if err != nil {
 		w.WriteHeader(400)
 		log.ErrorR(req, err, nil)
@@ -377,7 +383,6 @@ func (s *srv) startWorkspace(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(201)
 }
-
 
 func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 	wsID := req.URL.Query().Get(":workspace_id")
