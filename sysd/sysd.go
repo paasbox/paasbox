@@ -105,61 +105,65 @@ func New(exitCh chan struct{}) Sysd {
 		os.Exit(5)
 	}
 
-	var workspaceFile string
+	var workspaceFiles []string
+	var workspaceConfigs []workspace.Config
 
 	if len(os.Args) < 2 {
-		workspaceFile = "workspace.json"
+		workspaceFiles = []string{"workspace.json"}
 	} else {
-		workspaceFile = os.Args[1]
+		workspaceFiles = os.Args[1:]
 	}
 
-	var b []byte
+	for _, workspaceFile := range workspaceFiles {
+		var b []byte
 
-	if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
-		strings.HasPrefix(strings.ToLower(workspaceFile), "https://") {
-		res, e := cli.Get(workspaceFile)
-		if e != nil {
-			log.Error(errReadFileError, log.Data{"reason": e})
-			os.Exit(2)
-			return nil
+		if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
+			strings.HasPrefix(strings.ToLower(workspaceFile), "https://") {
+			res, e := cli.Get(workspaceFile)
+			if e != nil {
+				log.Error(errReadFileError, log.Data{"reason": e})
+				os.Exit(2)
+				return nil
+			}
+			b, err = ioutil.ReadAll(res.Body)
+			res.Body.Close()
+			if err != nil {
+				log.Error(errReadFileError, log.Data{"reason": err})
+				os.Exit(2)
+				return nil
+			}
+		} else {
+			b, err = ioutil.ReadFile(workspaceFile)
+			if err != nil {
+				log.Error(errReadFileError, log.Data{"reason": err})
+				os.Exit(2)
+				return nil
+			}
 		}
-		b, err = ioutil.ReadAll(res.Body)
-		res.Body.Close()
+
+		var conf workspace.Config
+		err = json.Unmarshal(b, &conf)
 		if err != nil {
-			log.Error(errReadFileError, log.Data{"reason": err})
-			os.Exit(2)
+			log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+			os.Exit(3)
 			return nil
 		}
-	} else {
-		b, err = ioutil.ReadFile(workspaceFile)
+
+		state, err := workspacesState.Wrap(conf.ID)
 		if err != nil {
-			log.Error(errReadFileError, log.Data{"reason": err})
-			os.Exit(2)
-			return nil
+			log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+			os.Exit(6)
 		}
+		ws, err := workspace.New(state, lb, conf)
+		if err != nil {
+			log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+			os.Exit(6)
+		}
+		workspaces[conf.ID] = ws
+		workspaceConfigs = append(workspaceConfigs, conf)
 	}
 
-	var conf workspace.Config
-	err = json.Unmarshal(b, &conf)
-	if err != nil {
-		log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-		os.Exit(3)
-		return nil
-	}
-
-	state, err := workspacesState.Wrap(conf.ID)
-	if err != nil {
-		log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-		os.Exit(6)
-	}
-	ws, err := workspace.New(state, lb, conf)
-	if err != nil {
-		log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-		os.Exit(6)
-	}
-	workspaces[conf.ID] = ws
-
-	s := &sysd{[]workspace.Config{conf}, workspaces, exitCh, boltDB, nil, lb}
+	s := &sysd{workspaceConfigs, workspaces, exitCh, boltDB, nil, lb}
 
 	srv := server.New(s)
 	s.server = srv
