@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -54,6 +56,55 @@ var cli = &http.Client{Timeout: time.Second * 5}
 func New(exitCh chan struct{}) Sysd {
 	log.Debug("starting sysd", nil)
 
+	var stateFile string
+	if s := os.Getenv("PB_STATE_FILE"); len(s) > 0 {
+		stateFile = s
+	} else {
+		usr, err := user.Current()
+		if err != nil {
+			log.Error(errors.New("error fetching current user"), log.Data{"reason": err})
+			os.Exit(15)
+		}
+
+		dir := usr.HomeDir
+		if _, err = os.Stat(dir); err != nil {
+			log.Error(errors.New("user home directory doesn't exist"), log.Data{"reason": err})
+			os.Exit(16)
+		}
+
+		stateDir := filepath.Join(dir, ".paasbox")
+		if _, err = os.Stat(stateDir); err != nil {
+			err = os.MkdirAll(stateDir, 0770)
+			if err != nil {
+				log.Error(errors.New("error creating .paasbox state directory"), log.Data{"reason": err})
+				os.Exit(16)
+			}
+		}
+
+		stateFile = filepath.Join(stateDir, "state.db")
+	}
+
+	boltDB, err := state.NewBoltDB(stateFile)
+	if err != nil {
+		log.Error(errOpenBoltDBFailed, log.Data{"reason": err})
+		log.Debug("Check if other copies of paasbox are running", nil)
+		os.Exit(4)
+	}
+
+	lb, err := loadbalancer.New()
+	if err != nil {
+		log.Error(errCreateLoadbalancerFailed, log.Data{"reason": err})
+		os.Exit(7)
+	}
+
+	workspaces := make(map[string]workspace.Workspace)
+
+	workspacesState, err := boltDB.Wrap("workspaces")
+	if err != nil {
+		log.Error(errOpenBoltWorkspacesFailed, log.Data{"reason": err})
+		os.Exit(5)
+	}
+
 	var workspaceFile string
 
 	if len(os.Args) < 2 {
@@ -63,7 +114,6 @@ func New(exitCh chan struct{}) Sysd {
 	}
 
 	var b []byte
-	var err error
 
 	if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
 		strings.HasPrefix(strings.ToLower(workspaceFile), "https://") {
@@ -95,26 +145,6 @@ func New(exitCh chan struct{}) Sysd {
 		log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
 		os.Exit(3)
 		return nil
-	}
-
-	boltDB, err := state.NewBoltDB("state.db")
-	if err != nil {
-		log.Error(errOpenBoltDBFailed, log.Data{"reason": err})
-		os.Exit(4)
-	}
-
-	lb, err := loadbalancer.New()
-	if err != nil {
-		log.Error(errCreateLoadbalancerFailed, log.Data{"reason": err})
-		os.Exit(7)
-	}
-
-	workspaces := make(map[string]workspace.Workspace)
-
-	workspacesState, err := boltDB.Wrap("workspaces")
-	if err != nil {
-		log.Error(errOpenBoltWorkspacesFailed, log.Data{"reason": err})
-		os.Exit(5)
 	}
 
 	state, err := workspacesState.Wrap(conf.ID)
