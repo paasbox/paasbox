@@ -108,6 +108,29 @@ func New(exitCh chan struct{}) Sysd {
 	var workspaceFiles []string
 	var workspaceConfigs []workspace.Config
 
+	if s := os.Getenv("PB_START_INTERNAL"); s == "y" || s == "1" {
+		var conf workspace.Config
+		err = json.Unmarshal([]byte(internalServices), &conf)
+		if err != nil {
+			log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+			os.Exit(3)
+			return nil
+		}
+
+		state, err := workspacesState.Wrap(conf.ID)
+		if err != nil {
+			log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+			os.Exit(6)
+		}
+		ws, err := workspace.New(state, lb, conf)
+		if err != nil {
+			log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+			os.Exit(6)
+		}
+		workspaces[conf.ID] = ws
+		workspaceConfigs = append(workspaceConfigs, conf)
+	}
+
 	if len(os.Args) < 2 {
 		workspaceFiles = []string{"workspace.json"}
 	} else {

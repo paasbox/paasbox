@@ -404,6 +404,7 @@ func (i *instance) startDocker() error {
 		args = append(args, "-p", fmt.Sprintf("%s%d", fromPort, p))
 	}
 	args = append(args, i.image)
+	args = append(args, i.args...)
 	i.log("docker args", log.Data{"args": args})
 	return i.startExec(config.DockerPath, args, os.Environ())
 }

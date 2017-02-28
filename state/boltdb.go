@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -13,6 +14,14 @@ import (
 
 var _ Storage = &boltDBStorage{}
 var _ Store = &boltDBStore{}
+
+var debug bool
+
+func init() {
+	if s := os.Getenv("PB_DEBUG"); s == "y" || s == "1" {
+		debug = true
+	}
+}
 
 type boltDBStorage struct {
 	db *bolt.DB
@@ -32,7 +41,9 @@ func NewBoltDB(file string) (Storage, error) {
 }
 
 func (b *boltDBStorage) Wrap(name string) (Store, error) {
-	log.Debug("boltdb: wrap", log.Data{"name": name})
+	if debug {
+		log.Debug("boltdb: wrap", log.Data{"name": name})
+	}
 	err := b.db.Update(func(arg1 *bolt.Tx) error {
 		_, err := arg1.CreateBucketIfNotExists([]byte(name))
 		return err
@@ -44,12 +55,16 @@ func (b *boltDBStorage) Wrap(name string) (Store, error) {
 }
 
 func (b *boltDBStorage) Close() error {
-	log.Debug("boltdb: close", nil)
+	if debug {
+		log.Debug("boltdb: close", nil)
+	}
 	return b.db.Close()
 }
 
 func (b *boltDBStore) Get(key string) (s string, err error) {
-	log.Debug("boltdb: get", log.Data{"prefix": b.prefix, "key": key})
+	if debug {
+		log.Debug("boltdb: get", log.Data{"prefix": b.prefix, "key": key})
+	}
 
 	err = b.storage.db.View(func(arg1 *bolt.Tx) error {
 		bucket := arg1.Bucket([]byte(b.prefix))
@@ -57,7 +72,9 @@ func (b *boltDBStore) Get(key string) (s string, err error) {
 		b := bucket.Get([]byte(key))
 		o := make([]byte, len(b))
 		n := copy(o, b)
-		log.Debug("boltdb: get", log.Data{"value": string(o)})
+		if debug {
+			log.Debug("boltdb: get", log.Data{"value": string(o)})
+		}
 		if n != len(b) {
 			return errors.New("error copying data")
 		}
@@ -69,7 +86,9 @@ func (b *boltDBStore) Get(key string) (s string, err error) {
 }
 
 func (b *boltDBStore) GetArray(key string) (s []string, err error) {
-	log.Debug("boltdb: getArray", log.Data{"prefix": b.prefix, "key": key})
+	if debug {
+		log.Debug("boltdb: getArray", log.Data{"prefix": b.prefix, "key": key})
+	}
 
 	var v string
 	v, err = b.Get(key)
@@ -82,7 +101,9 @@ func (b *boltDBStore) GetArray(key string) (s []string, err error) {
 }
 
 func (b *boltDBStore) GetIntArray(key string) (s []int, err error) {
-	log.Debug("boltdb: getIntArray", log.Data{"prefix": b.prefix, "key": key})
+	if debug {
+		log.Debug("boltdb: getIntArray", log.Data{"prefix": b.prefix, "key": key})
+	}
 
 	var v string
 	v, err = b.Get(key)
@@ -95,7 +116,9 @@ func (b *boltDBStore) GetIntArray(key string) (s []int, err error) {
 }
 
 func (b *boltDBStore) Set(key string, value string) (err error) {
-	log.Debug("boltdb: set", log.Data{"prefix": b.prefix, "key": key, "value": value})
+	if debug {
+		log.Debug("boltdb: set", log.Data{"prefix": b.prefix, "key": key, "value": value})
+	}
 
 	err = b.storage.db.Update(func(arg1 *bolt.Tx) error {
 		bucket := arg1.Bucket([]byte(b.prefix))
@@ -117,7 +140,9 @@ func (b *boltDBStore) SetInt(key string, value int) (err error) {
 }
 
 func (b *boltDBStore) SetArray(key string, value []string) (err error) {
-	log.Debug("boltdb: setArray", log.Data{"prefix": b.prefix, "key": key, "value": value})
+	if debug {
+		log.Debug("boltdb: setArray", log.Data{"prefix": b.prefix, "key": key, "value": value})
+	}
 
 	var d []byte
 	d, err = json.Marshal(&value)
@@ -129,7 +154,9 @@ func (b *boltDBStore) SetArray(key string, value []string) (err error) {
 }
 
 func (b *boltDBStore) SetIntArray(key string, value []int) (err error) {
-	log.Debug("boltdb: setIntArray", log.Data{"prefix": b.prefix, "key": key, "value": value})
+	if debug {
+		log.Debug("boltdb: setIntArray", log.Data{"prefix": b.prefix, "key": key, "value": value})
+	}
 
 	var d []byte
 	d, err = json.Marshal(&value)
