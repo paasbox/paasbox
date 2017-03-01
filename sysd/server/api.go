@@ -43,6 +43,7 @@ type tasksOutputTask struct {
 	Driver       string                  `json:"driver"`
 	Command      string                  `json:"command,omitempty"`
 	Image        string                  `json:"image,omitempty"`
+	Network      string                  `json:"network,omitempty"`
 	Args         []string                `json:"args"`
 	Env          []string                `json:"env"`
 	Pwd          string                  `json:"pwd"`
@@ -217,6 +218,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			Ports:        t.Ports(),
 			Instances:    t.TargetInstances(),
 			Image:        t.Image(),
+			Network:      t.Network(),
 			Healthchecks: hcOutput,
 			Started:      t.Started(),
 
@@ -298,6 +300,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		Ports:        t.Ports(),
 		Instances:    t.TargetInstances(),
 		Image:        t.Image(),
+		Network:      t.Network(),
 		Healthchecks: hcOutput,
 		Started:      t.Started(),
 

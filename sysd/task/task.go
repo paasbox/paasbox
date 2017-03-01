@@ -59,6 +59,7 @@ type Task interface {
 	Image() string
 	Persist() bool
 	TargetInstances() int
+	Network() string
 
 	ExecCount() int
 	Started() bool
@@ -98,6 +99,7 @@ type Config struct {
 	Instances    int                 `json:"instances"`
 	Healthchecks []HealthcheckConfig `json:"healthchecks"`
 	Image        string              `json:"image"`
+	Network      string              `json:"network"`
 }
 
 // HealthcheckConfig ...
@@ -132,6 +134,7 @@ type task struct {
 	pwd             string
 	targetInstances int
 	image           string
+	network         string
 	logger          func(event string, data log.Data)
 
 	store         state.Store
@@ -326,6 +329,7 @@ func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config C
 		command:         config.Command,
 		args:            config.Args,
 		image:           config.Image,
+		network:         config.Network,
 		env:             e,
 		pwd:             config.Pwd,
 		ports:           config.Ports,
@@ -532,6 +536,10 @@ func (t *task) ID() string {
 
 func (t *task) Image() string {
 	return t.image
+}
+
+func (t *task) Network() string {
+	return t.network
 }
 
 func (t *task) Name() string {
