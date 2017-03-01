@@ -9,7 +9,8 @@ class TasksController extends Component {
         super(props);
 
         this.state = {
-            isFetchingTasks: false
+            isFetchingTasks: false,
+            activeTask: ``
         }
     }
 
