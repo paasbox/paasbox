@@ -18,6 +18,7 @@ import (
 	pconfig "github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
+	"github.com/paasbox/paasbox/sysd/util/env"
 )
 
 var (
@@ -434,6 +435,10 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	network, err := instanceStorage.Get("network")
+	if err != nil {
+		log.Error(err, nil)
+	}
 	args, err := instanceStorage.GetArray("args")
 	if err != nil {
 		log.Error(err, nil)
@@ -486,6 +491,7 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		ports:   ports,
 		portMap: portMap,
 		image:   image,
+		network: network,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
 		stderr:     stderr,
@@ -640,7 +646,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, ""}, proc)
+		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", ""}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -674,7 +680,8 @@ func (t *task) Start() error {
 		}
 
 		doneCh := make(chan struct{})
-		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image})
+		net := "paasbox-" + env.Replace(t.network, t.Env())
+		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly

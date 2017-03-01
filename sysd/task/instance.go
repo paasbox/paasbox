@@ -36,6 +36,9 @@ type Instance interface {
 	Pwd() string
 	Ports() []int
 	PortMap() []int
+
+	Image() string
+	Network() string
 }
 
 // InstanceConfig ...
@@ -51,6 +54,7 @@ type InstanceConfig struct {
 	Ports       []int
 	PortMap     []int
 	Image       string
+	Network     string
 }
 
 var _ Instance = &instance{}
@@ -71,6 +75,7 @@ type instance struct {
 	ports       []int
 	portMap     []int
 	image       string
+	network     string
 
 	store     state.Store
 	process   *os.Process
@@ -113,6 +118,7 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		fileCreator:    config.FileCreator,
 		driver:         config.Driver,
 		image:          config.Image,
+		network:        config.Network,
 		command:        command,
 		args:           args,
 		env:            e,
@@ -137,6 +143,10 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		log.Error(err, nil)
 	}
 	err = store.Set("image", config.Image)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.Set("network", config.Network)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -222,6 +232,14 @@ func (i *instance) Ports() []int {
 
 func (i *instance) PortMap() []int {
 	return i.portMap
+}
+
+func (i *instance) Image() string {
+	return i.image
+}
+
+func (i *instance) Network() string {
+	return i.network
 }
 
 func (i *instance) Start() error {
@@ -396,6 +414,9 @@ func (i *instance) startDocker() error {
 
 	i.log("docker run", log.Data{"image": i.image})
 	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID)}
+	if len(i.network) > 0 {
+		args = append(args, "--net", i.network, "--network-alias", i.taskID)
+	}
 	for j, p := range i.portMap {
 		var fromPort string
 		if j < len(i.ports) {

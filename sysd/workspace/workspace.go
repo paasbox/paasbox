@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/task"
+	pbEnv "github.com/paasbox/paasbox/sysd/util/env"
 )
 
 var (
@@ -64,20 +66,23 @@ type workspace struct {
 	store        state.Store
 	loadBalancer loadbalancer.LB
 	stopped      bool
+
+	dockerNetworks map[string]struct{}
 }
 
 // New ...
 func New(store state.Store, lb loadbalancer.LB, config Config) (Workspace, error) {
 	log.Debug("creating workspace", log.Data{"id": config.ID, "tasks": config.Tasks})
 	ws := &workspace{
-		id:           config.ID,
-		name:         config.Name,
-		taskConfigs:  config.Tasks,
-		env:          config.Env,
-		tasks:        make(map[string]task.Task),
-		logPath:      config.LogPath,
-		logPattern:   config.LogPattern,
-		loadBalancer: lb,
+		id:             config.ID,
+		name:           config.Name,
+		taskConfigs:    config.Tasks,
+		env:            config.Env,
+		tasks:          make(map[string]task.Task),
+		logPath:        config.LogPath,
+		logPattern:     config.LogPattern,
+		loadBalancer:   lb,
+		dockerNetworks: make(map[string]struct{}),
 	}
 
 	if len(config.LogPath) == 0 {
@@ -157,6 +162,39 @@ func New(store state.Store, lb loadbalancer.LB, config Config) (Workspace, error
 			return nil, err
 		}
 		ws.tasks[t.ID] = t2
+
+		if net := t2.Network(); len(net) > 0 {
+			if _, ok := ws.dockerNetworks[net]; !ok {
+				ws.dockerNetworks["paasbox-"+pbEnv.Replace(net, env)] = struct{}{}
+			}
+		}
+	}
+
+	for net := range ws.dockerNetworks {
+		log.Debug("finding docker network", log.Data{"network": net})
+
+		cmd := exec.Command("docker", "network", "inspect", net)
+		cmd.Env = os.Environ()
+		if err := cmd.Start(); err != nil {
+			log.Error(errors.New("error starting docker network inspect"), log.Data{"reason": err})
+			return nil, err
+		}
+		if err := cmd.Wait(); err != nil {
+			log.Error(errors.New("error starting docker network inspect"), log.Data{"reason": err})
+			log.Debug("docker network not found, creating", log.Data{"network": net})
+
+			cmd = exec.Command("docker", "network", "create", net)
+			cmd.Env = os.Environ()
+			if err = cmd.Start(); err != nil {
+				log.Error(errors.New("error starting docker network create"), log.Data{"reason": err})
+				return nil, err
+			}
+			if err = cmd.Wait(); err != nil {
+				log.Error(errors.New("error starting docker network create"), log.Data{"reason": err})
+				return nil, err
+			}
+			log.Debug("created docker network", log.Data{"network": net})
+		}
 	}
 
 	return ws, nil
