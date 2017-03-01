@@ -15,12 +15,7 @@ class TasksController extends Component {
     }
 
     componentWillMount() {
-        this.setState({isFetchingTasks: true});
-
-        get.tasks(this.props.params.workspace).then(tasks => {
-            this.setState({isFetchingTasks: false});
-            this.props.dispatch(updateActiveWorkspaceTasks(tasks));
-        });
+        this.fetchTasks(this.props.params.workspace);
     }
 
     shouldComponentUpdate(nextProps) {
@@ -28,6 +23,21 @@ class TasksController extends Component {
             console.log(nextProps.params.task);
         }
         return !this.state.isFetchingTasks;
+    }
+
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.routeParams.workspace !== this.props.activeWorkspace.id) {
+            this.fetchTasks(nextProps.routeParams.workspace);
+        }
+    }
+
+    fetchTasks(workspace) {
+        this.setState({isFetchingTasks: true});
+
+        get.tasks(workspace).then(tasks => {
+            this.setState({isFetchingTasks: false});
+            this.props.dispatch(updateActiveWorkspaceTasks(tasks));
+        });
     }
 
     render() {

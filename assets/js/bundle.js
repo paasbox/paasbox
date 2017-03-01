@@ -120,7 +120,6 @@
 	            _react2.default.createElement(
 	                _reactRouter.Route,
 	                { component: _App2.default },
-	                _react2.default.createElement(_reactRouter.Route, { path: '/' }),
 	                _react2.default.createElement(_reactRouter.Route, { path: '/:workspace', component: _TasksController2.default }),
 	                _react2.default.createElement(_reactRouter.Route, { path: '/:workspace/:task', component: _TasksController2.default }),
 	                _react2.default.createElement(_reactRouter.Route, { path: '*', components: NoMatch })
@@ -29743,37 +29742,43 @@
 	        value: function componentWillMount() {
 	            var _this2 = this;
 	
-	            this.fetchWorkspaces(function () {
-	                var activeWorkspace = _this2.findActiveWorkspace(_this2.props.params.workspace);
-	                if (activeWorkspace) {
-	                    _this2.props.dispatch((0, _actions.updateActiveWorkspace)(activeWorkspace));
-	                }
-	            });
-	        }
-	    }, {
-	        key: 'fetchWorkspaces',
-	        value: function fetchWorkspaces(callback) {
-	            var _this3 = this;
-	
 	            this.setState({ isFetchingWorkspaces: true });
 	
 	            _get2.default.workspaces().then(function (response) {
-	                _this3.setState({ isFetchingWorkspaces: false });
-	                _this3.props.dispatch((0, _actions.updateWorkspaces)(response));
-	                callback();
+	                _this2.setState({ isFetchingWorkspaces: false });
+	                _this2.props.dispatch((0, _actions.updateWorkspaces)(response));
 	            });
 	        }
 	    }, {
 	        key: 'findActiveWorkspace',
-	        value: function findActiveWorkspace(activeWorkspace) {
-	            return this.props.workspaces.find(function (workspace) {
+	        value: function findActiveWorkspace(workspaces, activeWorkspace) {
+	            return workspaces.find(function (workspace) {
 	                return workspace.id === activeWorkspace;
 	            });
 	        }
 	    }, {
 	        key: 'shouldComponentUpdate',
-	        value: function shouldComponentUpdate() {
-	            return !this.state.isFetchingWorkspaces;
+	        value: function shouldComponentUpdate(nextProps) {
+	            // Getting workspaces, don't render
+	            if (this.state.isFetchingWorkspaces) {
+	                return false;
+	            }
+	
+	            // First time rendering a workspace, must set 'activeWorkspace' property in state
+	            if (!nextProps.activeWorkspace.hasOwnProperty('id') && nextProps.params.workspace) {
+	                var activeWorkspace = this.findActiveWorkspace(nextProps.workspaces, nextProps.params.workspace);
+	                nextProps.dispatch((0, _actions.updateActiveWorkspace)(activeWorkspace));
+	                return false;
+	            }
+	
+	            // Active workspace may have been set before but is changing, update state
+	            if (nextProps.params.workspace && nextProps.params.workspace !== this.props.params.workspace) {
+	                var _activeWorkspace = this.findActiveWorkspace(nextProps.workspaces, nextProps.params.workspace);
+	                nextProps.dispatch((0, _actions.updateActiveWorkspace)(_activeWorkspace));
+	                return false;
+	            }
+	
+	            return true;
 	        }
 	    }, {
 	        key: 'render',
@@ -29796,7 +29801,8 @@
 	
 	function mapStateToProps(state) {
 	    return {
-	        workspaces: state.state.workspaces
+	        workspaces: state.state.workspaces,
+	        activeWorkspace: state.state.activeWorkspace
 	    };
 	}
 	
@@ -43116,7 +43122,7 @@
 	                this.props.workspaces.map(function (workspace) {
 	                    return _react2.default.createElement(
 	                        _MenuItem2.default,
-	                        { key: workspace.id, containerElement: _react2.default.createElement(_reactRouter.Link, { to: workspace.id }) },
+	                        { key: workspace.id, containerElement: _react2.default.createElement(_reactRouter.Link, { to: '/' + workspace.id }) },
 	                        workspace.id
 	                    );
 	                })
@@ -43174,7 +43180,8 @@
 	        var _this = _possibleConstructorReturn(this, (TasksController.__proto__ || Object.getPrototypeOf(TasksController)).call(this, props));
 	
 	        _this.state = {
-	            isFetchingTasks: false
+	            isFetchingTasks: false,
+	            activeTask: ''
 	        };
 	        return _this;
 	    }
@@ -43182,14 +43189,7 @@
 	    _createClass(TasksController, [{
 	        key: 'componentWillMount',
 	        value: function componentWillMount() {
-	            var _this2 = this;
-	
-	            this.setState({ isFetchingTasks: true });
-	
-	            _get2.default.tasks(this.props.params.workspace).then(function (tasks) {
-	                _this2.setState({ isFetchingTasks: false });
-	                _this2.props.dispatch((0, _actions.updateActiveWorkspaceTasks)(tasks));
-	            });
+	            this.fetchTasks(this.props.params.workspace);
 	        }
 	    }, {
 	        key: 'shouldComponentUpdate',
@@ -43198,6 +43198,25 @@
 	                console.log(nextProps.params.task);
 	            }
 	            return !this.state.isFetchingTasks;
+	        }
+	    }, {
+	        key: 'componentWillReceiveProps',
+	        value: function componentWillReceiveProps(nextProps) {
+	            if (nextProps.routeParams.workspace !== this.props.activeWorkspace.id) {
+	                this.fetchTasks(nextProps.routeParams.workspace);
+	            }
+	        }
+	    }, {
+	        key: 'fetchTasks',
+	        value: function fetchTasks(workspace) {
+	            var _this2 = this;
+	
+	            this.setState({ isFetchingTasks: true });
+	
+	            _get2.default.tasks(workspace).then(function (tasks) {
+	                _this2.setState({ isFetchingTasks: false });
+	                _this2.props.dispatch((0, _actions.updateActiveWorkspaceTasks)(tasks));
+	            });
 	        }
 	    }, {
 	        key: 'render',
@@ -43273,6 +43292,9 @@
 	                    'ul',
 	                    null,
 	                    this.props.activeWorkspace.tasks.map(function (task) {
+	                        {
+	                            console.log(task);
+	                        }
 	                        return _react2.default.createElement(
 	                            'li',
 	                            { key: task.id },
@@ -43280,8 +43302,20 @@
 	                                _reactRouter.Link,
 	                                { to: '/' + _this2.props.activeWorkspace.id + '/' + task.id },
 	                                ' ',
-	                                task.id,
+	                                task.name,
 	                                ' '
+	                            ),
+	                            _react2.default.createElement(
+	                                'div',
+	                                null,
+	                                'Port: ',
+	                                task.ports[0]
+	                            ),
+	                            _react2.default.createElement(
+	                                'div',
+	                                null,
+	                                'Running: ',
+	                                task.healthchecks[0].instances && task.healthchecks[0].instances[0].healthy ? 'true' : 'false'
 	                            )
 	                        );
 	                    })
