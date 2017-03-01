@@ -36,7 +36,6 @@ const routes = (
         <Provider store={ store }>
             <Router history={ history }>
                 <Route component={ App }>
-                    <Route path="/" />
                     <Route path="/:workspace" component={ TasksController }/>
                     <Route path="/:workspace/:task" component={ TasksController }/>
                     <Route path="*" components={ NoMatch }/>

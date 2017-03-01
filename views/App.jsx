@@ -16,32 +16,41 @@ class App extends Component {
     }
 
     componentWillMount() {
-        this.fetchWorkspaces(() => {
-            const activeWorkspace = this.findActiveWorkspace(this.props.params.workspace);
-            if (activeWorkspace) {
-                this.props.dispatch(updateActiveWorkspace(activeWorkspace));
-            }
-        });
-    }
-
-    fetchWorkspaces(callback) {
         this.setState({isFetchingWorkspaces: true});
 
         get.workspaces().then(response => {
             this.setState({isFetchingWorkspaces: false});
             this.props.dispatch(updateWorkspaces(response));
-            callback();
         });
     }
 
-    findActiveWorkspace(activeWorkspace) {
-        return this.props.workspaces.find(workspace => {
+    findActiveWorkspace(workspaces, activeWorkspace) {
+        return workspaces.find(workspace => {
             return workspace.id === activeWorkspace;
         });
     }
 
-    shouldComponentUpdate() {
-        return !this.state.isFetchingWorkspaces;
+    shouldComponentUpdate(nextProps) {
+        // Getting workspaces, don't render
+        if (this.state.isFetchingWorkspaces) {
+            return false;
+        }
+
+        // First time rendering a workspace, must set 'activeWorkspace' property in state
+        if (!nextProps.activeWorkspace.hasOwnProperty('id') && nextProps.params.workspace) {
+            const activeWorkspace = this.findActiveWorkspace(nextProps.workspaces, nextProps.params.workspace);
+            nextProps.dispatch(updateActiveWorkspace(activeWorkspace));
+            return false;
+        }
+
+        // Active workspace may have been set before but is changing, update state
+        if (nextProps.params.workspace && (nextProps.params.workspace !== this.props.params.workspace)) {
+            const activeWorkspace = this.findActiveWorkspace(nextProps.workspaces, nextProps.params.workspace);
+            nextProps.dispatch(updateActiveWorkspace(activeWorkspace));
+            return false;
+        }
+
+        return true;
     }
 
     render() {
@@ -59,7 +68,8 @@ class App extends Component {
 
 function mapStateToProps(state) {
     return {
-        workspaces: state.state.workspaces
+        workspaces: state.state.workspaces,
+        activeWorkspace: state.state.activeWorkspace
     }
 }
 
