@@ -85,6 +85,11 @@ func (li *lbListener) start() {
 		}
 		li.mutex.RLock()
 		instances := li.Instances()
+		if len(instances) == 0 {
+			log.Debug("no healthy instances", nil)
+			lconn.Close()
+			return
+		}
 		n := rand.Intn(len(instances))
 		log.Debug("instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
 		dest := instances[n]
@@ -92,6 +97,7 @@ func (li *lbListener) start() {
 		rconn, err := net.Dial("tcp", dest)
 		if err != nil {
 			log.Error(err, nil)
+			lconn.Close()
 			continue
 		}
 
