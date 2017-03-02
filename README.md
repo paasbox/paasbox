@@ -20,6 +20,7 @@ Start paasbox with the example workspace:
 - workspace initialisation stage?
 - $ref to external JSON files?
 - native SCM support?
+- exponential back-off on restarts after failure?
 
 ### Notes
 
