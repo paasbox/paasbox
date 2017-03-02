@@ -12,6 +12,7 @@ Start paasbox with the example workspace:
 
 ### Todo
 
+- enabled flag for workspaces/tasks in config?
 - handle log/instance retention
 - auto-tail latest/all instances from task endpoint
 - store state in remote db/s3/api(?)
