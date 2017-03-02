@@ -88,7 +88,7 @@ func templatesIndexTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/index.tmpl", size: 254, mode: os.FileMode(420), modTime: time.Unix(1488445494, 0)}
+	info := bindataFileInfo{name: "templates/index.tmpl", size: 254, mode: os.FileMode(420), modTime: time.Unix(1488232972, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -108,7 +108,7 @@ func cssMainCss() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "css/main.css", size: 64, mode: os.FileMode(420), modTime: time.Unix(1488445494, 0)}
+	info := bindataFileInfo{name: "css/main.css", size: 64, mode: os.FileMode(420), modTime: time.Unix(1488232972, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -128,7 +128,7 @@ func cssMainCssMap() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "css/main.css.map", size: 89, mode: os.FileMode(420), modTime: time.Unix(1488445494, 0)}
+	info := bindataFileInfo{name: "css/main.css.map", size: 89, mode: os.FileMode(420), modTime: time.Unix(1488232972, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -148,11 +148,7 @@ func jsBundleJs() (*asset, error) {
 		return nil, err
 	}
 
-<<<<<<< HEAD
 	info := bindataFileInfo{name: "js/bundle.js", size: 1642959, mode: os.FileMode(420), modTime: time.Unix(1488406630, 0)}
-=======
-	info := bindataFileInfo{name: "js/bundle.js", size: 1642959, mode: os.FileMode(420), modTime: time.Unix(1488445494, 0)}
->>>>>>> master
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -172,11 +168,7 @@ func jsBundleJsMap() (*asset, error) {
 		return nil, err
 	}
 
-<<<<<<< HEAD
 	info := bindataFileInfo{name: "js/bundle.js.map", size: 2798325, mode: os.FileMode(420), modTime: time.Unix(1488406630, 0)}
-=======
-	info := bindataFileInfo{name: "js/bundle.js.map", size: 2798325, mode: os.FileMode(420), modTime: time.Unix(1488445494, 0)}
->>>>>>> master
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
