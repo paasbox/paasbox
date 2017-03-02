@@ -85,12 +85,13 @@ func (li *lbListener) start() {
 		}
 		li.mutex.RLock()
 		instances := li.Instances()
-		if len(instances) == 0 {
+		num := len(instances)
+		if num < 1 {
 			log.Debug("no healthy instances", nil)
 			lconn.Close()
 			return
 		}
-		n := rand.Intn(len(instances))
+		n := rand.Intn(num)
 		log.Debug("instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
 		dest := instances[n]
 		li.mutex.RUnlock()
