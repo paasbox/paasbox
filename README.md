@@ -17,6 +17,7 @@ Start paasbox with the example workspace:
   - use user defined docker network
   - give containers aliases 'paasbox-wsid-taskid' which is known in workspace.json
 
+- enabled flag for workspaces/tasks in config?
 - handle log/instance retention
 - auto-tail latest/all instances from task endpoint
 - store state in remote db/s3/api(?)

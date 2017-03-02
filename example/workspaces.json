@@ -1,0 +1,58 @@
+{
+  "workspaces": [
+    {
+      "id": "example-workspace-1",
+      "name": "Example workspace 1",
+      "log_path": "./logs",
+      "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+      "env": {
+        "inherit_all": false,
+        "inherit": [ "PATH", "USER", "HOME" ],
+        "remove": [],
+        "set": [ "FOO=1" ]
+      },
+      "tasks": [
+        {
+          "id": "sleep",
+          "name": "Sleep for 60 seconds",
+          "service": true,
+          "persist": false,
+          "driver": "exec",
+          "command": "/bin/sleep",
+          "args": [ "$DURATION" ],
+          "env": [
+            "BAR=1",
+            "DURATION=10"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "example-workspace-2",
+      "name": "Example workspace 2",
+      "log_path": "./logs",
+      "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+      "env": {
+        "inherit_all": false,
+        "inherit": [ "PATH", "USER", "HOME" ],
+        "remove": [],
+        "set": [ "FOO=1" ]
+      },
+      "tasks": [
+        {
+          "id": "sleep",
+          "name": "Sleep for 60 seconds",
+          "service": true,
+          "persist": false,
+          "driver": "exec",
+          "command": "/bin/sleep",
+          "args": [ "$DURATION" ],
+          "env": [
+            "BAR=1",
+            "DURATION=10"
+          ]
+        }
+      ]
+    }
+  ]
+}
