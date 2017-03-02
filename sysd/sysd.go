@@ -141,26 +141,67 @@ func New(exitCh chan struct{}) Sysd {
 			}
 		}
 
-		var conf workspace.Config
-		err = json.Unmarshal(b, &conf)
+		var m map[string]interface{}
+		err = json.Unmarshal(b, &m)
 		if err != nil {
 			log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
 			os.Exit(3)
 			return nil
 		}
 
-		state, err := workspacesState.Wrap(conf.ID)
-		if err != nil {
-			log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-			os.Exit(6)
+		if _, ok := m["workspaces"]; ok {
+			if wsDefs, ok := m["workspaces"].([]interface{}); ok {
+				for _, wsDef := range wsDefs {
+					b2, err := json.Marshal(&wsDef)
+					if err != nil {
+						log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+						os.Exit(3)
+						return nil
+					}
+					var conf workspace.Config
+					err = json.Unmarshal(b2, &conf)
+					if err != nil {
+						log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+						os.Exit(3)
+						return nil
+					}
+
+					state, err := workspacesState.Wrap(conf.ID)
+					if err != nil {
+						log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+						os.Exit(6)
+					}
+					ws, err := workspace.New(state, lb, conf)
+					if err != nil {
+						log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+						os.Exit(6)
+					}
+					workspaces[conf.ID] = ws
+					workspaceConfigs = append(workspaceConfigs, conf)
+				}
+			}
+		} else {
+			var conf workspace.Config
+			err = json.Unmarshal(b, &conf)
+			if err != nil {
+				log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+				os.Exit(3)
+				return nil
+			}
+
+			state, err := workspacesState.Wrap(conf.ID)
+			if err != nil {
+				log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+				os.Exit(6)
+			}
+			ws, err := workspace.New(state, lb, conf)
+			if err != nil {
+				log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+				os.Exit(6)
+			}
+			workspaces[conf.ID] = ws
+			workspaceConfigs = append(workspaceConfigs, conf)
 		}
-		ws, err := workspace.New(state, lb, conf)
-		if err != nil {
-			log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-			os.Exit(6)
-		}
-		workspaces[conf.ID] = ws
-		workspaceConfigs = append(workspaceConfigs, conf)
 	}
 
 	s := &sysd{workspaceConfigs, workspaces, exitCh, boltDB, nil, lb}
