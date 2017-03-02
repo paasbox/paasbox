@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import get from '../../shared/get';
-import { updateActiveWorkspaceTasks } from '../../shared/actions';
+import { updateActiveWorkspaceTasks, updateActiveTask } from '../../shared/actions';
 import TasksList from './TasksList.jsx';
 
 class TasksController extends Component {
@@ -9,34 +9,59 @@ class TasksController extends Component {
         super(props);
 
         this.state = {
-            isFetchingTasks: false,
-            activeTask: ``
+            isFetchingTasks: false
         }
     }
 
     componentWillMount() {
-        this.fetchTasks(this.props.params.workspace);
+        this.fetchTasks(this.props.params.workspace).then(() => {
+            if (!this.props.params.task) {
+                return;
+            }
+
+            const activeTask = this.props.activeWorkspace.tasks.find(task => {
+                return task.id === this.props.params.task;
+            });
+            this.props.dispatch(updateActiveTask(activeTask))
+        });
     }
 
     shouldComponentUpdate(nextProps) {
-        if (nextProps.params.task) {
-            console.log(nextProps.params.task);
-        }
         return !this.state.isFetchingTasks;
     }
 
     componentWillReceiveProps(nextProps) {
+        // New active workspace, update state
         if (nextProps.routeParams.workspace !== this.props.activeWorkspace.id) {
             this.fetchTasks(nextProps.routeParams.workspace);
+            return;
         }
+
+        // No active task anymore, so empty state
+        // if (this.props.activeTask && !nextProps.routeParams.task) {
+        //     this.props.dispatch(updateActiveTask({}));
+        // }
+
+        // New active task, update state
+        if (this.props.activeTask.id && nextProps.routeParams.task && (nextProps.routeParams.task !== this.props.activeTask.id)) {
+            const activeTask = nextProps.activeWorkspace.tasks.find(task => {
+                return task.id === nextProps.params.task;
+            });
+
+            this.props.dispatch(updateActiveTask(activeTask));
+        }
+
     }
 
     fetchTasks(workspace) {
-        this.setState({isFetchingTasks: true});
+        return new Promise((resolve) => {
+            this.setState({isFetchingTasks: true});
 
-        get.tasks(workspace).then(tasks => {
-            this.setState({isFetchingTasks: false});
-            this.props.dispatch(updateActiveWorkspaceTasks(tasks));
+            get.tasks(workspace).then(tasks => {
+                this.setState({isFetchingTasks: false});
+                this.props.dispatch(updateActiveWorkspaceTasks(tasks));
+                resolve();
+            });
         });
     }
 
@@ -45,7 +70,7 @@ class TasksController extends Component {
             this.state.isFetchingTasks ?
                 <p>Loading tasks...</p>
                 :
-                <TasksList activeWorkspace={this.props.activeWorkspace} />
+                <TasksList activeWorkspace={this.props.activeWorkspace} activeTask={this.props.activeTask} />
 
         )
     }
@@ -53,7 +78,8 @@ class TasksController extends Component {
 
 function mapStateToProps(state) {
     return {
-        activeWorkspace: state.state.activeWorkspace
+        activeWorkspace: state.state.activeWorkspace,
+        activeTask: state.state.activeTask
     }
 }
 
