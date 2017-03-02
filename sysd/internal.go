@@ -1,11 +1,22 @@
 package sysd
 
-var internalServices = `
+import "errors"
+
+func loadInternal(f string) ([]byte, error) {
+	switch f {
+	case "elk":
+		return []byte(elkStack), nil
+	default:
+		return nil, errors.New("internal file not found")
+	}
+}
+
+var elkStack = `
 {
   "id": "_internal",
   "name": "paasbox internal",
   "env": {
-    "inherit": [ "PATH", "USER", "HOME" ]
+    "inherit": [ ]
   },
   "tasks": [
     {
@@ -16,7 +27,7 @@ var internalServices = `
       "driver": "docker",
       "image": "docker.elastic.co/elasticsearch/elasticsearch:5.2.1",
       "network": "$PAASBOX_WSID",
-      "args": [ "/docker-entrypoint.sh", "-E", "xpack.security.enabled=false" ],
+      "args": [ "/bin/bash", "bin/es-docker", "-E", "xpack.security.enabled=false" ],
       "ports": [ 9200 ],
       "port_map": [ 9200 ],
       "env": [

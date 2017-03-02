@@ -108,9 +108,32 @@ func New(exitCh chan struct{}) Sysd {
 	var workspaceFiles []string
 	var workspaceConfigs []workspace.Config
 
-	if s := os.Getenv("PB_START_INTERNAL"); s == "y" || s == "1" {
+	if len(os.Args) < 2 {
+		workspaceFiles = []string{"workspace.json"}
+	} else {
+		workspaceFiles = os.Args[1:]
+	}
+
+	var loadFiles []string
+	var internalFiles []string
+	for _, f := range workspaceFiles {
+		if strings.HasPrefix(f, "@") {
+			internalFiles = append(internalFiles, strings.TrimPrefix(f, "@"))
+			continue
+		}
+		loadFiles = append(loadFiles, f)
+	}
+
+	for _, internalFile := range internalFiles {
+		b, e := loadInternal(internalFile)
+		if e != nil {
+			log.Error(errReadFileError, log.Data{"reason": e})
+			os.Exit(2)
+			return nil
+		}
+
 		var conf workspace.Config
-		err = json.Unmarshal([]byte(internalServices), &conf)
+		err = json.Unmarshal(b, &conf)
 		if err != nil {
 			log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
 			os.Exit(3)
@@ -131,13 +154,7 @@ func New(exitCh chan struct{}) Sysd {
 		workspaceConfigs = append(workspaceConfigs, conf)
 	}
 
-	if len(os.Args) < 2 {
-		workspaceFiles = []string{"workspace.json"}
-	} else {
-		workspaceFiles = os.Args[1:]
-	}
-
-	for _, workspaceFile := range workspaceFiles {
+	for _, workspaceFile := range loadFiles {
 		var b []byte
 
 		if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
