@@ -105,14 +105,8 @@ func New(exitCh chan struct{}) Sysd {
 		os.Exit(5)
 	}
 
-	var workspaceFiles []string
+	workspaceFiles := os.Args[1:]
 	var workspaceConfigs []workspace.Config
-
-	if len(os.Args) < 2 {
-		workspaceFiles = []string{"workspace.json"}
-	} else {
-		workspaceFiles = os.Args[1:]
-	}
 
 	var loadFiles []string
 	var internalFiles []string
@@ -122,6 +116,10 @@ func New(exitCh chan struct{}) Sysd {
 			continue
 		}
 		loadFiles = append(loadFiles, f)
+	}
+
+	if len(loadFiles) == 0 {
+		loadFiles = append(loadFiles, "workspace.json")
 	}
 
 	for _, internalFile := range internalFiles {
