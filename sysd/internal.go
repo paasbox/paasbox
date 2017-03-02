@@ -27,10 +27,11 @@ var elkStack = `
       "driver": "docker",
       "image": "docker.elastic.co/elasticsearch/elasticsearch:5.2.1",
       "network": "$PAASBOX_WSID",
-      "args": [ "/bin/bash", "bin/es-docker", "-E", "xpack.security.enabled=false" ],
+      "args": [ ],
       "ports": [ 9200 ],
       "port_map": [ 9200 ],
       "env": [
+				"xpack.security.enabled=false",
         "http.host=0.0.0.0",
         "transport.host=127.0.0.1"
       ]
