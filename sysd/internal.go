@@ -48,6 +48,21 @@ var elkStack = `
       "ports": [ ],
       "port_map": [ ],
       "env": [ ]
+    },
+    {
+      "id": "kibana",
+      "name": "Kibana",
+      "service": true,
+      "persist": false,
+      "driver": "docker",
+      "image": "docker.elastic.co/kibana/kibana:5.2.2",
+      "network": "$PAASBOX_WSID",
+      "args": [ ],
+      "ports": [ 5601 ],
+      "port_map": [ 5601 ],
+      "env": [
+				"XPACK_SECURITY_ENABLED=false"
+			]
     }
   ]
 }
