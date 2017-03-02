@@ -2,9 +2,9 @@ package server
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/paasbox/paasbox/assets"
-	"strings"
 )
 
 func (s *srv) home(w http.ResponseWriter, req *http.Request) {
@@ -20,6 +20,13 @@ func (s *srv) staticFiles(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", http.DetectContentType(b))
+	var contentType string
+	if strings.HasSuffix(req.URL.Path, ".css") {
+		contentType = "text/css"
+	} else {
+		contentType = http.DetectContentType(b)
+	}
+
+	w.Header().Set("Content-Type", contentType)
 	w.Write(b)
 }
