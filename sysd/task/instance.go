@@ -440,7 +440,7 @@ func (i *instance) startDocker() error {
 		args = append(args, "-e", v)
 	}
 	for _, v := range i.volumes {
-		args = append(args, "-v", v)
+		args = append(args, "-v", env.Replace(v, i.env))
 	}
 	args = append(args, i.image)
 	args = append(args, i.args...)
