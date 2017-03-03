@@ -6,10 +6,10 @@ export default class TasksList extends Component {
         return (
             <div>
                 <h2>{this.props.activeWorkspace.name}</h2>
-                <ul>
+                <ul className="list--neutral">
                     {this.props.activeWorkspace.tasks.map(task => {
                         return (
-                            <TaskItem key={task.id} task={task} activeWorkspaceID={this.props.activeWorkspace.id}/>
+                            <TaskItem key={task.id} task={task} activeWorkspaceID={this.props.activeWorkspace.id} activeTask={this.props.activeTask}/>
                         );
                     })}
                 </ul>

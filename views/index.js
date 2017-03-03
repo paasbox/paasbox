@@ -37,7 +37,7 @@ const routes = (
             <Router history={ history }>
                 <Route component={ App }>
                     <Route path="/:workspace" component={ TasksController }/>
-                    <Route path="/:workspace/:task" component={ TasksController }/>
+                    <Route path="/:workspace/:task/logs" component={ TasksController }/>
                     <Route path="*" components={ NoMatch }/>
                 </Route>
             </Router>
