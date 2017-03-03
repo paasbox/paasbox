@@ -36,6 +36,7 @@ type Instance interface {
 	Pwd() string
 	Ports() []int
 	PortMap() []int
+	Volumes() []string
 }
 
 // InstanceConfig ...
@@ -51,6 +52,7 @@ type InstanceConfig struct {
 	Ports       []int
 	PortMap     []int
 	Image       string
+	Volumes     []string
 }
 
 var _ Instance = &instance{}
@@ -71,6 +73,7 @@ type instance struct {
 	ports       []int
 	portMap     []int
 	image       string
+	volumes     []string
 
 	store     state.Store
 	process   *os.Process
@@ -122,6 +125,7 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		signalInterval: time.Second * 10,
 		instanceID:     instanceID,
 		store:          store,
+		volumes:        config.Volumes,
 	}
 
 	err := store.Set("driver", config.Driver)
@@ -145,6 +149,10 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		log.Error(err, nil)
 	}
 	err = store.SetArray("env", e)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.SetArray("volumes", config.Volumes)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -222,6 +230,10 @@ func (i *instance) Ports() []int {
 
 func (i *instance) PortMap() []int {
 	return i.portMap
+}
+
+func (i *instance) Volumes() []string {
+	return i.volumes
 }
 
 func (i *instance) Start() error {
@@ -405,6 +417,9 @@ func (i *instance) startDocker() error {
 	}
 	for _, v := range i.env {
 		args = append(args, "-e", v)
+	}
+	for _, v := range i.volumes {
+		args = append(args, "-v", v)
 	}
 	args = append(args, i.image)
 	i.log("docker args", log.Data{"args": args})
