@@ -3,5 +3,5 @@ build
 /views/node_modules/
 .idea
 *.DS_Store
-logs
+/logs
 state.db

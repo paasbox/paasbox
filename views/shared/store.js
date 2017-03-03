@@ -3,12 +3,14 @@ import { routerReducer } from 'react-router-redux'
 import {
     UPDATE_WORKSPACES,
     UPDATE_ACTIVE_WORKSPACE,
-    UPDATE_ACTIVE_WORKSPACE_TASKS
+    UPDATE_ACTIVE_WORKSPACE_TASKS,
+    UPDATE_ACTIVE_TASK
 } from './actions';
 
 const initialState = {
     workspaces: [],
-    activeWorkspace: {}
+    activeWorkspace: {},
+    activeTask: {}
 };
 
 function state(state = initialState, action) {
@@ -27,6 +29,9 @@ function state(state = initialState, action) {
         case ('UPDATE_ACTIVE_WORKSPACE_TASKS'): {
             updatedState.activeWorkspace.tasks = action.tasks;
             break;
+        }
+        case ('UPDATE_ACTIVE_TASK'): {
+            updatedState.activeTask = action.task;
         }
     }
 

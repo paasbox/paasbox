@@ -58,6 +58,7 @@ type Task interface {
 	Ports() []int
 	PortMap() []int
 	Image() string
+	Volumes() []string
 	Persist() bool
 	TargetInstances() int
 	Network() string
@@ -101,6 +102,7 @@ type Config struct {
 	Healthchecks []HealthcheckConfig `json:"healthchecks"`
 	Image        string              `json:"image"`
 	Network      string              `json:"network"`
+	Volumes      []string            `json:"volumes"`
 }
 
 // HealthcheckConfig ...
@@ -136,6 +138,7 @@ type task struct {
 	targetInstances int
 	image           string
 	network         string
+	volumes         []string
 	logger          func(event string, data log.Data)
 
 	store         state.Store
@@ -447,6 +450,10 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	volumes, err := instanceStorage.GetArray("volumes")
+	if err != nil {
+		log.Error(err, nil)
+	}
 	stdout, err := instanceStorage.Get("stdout")
 	if err != nil {
 		log.Error(err, nil)
@@ -492,6 +499,7 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		portMap: portMap,
 		image:   image,
 		network: network,
+		volumes: volumes,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
 		stderr:     stderr,
@@ -588,6 +596,10 @@ func (t *task) PortMap() []int {
 	return t.portMap
 }
 
+func (t *task) Volumes() []string {
+	return t.volumes
+}
+
 func (t *task) TargetInstances() int {
 	return t.targetInstances
 }
@@ -646,7 +658,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", ""}, proc)
+		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -681,7 +693,7 @@ func (t *task) Start() error {
 
 		doneCh := make(chan struct{})
 		net := "paasbox-" + env.Replace(t.network, t.Env())
-		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net})
+		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly
