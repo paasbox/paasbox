@@ -140,7 +140,7 @@ func New(store state.Store, lb loadbalancer.LB, config Config) (Workspace, error
 			}
 		}
 		env = append(env, ws.env.Set...)
-		env = append(env, fmt.Sprintf("PAASBOX_WSID=%s", ws.id))
+		env = append(env, fmt.Sprintf("PAASBOX_WSID=%s", ws.id), fmt.Sprintf("PAASBOX_LOGPATH=%s", ws.logPath))
 
 		t2, err := task.NewTask(ws.id, s, ws.loadBalancer, t.WithEnv(env), ws.log, func(instanceID, name string) (*os.File, error) {
 			logPattern := ws.logPattern
