@@ -1,15 +1,21 @@
 package task
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
@@ -58,6 +64,7 @@ type InstanceConfig struct {
 	Image       string
 	Network     string
 	Volumes     []string
+	Log         LogConfig
 }
 
 var _ Instance = &instance{}
@@ -80,6 +87,7 @@ type instance struct {
 	image       string
 	network     string
 	volumes     []string
+	logConfig   LogConfig
 
 	store     state.Store
 	process   *os.Process
@@ -92,6 +100,8 @@ type instance struct {
 	pid    int
 	stdout string
 	stderr string
+
+	tailLogs bool
 }
 
 // NewInstance ...
@@ -133,6 +143,11 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		instanceID:     instanceID,
 		store:          store,
 		volumes:        config.Volumes,
+		logConfig:      config.Log,
+	}
+
+	if len(config.Log.Type) > 0 {
+		i.tailLogs = true
 	}
 
 	err := store.Set("driver", config.Driver)
@@ -338,6 +353,13 @@ func (i *instance) done() {
 }
 
 func (i *instance) wait() {
+	go func() {
+		err := i.tailLog()
+		if err != nil {
+			i.error(errors.New("tail error"), err, nil)
+		}
+	}()
+
 	if i.isDone {
 		return
 	}
@@ -539,5 +561,110 @@ func (i *instance) startExec(cmd string, args []string, env []string) error {
 	}
 
 	i.log("process started", log.Data{"proc_pid": proc.Pid})
+	return nil
+}
+
+func (i *instance) tailLog() error {
+	if !i.tailLogs {
+		i.log("not tailing logs", nil)
+		return nil
+	}
+
+	// var stdoutOffset, stderrOffset int64 = 0, 0
+	var follow = !i.isDone
+
+	stdoutTail, err := tail.TailFile(i.stdout, tail.Config{
+		// Location: &tail.SeekInfo{
+		// 	Offset: stdoutOffset,
+		// 	Whence: os.SEEK_SET,
+		// },
+		//MustExist: true,
+		ReOpen: true,
+		Poll:   true,
+		Follow: follow,
+	})
+	if err != nil {
+		return err
+	}
+
+	stderrTail, err := tail.TailFile(i.stderr, tail.Config{
+		// Location: &tail.SeekInfo{
+		// 	Offset: stderrOffset,
+		// 	Whence: os.SEEK_SET,
+		// },
+		//MustExist: true,
+		ReOpen: true,
+		Poll:   true,
+		Follow: follow,
+	})
+	if err != nil {
+		return err
+	}
+
+	var cli = &http.Client{
+		Timeout: time.Second * 2,
+	}
+
+	var sendLine = func(l string) {
+		// FIXME consider handling timestamps, stdout/stderr, ws/task/instance IDs and line JSON?
+
+		req, err := http.NewRequest("POST", i.logConfig.URL, bytes.NewReader([]byte(l)))
+		if err != nil {
+			i.error(errors.New("error creating new request"), err, nil)
+			return
+		}
+		res, err := cli.Do(req)
+		if err != nil {
+			i.error(errors.New("error sending data"), err, nil)
+			return
+		}
+		defer res.Body.Close()
+		if res.StatusCode != 200 {
+			b, err := ioutil.ReadAll(res.Body)
+			var logText string
+			if err != nil {
+				logText = "<" + err.Error() + ">"
+			} else {
+				logText = string(b)
+			}
+			i.error(errors.New("error storing log data"), errors.New("unexpected status code"), log.Data{"code": res.StatusCode, "message": logText})
+			return
+		}
+
+		io.Copy(ioutil.Discard, res.Body)
+	}
+
+	i.log("tailing log files", log.Data{"follow": follow})
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		<-i.doneCh
+		i.log("done, cancelling tail", nil)
+		stdoutTail.StopAtEOF()
+		stderrTail.StopAtEOF()
+	}()
+	go func() {
+		defer wg.Done()
+		i.log("tailing stdout", nil)
+		for l := range stdoutTail.Lines {
+			if l != nil {
+				sendLine(l.Text)
+			}
+		}
+		i.log("finished tailing stdout", nil)
+	}()
+	go func() {
+		defer wg.Done()
+		i.log("tailing stderr", nil)
+		for l := range stderrTail.Lines {
+			if l != nil {
+				sendLine(l.Text)
+			}
+		}
+		i.log("finished tailing stderr", nil)
+	}()
+	wg.Wait()
+	i.log("finished tailing log files", nil)
 	return nil
 }

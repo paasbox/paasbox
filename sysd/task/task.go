@@ -103,6 +103,7 @@ type Config struct {
 	Image        string              `json:"image"`
 	Network      string              `json:"network"`
 	Volumes      []string            `json:"volumes"`
+	Log          LogConfig           `json:"log"`
 }
 
 // HealthcheckConfig ...
@@ -113,6 +114,12 @@ type HealthcheckConfig struct {
 	UnhealthyThreshold int    `json:"unhealthy_threshold"`
 	ReapThreshold      int    `json:"reap_threshold"`
 	Frequency          string `json:"frequency"`
+}
+
+// LogConfig ...
+type LogConfig struct {
+	Type string `json:"type"`
+	URL  string `json:"url"`
 }
 
 // WithEnv ...
@@ -140,6 +147,7 @@ type task struct {
 	network         string
 	volumes         []string
 	logger          func(event string, data log.Data)
+	logConfig       LogConfig
 
 	store         state.Store
 	instanceStore state.Store
@@ -340,6 +348,7 @@ func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config C
 		ports:           config.Ports,
 		portMap:         config.PortMap,
 		targetInstances: config.Instances,
+		logConfig:       config.Log,
 		loadBalancer:    lb,
 		lbListeners:     make(map[int]loadbalancer.Listener),
 		logger:          logger,
@@ -659,7 +668,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}}, proc)
+		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}, t.logConfig}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -694,7 +703,7 @@ func (t *task) Start() error {
 
 		doneCh := make(chan struct{})
 		net := "paasbox-" + env.Replace(t.network, t.Env())
-		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes})
+		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes, t.logConfig})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly
