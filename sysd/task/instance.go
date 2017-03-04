@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -440,7 +441,11 @@ func (i *instance) startDocker() error {
 		args = append(args, "-e", v)
 	}
 	for _, v := range i.volumes {
-		args = append(args, "-v", env.Replace(v, i.env))
+		p, err := filepath.Abs(env.Replace(v, i.env))
+		if err != nil {
+			return err
+		}
+		args = append(args, "-v", p)
 	}
 	args = append(args, i.image)
 	args = append(args, i.args...)

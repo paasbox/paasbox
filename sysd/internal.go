@@ -45,9 +45,9 @@ var elkStack = `
       "driver": "docker",
       "image": "docker.elastic.co/logstash/logstash:5.2.2",
       "network": "$PAASBOX_WSID",
-      "args": [ "logstash", "-e", "output { elasticsearch { hosts => [\"elasticsearch:9200\"] } }" ],
-      "ports": [ ],
-      "port_map": [ ],
+      "args": [ "logstash", "-e", "input { http { port => 52000 } } output { elasticsearch { hosts => [\"elasticsearch:9200\"] } }" ],
+      "ports": [ 52000 ],
+      "port_map": [ 52000 ],
       "env": [ ]
     },
     {
