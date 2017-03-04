@@ -25,11 +25,12 @@ var elkStack = `
       "service": true,
       "persist": false,
       "driver": "docker",
-      "image": "docker.elastic.co/elasticsearch/elasticsearch:5.2.1",
+      "image": "docker.elastic.co/elasticsearch/elasticsearch:5.2.2",
       "network": "$PAASBOX_WSID",
       "args": [ ],
       "ports": [ 9200 ],
       "port_map": [ 9200 ],
+			"volumes": [ "$PAASBOX_LOGPATH/esdata:/usr/share/elasticsearch/data" ],
       "env": [
 				"xpack.security.enabled=false",
         "http.host=0.0.0.0",

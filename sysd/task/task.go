@@ -333,6 +333,7 @@ func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config C
 		command:         config.Command,
 		args:            config.Args,
 		image:           config.Image,
+		volumes:         config.Volumes,
 		network:         config.Network,
 		env:             e,
 		pwd:             config.Pwd,

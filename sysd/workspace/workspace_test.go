@@ -121,7 +121,7 @@ func TestNewWorkspace(t *testing.T) {
 		task := ws.tasks["sleep"]
 		So(task.CurrentInstances(), ShouldHaveLength, 0)
 
-		So(task.Env(), ShouldResemble, []string{"FOO=1", "PAASBOX_WSID=", "BAR=2", "PAASBOX_TASKID=sleep"})
+		So(task.Env(), ShouldResemble, []string{"FOO=1", "PAASBOX_WSID=", "PAASBOX_LOGPATH=" + ws.logPath, "BAR=2", "PAASBOX_TASKID=sleep"})
 	})
 
 }
