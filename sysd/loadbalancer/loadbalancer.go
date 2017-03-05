@@ -15,6 +15,32 @@ import (
 type LB interface {
 	AddListener(port int) (Listener, error)
 	StopListener(port int) error
+	Stats() LBStats
+}
+
+// LBStats ...
+type LBStats struct {
+	Connections ConnectionStats `json:"connections"`
+	Bytes       ByteStats       `json:"bytes"`
+	Listeners   map[int]Stats   `json:"listeners"`
+}
+
+// Stats ...
+type Stats struct {
+	Connections ConnectionStats `json:"connections"`
+	Bytes       ByteStats       `json:"bytes"`
+}
+
+// ConnectionStats ...
+type ConnectionStats struct {
+	Total  int64 `json:"total"`
+	Active int64 `json:"active"`
+}
+
+// ByteStats ...
+type ByteStats struct {
+	Sent     int64 `json:"sent"`
+	Received int64 `json:"received"`
 }
 
 // Listener ...
@@ -36,6 +62,15 @@ type lbListener struct {
 	port      int
 	instances map[string]struct{}
 	mutex     *sync.RWMutex
+
+	txSend      int64
+	txRecv      int64
+	totalConns  int64
+	activeConns int64
+
+	txChan   chan int64
+	rxChan   chan int64
+	connChan chan int64
 }
 
 type lbInstance struct {
@@ -49,6 +84,27 @@ func New() (LB, error) {
 	}, nil
 }
 
+func (lb *lb) Stats() LBStats {
+	var totalRx, totalTx, activeConns, totalConns int64
+	listeners := make(map[int]Stats)
+
+	for port, ln := range lb.listeners {
+		totalRx += ln.txRecv
+		totalTx += ln.txSend
+		activeConns += ln.activeConns
+		totalConns += ln.totalConns
+		listeners[port] = Stats{
+			Connections: ConnectionStats{ln.totalConns, ln.activeConns},
+			Bytes:       ByteStats{ln.txSend, ln.txRecv},
+		}
+	}
+	return LBStats{
+		Connections: ConnectionStats{totalConns, activeConns},
+		Bytes:       ByteStats{totalTx, totalRx},
+		Listeners:   listeners,
+	}
+}
+
 func (lb *lb) AddListener(port int) (Listener, error) {
 	log.Debug("adding listener", log.Data{"port": port})
 
@@ -59,7 +115,7 @@ func (lb *lb) AddListener(port int) (Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	listener := &lbListener{l, port, make(map[string]struct{}, 0), new(sync.RWMutex)}
+	listener := &lbListener{l, port, make(map[string]struct{}, 0), new(sync.RWMutex), 0, 0, 0, 0, make(chan int64, 500), make(chan int64, 500), make(chan int64, 500)}
 	lb.listeners[port] = listener
 	go listener.start()
 	return listener, nil
@@ -77,12 +133,34 @@ func (li *lbListener) Instances() (res []string) {
 }
 
 func (li *lbListener) start() {
+	doneCh := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case n := <-li.connChan:
+				li.activeConns += n
+				if n > 0 {
+					li.totalConns++
+				}
+			case n := <-li.txChan:
+				li.txSend += n
+			case n := <-li.rxChan:
+				li.txRecv += n
+			case <-doneCh:
+				return
+			}
+		}
+	}()
+
 	for {
 		lconn, err := li.Accept()
 		if err != nil {
 			log.Error(err, nil)
 			continue
 		}
+
+		li.connChan <- 1
+
 		li.mutex.RLock()
 		instances := li.Instances()
 		num := len(instances)
@@ -90,6 +168,7 @@ func (li *lbListener) start() {
 			li.mutex.RUnlock()
 			log.Debug("no healthy instances", nil)
 			lconn.Close()
+			li.connChan <- -1
 			return
 		}
 
@@ -102,12 +181,16 @@ func (li *lbListener) start() {
 		if err != nil {
 			log.Error(err, nil)
 			lconn.Close()
+			li.connChan <- -1
 			continue
 		}
 
 		go func() {
 			defer lconn.Close()
 			defer rconn.Close()
+			defer func() {
+				li.connChan <- -1
+			}()
 
 			// TODO handle errors?
 			var wg sync.WaitGroup
@@ -116,11 +199,11 @@ func (li *lbListener) start() {
 			wg.Add(2)
 			go func() {
 				defer wg.Done()
-				writeErr = pipe(lconn, rconn)
+				writeErr = li.pipe(lconn, rconn)
 			}()
 			go func() {
 				defer wg.Done()
-				readErr = pipe(rconn, lconn)
+				readErr = li.pipe(rconn, lconn)
 			}()
 			wg.Wait()
 
@@ -150,18 +233,20 @@ func (li *lbListener) RemoveInstance(addr ...string) {
 	}
 }
 
-func pipe(src, dst io.ReadWriter) error {
+func (li *lbListener) pipe(src, dst io.ReadWriter) error {
 	//directional copy (64k buffer)
 	buff := make([]byte, 0xffff)
 	for {
 		n, err := src.Read(buff)
+		li.rxChan <- int64(n)
 		if err != nil {
 			return err
 		}
 		b := buff[:n]
 
 		//write out result
-		_, err = dst.Write(b)
+		n, err = dst.Write(b)
+		li.txChan <- int64(n)
 		if err != nil {
 			return err
 		}

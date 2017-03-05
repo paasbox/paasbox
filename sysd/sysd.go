@@ -22,6 +22,7 @@ import (
 // Sysd ...
 type Sysd interface {
 	Start() error
+	LoadBalancer() loadbalancer.LB
 }
 
 type sysd struct {
@@ -321,4 +322,8 @@ func (s *sysd) Workspaces() (ws []workspace.Workspace) {
 func (s *sysd) Workspace(id string) (ws workspace.Workspace, ok bool) {
 	ws, ok = s.workspaces[id]
 	return
+}
+
+func (s *sysd) LoadBalancer() loadbalancer.LB {
+	return s.loadBalancer
 }

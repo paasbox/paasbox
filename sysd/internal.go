@@ -35,7 +35,15 @@ var elkStack = `
 				"xpack.security.enabled=false",
         "http.host=0.0.0.0",
         "transport.host=127.0.0.1"
-      ]
+      ],
+			"healthchecks": [{
+        "type": "http",
+        "target": "http://$HOST$:$PORT$",
+        "healthy_threshold": 10,
+        "unhealthy_threshold": 2,
+        "reap_threshold": 10,
+        "frequency": "30s"
+      }]
     },
     {
       "id": "logstash",
@@ -48,7 +56,15 @@ var elkStack = `
       "args": [ "logstash", "-e", "input { http { port => 52000 } } output { elasticsearch { hosts => [\"elasticsearch:9200\"] } }" ],
       "ports": [ 52000 ],
       "port_map": [ 52000 ],
-      "env": [ ]
+      "env": [ ],
+			"healthchecks": [{
+        "type": "http",
+        "target": "http://$HOST$:$PORT$",
+        "healthy_threshold": 10,
+        "unhealthy_threshold": 2,
+        "reap_threshold": 10,
+        "frequency": "30s"
+      }]
     },
     {
       "id": "kibana",
@@ -63,7 +79,15 @@ var elkStack = `
       "port_map": [ 5601 ],
       "env": [
 				"XPACK_SECURITY_ENABLED=false"
-			]
+			],
+			"healthchecks": [{
+        "type": "http",
+        "target": "http://$HOST$:$PORT$",
+        "healthy_threshold": 10,
+        "unhealthy_threshold": 2,
+        "reap_threshold": 10,
+        "frequency": "30s"
+      }]
     }
   ]
 }

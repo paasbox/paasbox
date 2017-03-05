@@ -107,6 +107,19 @@ type instancesOutputInstance struct {
 	WorkspaceURL string `json:"workspace_url"`
 }
 
+func (s *srv) loadBalancer(w http.ResponseWriter, req *http.Request) {
+	stats := s.sysd.LoadBalancer().Stats()
+
+	b, err := json.Marshal(stats)
+	if err != nil {
+		log.ErrorR(req, err, nil)
+		w.WriteHeader(500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+}
+
 func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
 	o := workspacesOutput{
 		Workspaces: make([]workspacesOutputWorkspace, 0),
