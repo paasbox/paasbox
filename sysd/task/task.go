@@ -243,6 +243,9 @@ func (t *taskHealthcheck) Start() {
 						t.task.log("running healthcheck", log.Data{"instance_id": i.instance.ID(), "score": t.tracker[i.instance]})
 						healthy := t.Run(i.instance)
 						if healthy && !track.healthy {
+							if track.score < 0 {
+								track.score = 0
+							}
 							track.score++
 						} else if !healthy {
 							track.score--
@@ -277,6 +280,8 @@ func (t *taskHealthcheck) Start() {
 									if err != nil {
 										t.task.error(errors.New("error removing instance from load balancer"), err, nil)
 									}
+								} else {
+									t.task.error(errors.New("instance still has failing healthchecks"), nil, nil)
 								}
 							}
 						}

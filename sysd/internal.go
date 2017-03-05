@@ -39,7 +39,7 @@ var elkStack = `
 			"healthchecks": [{
         "type": "http",
         "target": "http://$HOST$:$PORT$",
-        "healthy_threshold": 10,
+        "healthy_threshold": 3,
         "unhealthy_threshold": 2,
         "reap_threshold": 10,
         "frequency": "30s"
@@ -60,7 +60,7 @@ var elkStack = `
 			"healthchecks": [{
         "type": "http",
         "target": "http://$HOST$:$PORT$",
-        "healthy_threshold": 10,
+        "healthy_threshold": 3,
         "unhealthy_threshold": 2,
         "reap_threshold": 10,
         "frequency": "30s"
@@ -83,7 +83,7 @@ var elkStack = `
 			"healthchecks": [{
         "type": "http",
         "target": "http://$HOST$:$PORT$",
-        "healthy_threshold": 10,
+        "healthy_threshold": 3,
         "unhealthy_threshold": 2,
         "reap_threshold": 10,
         "frequency": "30s"

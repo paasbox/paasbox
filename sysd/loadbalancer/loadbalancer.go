@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/ian-kent/service.go/log"
 )
@@ -20,15 +21,24 @@ type LB interface {
 
 // LBStats ...
 type LBStats struct {
-	Connections ConnectionStats `json:"connections"`
-	Bytes       ByteStats       `json:"bytes"`
-	Listeners   map[int]Stats   `json:"listeners"`
+	Connections      ConnectionStats `json:"connections"`
+	Bytes            ByteStats       `json:"bytes"`
+	ConnectionErrors int64           `json:"connection_errors"`
+	DialErrors       int64           `json:"dial_errors"`
+	ReadErrors       int64           `json:"read_errors"`
+	WriteErrors      int64           `json:"write_errors"`
+	Listeners        map[int]Stats   `json:"listeners"`
 }
 
 // Stats ...
 type Stats struct {
-	Connections ConnectionStats `json:"connections"`
-	Bytes       ByteStats       `json:"bytes"`
+	Connections      ConnectionStats `json:"connections"`
+	Bytes            ByteStats       `json:"bytes"`
+	ConnectionErrors int64           `json:"connection_errors"`
+	DialErrors       int64           `json:"dial_errors"`
+	ReadErrors       int64           `json:"read_errors"`
+	WriteErrors      int64           `json:"write_errors"`
+	HealthyInstances int64           `json:"healthy_instances"`
 }
 
 // ConnectionStats ...
@@ -68,10 +78,30 @@ type lbListener struct {
 	totalConns  int64
 	activeConns int64
 
-	txChan   chan int64
-	rxChan   chan int64
-	connChan chan int64
+	connErrors  int64
+	readErrors  int64
+	writeErrors int64
+	dialErrors  int64
+
+	statChan chan listenerStat
 }
+
+type listenerStat struct {
+	statType listenerStatType
+	n        int64
+}
+
+type listenerStatType int
+
+const (
+	statTX listenerStatType = iota
+	statRX
+	statConn
+	statConnError
+	statReadError
+	statWriteError
+	statDialError
+)
 
 type lbInstance struct {
 	port int
@@ -85,7 +115,7 @@ func New() (LB, error) {
 }
 
 func (lb *lb) Stats() LBStats {
-	var totalRx, totalTx, activeConns, totalConns int64
+	var totalRx, totalTx, activeConns, totalConns, connErrors, dialErrors, readErrors, writeErrors int64
 	listeners := make(map[int]Stats)
 
 	for port, ln := range lb.listeners {
@@ -93,15 +123,29 @@ func (lb *lb) Stats() LBStats {
 		totalTx += ln.txSend
 		activeConns += ln.activeConns
 		totalConns += ln.totalConns
+		connErrors += ln.connErrors
+		dialErrors += ln.dialErrors
+		readErrors += ln.readErrors
+		writeErrors += ln.writeErrors
+
 		listeners[port] = Stats{
-			Connections: ConnectionStats{ln.totalConns, ln.activeConns},
-			Bytes:       ByteStats{ln.txSend, ln.txRecv},
+			Connections:      ConnectionStats{ln.totalConns, ln.activeConns},
+			Bytes:            ByteStats{ln.txSend, ln.txRecv},
+			ConnectionErrors: ln.connErrors,
+			DialErrors:       ln.dialErrors,
+			WriteErrors:      ln.writeErrors,
+			ReadErrors:       ln.readErrors,
+			HealthyInstances: int64(len(ln.instances)),
 		}
 	}
 	return LBStats{
-		Connections: ConnectionStats{totalConns, activeConns},
-		Bytes:       ByteStats{totalTx, totalRx},
-		Listeners:   listeners,
+		Connections:      ConnectionStats{totalConns, activeConns},
+		Bytes:            ByteStats{totalTx, totalRx},
+		Listeners:        listeners,
+		ConnectionErrors: connErrors,
+		DialErrors:       dialErrors,
+		WriteErrors:      writeErrors,
+		ReadErrors:       readErrors,
 	}
 }
 
@@ -115,7 +159,7 @@ func (lb *lb) AddListener(port int) (Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	listener := &lbListener{l, port, make(map[string]struct{}, 0), new(sync.RWMutex), 0, 0, 0, 0, make(chan int64, 500), make(chan int64, 500), make(chan int64, 500)}
+	listener := &lbListener{l, port, make(map[string]struct{}, 0), new(sync.RWMutex), 0, 0, 0, 0, 0, 0, 0, 0, make(chan listenerStat, 500)}
 	lb.listeners[port] = listener
 	go listener.start()
 	return listener, nil
@@ -137,15 +181,26 @@ func (li *lbListener) start() {
 	go func() {
 		for {
 			select {
-			case n := <-li.connChan:
-				li.activeConns += n
-				if n > 0 {
-					li.totalConns++
+			case n := <-li.statChan:
+				switch n.statType {
+				case statRX:
+					li.txRecv += n.n
+				case statTX:
+					li.txSend += n.n
+				case statConn:
+					li.activeConns += n.n
+					if n.n > 0 {
+						li.totalConns++
+					}
+				case statConnError:
+					li.connErrors++
+				case statReadError:
+					li.readErrors++
+				case statWriteError:
+					li.writeErrors++
+				case statDialError:
+					li.dialErrors++
 				}
-			case n := <-li.txChan:
-				li.txSend += n
-			case n := <-li.rxChan:
-				li.txRecv += n
 			case <-doneCh:
 				return
 			}
@@ -156,10 +211,11 @@ func (li *lbListener) start() {
 		lconn, err := li.Accept()
 		if err != nil {
 			log.Error(err, nil)
+			li.statChan <- listenerStat{statConnError, 1}
 			continue
 		}
 
-		li.connChan <- 1
+		li.statChan <- listenerStat{statConn, 1}
 
 		li.mutex.RLock()
 		instances := li.Instances()
@@ -168,7 +224,7 @@ func (li *lbListener) start() {
 			li.mutex.RUnlock()
 			log.Debug("no healthy instances", nil)
 			lconn.Close()
-			li.connChan <- -1
+			li.statChan <- listenerStat{statConn, -1}
 			return
 		}
 
@@ -177,11 +233,12 @@ func (li *lbListener) start() {
 		dest := instances[n]
 		li.mutex.RUnlock()
 
-		rconn, err := net.Dial("tcp", dest)
+		rconn, err := net.DialTimeout("tcp", dest, time.Second*2)
 		if err != nil {
 			log.Error(err, nil)
 			lconn.Close()
-			li.connChan <- -1
+			li.statChan <- listenerStat{statConn, -1}
+			li.statChan <- listenerStat{statDialError, 1}
 			continue
 		}
 
@@ -189,7 +246,7 @@ func (li *lbListener) start() {
 			defer lconn.Close()
 			defer rconn.Close()
 			defer func() {
-				li.connChan <- -1
+				li.statChan <- listenerStat{statConn, -1}
 			}()
 
 			// TODO handle errors?
@@ -238,16 +295,22 @@ func (li *lbListener) pipe(src, dst io.ReadWriter) error {
 	buff := make([]byte, 0xffff)
 	for {
 		n, err := src.Read(buff)
-		li.rxChan <- int64(n)
+		li.statChan <- listenerStat{statRX, int64(n)}
 		if err != nil {
+			if err != io.EOF {
+				li.statChan <- listenerStat{statReadError, 1}
+			}
 			return err
 		}
 		b := buff[:n]
 
 		//write out result
 		n, err = dst.Write(b)
-		li.txChan <- int64(n)
+		li.statChan <- listenerStat{statTX, int64(n)}
 		if err != nil {
+			if err != io.EOF {
+				li.statChan <- listenerStat{statWriteError, 1}
+			}
 			return err
 		}
 	}
