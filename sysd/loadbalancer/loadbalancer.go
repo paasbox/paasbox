@@ -94,7 +94,7 @@ func (li *lbListener) start() {
 		}
 
 		n := rand.Intn(num)
-		log.Debug("instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
+		//log.Debug("instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
 		dest := instances[n]
 		li.mutex.RUnlock()
 

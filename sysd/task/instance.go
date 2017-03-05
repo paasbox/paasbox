@@ -617,6 +617,8 @@ func (i *instance) tailLog() error {
 			return err
 		}
 		defer res.Body.Close()
+		defer io.Copy(ioutil.Discard, res.Body)
+
 		if res.StatusCode != 200 {
 			b, err := ioutil.ReadAll(res.Body)
 			var logText string
@@ -629,7 +631,6 @@ func (i *instance) tailLog() error {
 			return err
 		}
 
-		io.Copy(ioutil.Discard, res.Body)
 		return nil
 	}
 
@@ -651,6 +652,9 @@ func (i *instance) tailLog() error {
 						backoff = time.Millisecond * 10
 					} else {
 						backoff *= 2
+					}
+					if backoff > time.Second*5 {
+						backoff = time.Second * 5
 					}
 				}
 			}
