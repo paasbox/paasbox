@@ -80,7 +80,7 @@ var elkStack = `
       "env": [
 				"XPACK_SECURITY_ENABLED=false"
 			],
-			"healthchecks": [{
+			"#healthchecks": [{
         "type": "http",
         "target": "http://$HOST$:$PORT$",
         "healthy_threshold": 3,
