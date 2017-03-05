@@ -87,14 +87,17 @@ func (li *lbListener) start() {
 		instances := li.Instances()
 		num := len(instances)
 		if num < 1 {
+			li.mutex.RUnlock()
 			log.Debug("no healthy instances", nil)
 			lconn.Close()
 			return
 		}
+
 		n := rand.Intn(num)
 		log.Debug("instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
 		dest := instances[n]
 		li.mutex.RUnlock()
+
 		rconn, err := net.Dial("tcp", dest)
 		if err != nil {
 			log.Error(err, nil)
@@ -102,28 +105,32 @@ func (li *lbListener) start() {
 			continue
 		}
 
-		defer lconn.Close()
-		defer rconn.Close()
+		go func() {
+			defer lconn.Close()
+			defer rconn.Close()
 
-		// TODO handle errors?
-		var wg sync.WaitGroup
-		var readErr, writeErr error
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
-			writeErr = pipe(lconn, rconn)
+			// TODO handle errors?
+			var wg sync.WaitGroup
+			var readErr, writeErr error
+
+			wg.Add(2)
+			go func() {
+				defer wg.Done()
+				writeErr = pipe(lconn, rconn)
+			}()
+			go func() {
+				defer wg.Done()
+				readErr = pipe(rconn, lconn)
+			}()
+			wg.Wait()
+
+			if readErr != nil && readErr != io.EOF {
+				log.Error(errors.New("load balancer read error"), log.Data{"reason": readErr})
+			}
+			if writeErr != nil && writeErr != io.EOF {
+				log.Error(errors.New("load balancer write error"), log.Data{"reason": writeErr})
+			}
 		}()
-		go func() {
-			defer wg.Done()
-			readErr = pipe(rconn, lconn)
-		}()
-		wg.Wait()
-		if readErr != nil && readErr != io.EOF {
-			log.Error(errors.New("load balancer read error"), log.Data{"reason": readErr})
-		}
-		if writeErr != nil && writeErr != io.EOF {
-			log.Error(errors.New("load balancer write error"), log.Data{"reason": writeErr})
-		}
 	}
 }
 

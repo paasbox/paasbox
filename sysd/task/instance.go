@@ -25,6 +25,10 @@ import (
 var errWaitingForProcess = errors.New("error waiting for process")
 var errUpdateBoltDBFailed = errors.New("error updating boltdb")
 
+var cli = &http.Client{
+	Timeout: time.Second * 2,
+}
+
 // Instance ...
 type Instance interface {
 	Start() error
@@ -599,10 +603,6 @@ func (i *instance) tailLog() error {
 	})
 	if err != nil {
 		return err
-	}
-
-	var cli = &http.Client{
-		Timeout: time.Second * 2,
 	}
 
 	var sendLine = func(l string) error {

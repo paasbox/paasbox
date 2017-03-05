@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -29,10 +28,6 @@ var (
 	errUnsupportedDriver  = errors.New("unsupported driver")
 	errAlreadyStarted     = errors.New("already started")
 )
-
-var cli = &http.Client{
-	Timeout: time.Second * 2,
-}
 
 var _ InstanceHealth = &taskInstanceTracker{}
 var _ Task = &task{}
