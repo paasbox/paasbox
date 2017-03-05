@@ -102,9 +102,28 @@ func (li *lbListener) start() {
 			continue
 		}
 
+		defer lconn.Close()
+		defer rconn.Close()
+
 		// TODO handle errors?
-		go pipe(lconn, rconn)
-		go pipe(rconn, lconn)
+		var wg sync.WaitGroup
+		var readErr, writeErr error
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			writeErr = pipe(lconn, rconn)
+		}()
+		go func() {
+			defer wg.Done()
+			readErr = pipe(rconn, lconn)
+		}()
+		wg.Wait()
+		if readErr != nil && readErr != io.EOF {
+			log.Error(errors.New("load balancer read error"), log.Data{"reason": readErr})
+		}
+		if writeErr != nil && writeErr != io.EOF {
+			log.Error(errors.New("load balancer write error"), log.Data{"reason": writeErr})
+		}
 	}
 }
 

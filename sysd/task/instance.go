@@ -303,7 +303,7 @@ func (i *instance) Stop() error {
 
 	switch i.driver {
 	case "docker":
-		cmd := exec.Command(config.DockerPath, "stop", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID))
+		cmd := exec.Command(config.DockerPath, "rm", "-f", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.workspaceID, "@", "_", -1), i.taskID, i.instanceID))
 		cmd.Env = os.Environ()
 		if err := cmd.Start(); err != nil {
 			i.error(errors.New("error starting docker stop"), err, nil)
@@ -313,11 +313,11 @@ func (i *instance) Stop() error {
 			i.error(errors.New("error waiting for docker stop"), err, nil)
 			return err
 		}
-	default:
-		err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
-		if err != nil {
-			return err
-		}
+	}
+
+	err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -448,7 +448,7 @@ func (i *instance) startDocker() error {
 	}
 
 	i.log("docker run", log.Data{"image": i.image})
-	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID)}
+	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.workspaceID, "@", "_", -1), i.taskID, i.instanceID)}
 	if len(i.network) > 0 {
 		args = append(args, "--net", i.network, "--network-alias", i.taskID)
 	}
@@ -605,18 +605,16 @@ func (i *instance) tailLog() error {
 		Timeout: time.Second * 2,
 	}
 
-	var sendLine = func(l string) {
+	var sendLine = func(l string) error {
 		// FIXME consider handling timestamps, stdout/stderr, ws/task/instance IDs and line JSON?
 
 		req, err := http.NewRequest("POST", i.logConfig.URL, bytes.NewReader([]byte(l)))
 		if err != nil {
-			i.error(errors.New("error creating new request"), err, nil)
-			return
+			return err
 		}
 		res, err := cli.Do(req)
 		if err != nil {
-			i.error(errors.New("error sending data"), err, nil)
-			return
+			return err
 		}
 		defer res.Body.Close()
 		if res.StatusCode != 200 {
@@ -628,11 +626,36 @@ func (i *instance) tailLog() error {
 				logText = string(b)
 			}
 			i.error(errors.New("error storing log data"), errors.New("unexpected status code"), log.Data{"code": res.StatusCode, "message": logText})
-			return
+			return err
 		}
 
 		io.Copy(ioutil.Discard, res.Body)
+		return nil
 	}
+
+	messages := make(chan string, 100)
+	go func() {
+		var err error
+		var backoff time.Duration
+		for {
+			select {
+			case m := <-messages:
+				for {
+					err = sendLine(m)
+					if err == nil {
+						backoff = 0
+						break
+					}
+					time.Sleep(backoff)
+					if backoff == 0 {
+						backoff = time.Millisecond * 10
+					} else {
+						backoff *= 2
+					}
+				}
+			}
+		}
+	}()
 
 	i.log("tailing log files", log.Data{"follow": follow})
 	var wg sync.WaitGroup
@@ -649,7 +672,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stdout", nil)
 		for l := range stdoutTail.Lines {
 			if l != nil {
-				sendLine(l.Text)
+				messages <- l.Text
 			}
 		}
 		i.log("finished tailing stdout", nil)
@@ -659,7 +682,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stderr", nil)
 		for l := range stderrTail.Lines {
 			if l != nil {
-				sendLine(l.Text)
+				messages <- l.Text
 			}
 		}
 		i.log("finished tailing stderr", nil)

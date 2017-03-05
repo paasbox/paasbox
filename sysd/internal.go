@@ -13,8 +13,8 @@ func loadInternal(f string) ([]byte, error) {
 
 var elkStack = `
 {
-  "id": "_internal",
-  "name": "paasbox internal",
+  "id": "@elk",
+  "name": "ELK stack",
   "env": {
     "inherit": [ ]
   },
