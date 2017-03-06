@@ -702,7 +702,12 @@ func (t *task) Start() error {
 		}
 
 		doneCh := make(chan struct{})
-		net := "paasbox-" + env.Replace(t.network, t.Env())
+		
+		var net string
+		if len(t.network) > 0 {
+			net = "paasbox-" + env.Replace(t.network, t.Env())
+		}
+
 		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes, t.logConfig})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
