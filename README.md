@@ -12,6 +12,11 @@ Start paasbox with the example workspace:
 
 ### Todo
 
+- internal docker:
+  - localhost:9200 points to own container, not host, so can't contact ES
+  - use user defined docker network
+  - give containers aliases 'paasbox-wsid-taskid' which is known in workspace.json
+
 - enabled flag for workspaces/tasks in config?
 - handle log/instance retention
 - auto-tail latest/all instances from task endpoint

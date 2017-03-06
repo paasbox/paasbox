@@ -101,7 +101,8 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			for line := range t.Lines {
 				err = conn.WriteMessage(websocket.TextMessage, []byte(line.Text))
 				if err != nil {
-					conn.Close()
+					t.Stop()
+					break
 				}
 			}
 			conn.Close()

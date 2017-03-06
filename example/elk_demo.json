@@ -1,0 +1,53 @@
+{
+  "id": "elk-demo",
+  "name": "ELK demo",
+  "log_path": "./logs",
+  "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+  "log": {
+    "type": "logstash",
+    "url": "http://localhost:52000"
+  },
+  "env": {
+    "inherit_all": false,
+    "inherit": [
+      "PATH",
+      "USER",
+      "HOME"
+    ],
+    "remove": [
+
+    ],
+    "set": [
+      "FOO=1"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "app1",
+      "name": "Output a log line at random intervals",
+      "service": true,
+      "persist": false,
+      "driver": "shell",
+      "command": "go run example/jsonlog.go",
+      "args": [ "elk-app-1" ]
+    },
+    {
+      "id": "app2",
+      "name": "Output a log line at random intervals",
+      "service": true,
+      "persist": false,
+      "driver": "shell",
+      "command": "go run example/jsonlog.go",
+      "args": [ "elk-app-2" ]
+    },
+    {
+      "id": "app3",
+      "name": "Output a log line at random intervals",
+      "service": true,
+      "persist": false,
+      "driver": "shell",
+      "command": "go run example/jsonlog.go",
+      "args": [ "elk-app-3" ]
+    }
+  ]
+}

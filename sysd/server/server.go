@@ -10,6 +10,7 @@ import (
 	"github.com/ian-kent/service.go/handlers/requestID"
 	"github.com/ian-kent/service.go/log"
 	"github.com/justinas/alice"
+	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/workspace"
 )
 
@@ -23,6 +24,7 @@ type Server interface {
 type Sysd interface {
 	Workspaces() []workspace.Workspace
 	Workspace(id string) (workspace.Workspace, bool)
+	LoadBalancer() loadbalancer.LB
 }
 
 type srv struct {
@@ -77,11 +79,12 @@ func (s *srv) Start(bindAddr string) error {
 	p.Post("/api/workspaces", TODO /* create workspace */)
 	p.Get("/api/workspaces", s.workspaces /* list workspaces */)
 
+	p.Get("/api/loadbalancer", s.loadBalancer /* load balancer stats */)
+
 	p.Get("/js", s.staticFiles)
 	p.Get("/css", s.staticFiles)
 
 	p.Get("/", s.home)
-
 
 	m := []alice.Constructor{
 		requestID.Handler(16),

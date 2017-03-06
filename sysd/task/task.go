@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	pconfig "github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
+	"github.com/paasbox/paasbox/sysd/util/env"
 )
 
 var (
@@ -28,10 +28,6 @@ var (
 	errUnsupportedDriver  = errors.New("unsupported driver")
 	errAlreadyStarted     = errors.New("already started")
 )
-
-var cli = &http.Client{
-	Timeout: time.Second * 2,
-}
 
 var _ InstanceHealth = &taskInstanceTracker{}
 var _ Task = &task{}
@@ -57,8 +53,10 @@ type Task interface {
 	Ports() []int
 	PortMap() []int
 	Image() string
+	Volumes() []string
 	Persist() bool
 	TargetInstances() int
+	Network() string
 
 	ExecCount() int
 	Started() bool
@@ -98,6 +96,9 @@ type Config struct {
 	Instances    int                 `json:"instances"`
 	Healthchecks []HealthcheckConfig `json:"healthchecks"`
 	Image        string              `json:"image"`
+	Network      string              `json:"network"`
+	Volumes      []string            `json:"volumes"`
+	Log          LogConfig           `json:"log"`
 }
 
 // HealthcheckConfig ...
@@ -108,6 +109,12 @@ type HealthcheckConfig struct {
 	UnhealthyThreshold int    `json:"unhealthy_threshold"`
 	ReapThreshold      int    `json:"reap_threshold"`
 	Frequency          string `json:"frequency"`
+}
+
+// LogConfig ...
+type LogConfig struct {
+	Type string `json:"type"`
+	URL  string `json:"url"`
 }
 
 // WithEnv ...
@@ -132,7 +139,10 @@ type task struct {
 	pwd             string
 	targetInstances int
 	image           string
+	network         string
+	volumes         []string
 	logger          func(event string, data log.Data)
+	logConfig       LogConfig
 
 	store         state.Store
 	instanceStore state.Store
@@ -233,6 +243,9 @@ func (t *taskHealthcheck) Start() {
 						t.task.log("running healthcheck", log.Data{"instance_id": i.instance.ID(), "score": t.tracker[i.instance]})
 						healthy := t.Run(i.instance)
 						if healthy && !track.healthy {
+							if track.score < 0 {
+								track.score = 0
+							}
 							track.score++
 						} else if !healthy {
 							track.score--
@@ -267,6 +280,8 @@ func (t *taskHealthcheck) Start() {
 									if err != nil {
 										t.task.error(errors.New("error removing instance from load balancer"), err, nil)
 									}
+								} else {
+									t.task.error(errors.New("instance still has failing healthchecks"), nil, nil)
 								}
 							}
 						}
@@ -326,11 +341,14 @@ func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config C
 		command:         config.Command,
 		args:            config.Args,
 		image:           config.Image,
+		volumes:         config.Volumes,
+		network:         config.Network,
 		env:             e,
 		pwd:             config.Pwd,
 		ports:           config.Ports,
 		portMap:         config.PortMap,
 		targetInstances: config.Instances,
+		logConfig:       config.Log,
 		loadBalancer:    lb,
 		lbListeners:     make(map[int]loadbalancer.Listener),
 		logger:          logger,
@@ -430,11 +448,19 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 	if err != nil {
 		log.Error(err, nil)
 	}
+	network, err := instanceStorage.Get("network")
+	if err != nil {
+		log.Error(err, nil)
+	}
 	args, err := instanceStorage.GetArray("args")
 	if err != nil {
 		log.Error(err, nil)
 	}
 	env, err := instanceStorage.GetArray("env")
+	if err != nil {
+		log.Error(err, nil)
+	}
+	volumes, err := instanceStorage.GetArray("volumes")
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -482,6 +508,8 @@ func (t *task) getArchivedInstance(id string) (Instance, error) {
 		ports:   ports,
 		portMap: portMap,
 		image:   image,
+		network: network,
+		volumes: volumes,
 		//signalInterval: time.Second * 10,
 		instanceID: id,
 		stderr:     stderr,
@@ -534,6 +562,10 @@ func (t *task) Image() string {
 	return t.image
 }
 
+func (t *task) Network() string {
+	return t.network
+}
+
 func (t *task) Name() string {
 	return t.name
 }
@@ -572,6 +604,10 @@ func (t *task) Ports() []int {
 
 func (t *task) PortMap() []int {
 	return t.portMap
+}
+
+func (t *task) Volumes() []string {
+	return t.volumes
 }
 
 func (t *task) TargetInstances() int {
@@ -632,7 +668,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, ""}, proc)
+		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}, t.logConfig}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -666,7 +702,8 @@ func (t *task) Start() error {
 		}
 
 		doneCh := make(chan struct{})
-		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image})
+		net := "paasbox-" + env.Replace(t.network, t.Env())
+		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes, t.logConfig})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly

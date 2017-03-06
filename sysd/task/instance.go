@@ -1,14 +1,21 @@
 package task
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
@@ -17,6 +24,10 @@ import (
 
 var errWaitingForProcess = errors.New("error waiting for process")
 var errUpdateBoltDBFailed = errors.New("error updating boltdb")
+
+var cli = &http.Client{
+	Timeout: time.Second * 2,
+}
 
 // Instance ...
 type Instance interface {
@@ -36,6 +47,10 @@ type Instance interface {
 	Pwd() string
 	Ports() []int
 	PortMap() []int
+
+	Image() string
+	Network() string
+	Volumes() []string
 }
 
 // InstanceConfig ...
@@ -51,6 +66,9 @@ type InstanceConfig struct {
 	Ports       []int
 	PortMap     []int
 	Image       string
+	Network     string
+	Volumes     []string
+	Log         LogConfig
 }
 
 var _ Instance = &instance{}
@@ -71,6 +89,9 @@ type instance struct {
 	ports       []int
 	portMap     []int
 	image       string
+	network     string
+	volumes     []string
+	logConfig   LogConfig
 
 	store     state.Store
 	process   *os.Process
@@ -83,6 +104,8 @@ type instance struct {
 	pid    int
 	stdout string
 	stderr string
+
+	tailLogs bool
 }
 
 // NewInstance ...
@@ -113,6 +136,7 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		fileCreator:    config.FileCreator,
 		driver:         config.Driver,
 		image:          config.Image,
+		network:        config.Network,
 		command:        command,
 		args:           args,
 		env:            e,
@@ -122,6 +146,12 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		signalInterval: time.Second * 10,
 		instanceID:     instanceID,
 		store:          store,
+		volumes:        config.Volumes,
+		logConfig:      config.Log,
+	}
+
+	if len(config.Log.Type) > 0 {
+		i.tailLogs = true
 	}
 
 	err := store.Set("driver", config.Driver)
@@ -140,11 +170,19 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 	if err != nil {
 		log.Error(err, nil)
 	}
+	err = store.Set("network", config.Network)
+	if err != nil {
+		log.Error(err, nil)
+	}
 	err = store.SetArray("args", args)
 	if err != nil {
 		log.Error(err, nil)
 	}
 	err = store.SetArray("env", e)
+	if err != nil {
+		log.Error(err, nil)
+	}
+	err = store.SetArray("volumes", config.Volumes)
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -224,6 +262,18 @@ func (i *instance) PortMap() []int {
 	return i.portMap
 }
 
+func (i *instance) Image() string {
+	return i.image
+}
+
+func (i *instance) Network() string {
+	return i.network
+}
+
+func (i *instance) Volumes() []string {
+	return i.volumes
+}
+
 func (i *instance) Start() error {
 	if !i.recovered {
 		err := i.start()
@@ -257,7 +307,7 @@ func (i *instance) Stop() error {
 
 	switch i.driver {
 	case "docker":
-		cmd := exec.Command(config.DockerPath, "stop", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID))
+		cmd := exec.Command(config.DockerPath, "rm", "-f", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.workspaceID, "@", "_", -1), i.taskID, i.instanceID))
 		cmd.Env = os.Environ()
 		if err := cmd.Start(); err != nil {
 			i.error(errors.New("error starting docker stop"), err, nil)
@@ -267,11 +317,11 @@ func (i *instance) Stop() error {
 			i.error(errors.New("error waiting for docker stop"), err, nil)
 			return err
 		}
-	default:
-		err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
-		if err != nil {
-			return err
-		}
+	}
+
+	err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -307,6 +357,13 @@ func (i *instance) done() {
 }
 
 func (i *instance) wait() {
+	go func() {
+		err := i.tailLog()
+		if err != nil {
+			i.error(errors.New("tail error"), err, nil)
+		}
+	}()
+
 	if i.isDone {
 		return
 	}
@@ -395,7 +452,10 @@ func (i *instance) startDocker() error {
 	}
 
 	i.log("docker run", log.Data{"image": i.image})
-	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", i.workspaceID, i.taskID, i.instanceID)}
+	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.workspaceID, "@", "_", -1), i.taskID, i.instanceID)}
+	if len(i.network) > 0 {
+		args = append(args, "--net", i.network, "--network-alias", i.taskID)
+	}
 	for j, p := range i.portMap {
 		var fromPort string
 		if j < len(i.ports) {
@@ -406,7 +466,15 @@ func (i *instance) startDocker() error {
 	for _, v := range i.env {
 		args = append(args, "-e", v)
 	}
+	for _, v := range i.volumes {
+		p, err := filepath.Abs(env.Replace(v, i.env))
+		if err != nil {
+			return err
+		}
+		args = append(args, "-v", p)
+	}
 	args = append(args, i.image)
+	args = append(args, i.args...)
 	i.log("docker args", log.Data{"args": args})
 	return i.startExec(config.DockerPath, args, os.Environ())
 }
@@ -497,5 +565,133 @@ func (i *instance) startExec(cmd string, args []string, env []string) error {
 	}
 
 	i.log("process started", log.Data{"proc_pid": proc.Pid})
+	return nil
+}
+
+func (i *instance) tailLog() error {
+	if !i.tailLogs {
+		i.log("not tailing logs", nil)
+		return nil
+	}
+
+	// var stdoutOffset, stderrOffset int64 = 0, 0
+	var follow = !i.isDone
+
+	stdoutTail, err := tail.TailFile(i.stdout, tail.Config{
+		// Location: &tail.SeekInfo{
+		// 	Offset: stdoutOffset,
+		// 	Whence: os.SEEK_SET,
+		// },
+		//MustExist: true,
+		ReOpen: true,
+		Poll:   true,
+		Follow: follow,
+	})
+	if err != nil {
+		return err
+	}
+
+	stderrTail, err := tail.TailFile(i.stderr, tail.Config{
+		// Location: &tail.SeekInfo{
+		// 	Offset: stderrOffset,
+		// 	Whence: os.SEEK_SET,
+		// },
+		//MustExist: true,
+		ReOpen: true,
+		Poll:   true,
+		Follow: follow,
+	})
+	if err != nil {
+		return err
+	}
+
+	var sendLine = func(l string) error {
+		// FIXME consider handling timestamps, stdout/stderr, ws/task/instance IDs and line JSON?
+
+		req, err := http.NewRequest("POST", i.logConfig.URL, bytes.NewReader([]byte(l)))
+		if err != nil {
+			return err
+		}
+		res, err := cli.Do(req)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+		defer io.Copy(ioutil.Discard, res.Body)
+
+		if res.StatusCode != 200 {
+			b, err := ioutil.ReadAll(res.Body)
+			var logText string
+			if err != nil {
+				logText = "<" + err.Error() + ">"
+			} else {
+				logText = string(b)
+			}
+			i.error(errors.New("error storing log data"), errors.New("unexpected status code"), log.Data{"code": res.StatusCode, "message": logText})
+			return err
+		}
+
+		return nil
+	}
+
+	messages := make(chan string, 100)
+	go func() {
+		var err error
+		var backoff time.Duration
+		for {
+			select {
+			case m := <-messages:
+				for {
+					err = sendLine(m)
+					if err == nil {
+						backoff = 0
+						break
+					}
+					time.Sleep(backoff)
+					if backoff == 0 {
+						backoff = time.Millisecond * 10
+					} else {
+						backoff *= 2
+					}
+					if backoff > time.Second*5 {
+						backoff = time.Second * 5
+					}
+				}
+			}
+		}
+	}()
+
+	i.log("tailing log files", log.Data{"follow": follow})
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		<-i.doneCh
+		i.log("done, cancelling tail", nil)
+		stdoutTail.StopAtEOF()
+		stderrTail.StopAtEOF()
+	}()
+	go func() {
+		defer wg.Done()
+		i.log("tailing stdout", nil)
+		for l := range stdoutTail.Lines {
+			if l != nil {
+				messages <- l.Text
+			}
+		}
+		i.log("finished tailing stdout", nil)
+	}()
+	go func() {
+		defer wg.Done()
+		i.log("tailing stderr", nil)
+		for l := range stderrTail.Lines {
+			if l != nil {
+				messages <- l.Text
+			}
+		}
+		i.log("finished tailing stderr", nil)
+	}()
+	wg.Wait()
+	i.log("finished tailing log files", nil)
 	return nil
 }

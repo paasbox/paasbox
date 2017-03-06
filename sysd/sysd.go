@@ -22,6 +22,7 @@ import (
 // Sysd ...
 type Sysd interface {
 	Start() error
+	LoadBalancer() loadbalancer.LB
 }
 
 type sysd struct {
@@ -105,16 +106,54 @@ func New(exitCh chan struct{}) Sysd {
 		os.Exit(5)
 	}
 
-	var workspaceFiles []string
+	workspaceFiles := os.Args[1:]
 	var workspaceConfigs []workspace.Config
 
-	if len(os.Args) < 2 {
-		workspaceFiles = []string{"workspace.json"}
-	} else {
-		workspaceFiles = os.Args[1:]
+	var loadFiles []string
+	var internalFiles []string
+	for _, f := range workspaceFiles {
+		if strings.HasPrefix(f, "@") {
+			internalFiles = append(internalFiles, strings.TrimPrefix(f, "@"))
+			continue
+		}
+		loadFiles = append(loadFiles, f)
 	}
 
-	for _, workspaceFile := range workspaceFiles {
+	if len(loadFiles) == 0 {
+		loadFiles = append(loadFiles, "workspace.json")
+	}
+
+	for _, internalFile := range internalFiles {
+		b, e := loadInternal(internalFile)
+		if e != nil {
+			log.Error(errReadFileError, log.Data{"reason": e})
+			os.Exit(2)
+			return nil
+		}
+
+		var conf workspace.Config
+		err = json.Unmarshal(b, &conf)
+		if err != nil {
+			log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+			os.Exit(3)
+			return nil
+		}
+
+		state, err := workspacesState.Wrap(conf.ID)
+		if err != nil {
+			log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+			os.Exit(6)
+		}
+		ws, err := workspace.New(state, lb, conf)
+		if err != nil {
+			log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+			os.Exit(6)
+		}
+		workspaces[conf.ID] = ws
+		workspaceConfigs = append(workspaceConfigs, conf)
+	}
+
+	for _, workspaceFile := range loadFiles {
 		var b []byte
 
 		if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
@@ -283,4 +322,8 @@ func (s *sysd) Workspaces() (ws []workspace.Workspace) {
 func (s *sysd) Workspace(id string) (ws workspace.Workspace, ok bool) {
 	ws, ok = s.workspaces[id]
 	return
+}
+
+func (s *sysd) LoadBalancer() loadbalancer.LB {
+	return s.loadBalancer
 }
