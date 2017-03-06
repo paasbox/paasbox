@@ -1,7 +1,7 @@
 assets/debug.go
 build
 /views/node_modules/
-.idea
+.idea/
 *.DS_Store
 /logs
 state.db
