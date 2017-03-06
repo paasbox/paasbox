@@ -9,7 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"code.google.com/p/go-uuid/uuid"
 	"github.com/ian-kent/service.go/log"
+	"os"
 )
 
 // LB is a load balancer
@@ -17,40 +19,7 @@ type LB interface {
 	AddListener(port int) (Listener, error)
 	StopListener(port int) error
 	Stats() LBStats
-}
-
-// LBStats ...
-type LBStats struct {
-	Connections      ConnectionStats `json:"connections"`
-	Bytes            ByteStats       `json:"bytes"`
-	ConnectionErrors int64           `json:"connection_errors"`
-	DialErrors       int64           `json:"dial_errors"`
-	ReadErrors       int64           `json:"read_errors"`
-	WriteErrors      int64           `json:"write_errors"`
-	Listeners        map[int]Stats   `json:"listeners"`
-}
-
-// Stats ...
-type Stats struct {
-	Connections      ConnectionStats `json:"connections"`
-	Bytes            ByteStats       `json:"bytes"`
-	ConnectionErrors int64           `json:"connection_errors"`
-	DialErrors       int64           `json:"dial_errors"`
-	ReadErrors       int64           `json:"read_errors"`
-	WriteErrors      int64           `json:"write_errors"`
-	HealthyInstances int64           `json:"healthy_instances"`
-}
-
-// ConnectionStats ...
-type ConnectionStats struct {
-	Total  int64 `json:"total"`
-	Active int64 `json:"active"`
-}
-
-// ByteStats ...
-type ByteStats struct {
-	Sent     int64 `json:"sent"`
-	Received int64 `json:"received"`
+	Log() []string
 }
 
 // Listener ...
@@ -65,6 +34,7 @@ var _ Listener = &lbListener{}
 
 type lb struct {
 	listeners map[int]*lbListener
+	logger    *lbLogger
 }
 
 type lbListener struct {
@@ -72,6 +42,7 @@ type lbListener struct {
 	port      int
 	instances map[string]struct{}
 	mutex     *sync.RWMutex
+	logger    *lbLogger
 
 	txSend      int64
 	txRecv      int64
@@ -86,31 +57,25 @@ type lbListener struct {
 	statChan chan listenerStat
 }
 
-type listenerStat struct {
-	statType listenerStatType
-	n        int64
-}
-
-type listenerStatType int
-
-const (
-	statTX listenerStatType = iota
-	statRX
-	statConn
-	statConnError
-	statReadError
-	statWriteError
-	statDialError
-)
-
 type lbInstance struct {
 	port int
 }
 
 // New creates a new load balancer
 func New() (LB, error) {
+	var logOutput bool
+	if s := os.Getenv("PAASBOX_LB_LOG"); s == "y" || s == "1" {
+		logOutput = true
+	}
+
 	return &lb{
 		listeners: make(map[int]*lbListener),
+		logger: &lbLogger{
+			Messages: make([]*lbLoggerMessage, 50000, 50000),
+			Pos:      0,
+			Limit:    50000,
+			Log:      logOutput,
+		},
 	}, nil
 }
 
@@ -149,8 +114,26 @@ func (lb *lb) Stats() LBStats {
 	}
 }
 
+func (lb *lb) Log() (output []string) {
+	lb.logger.RWMutex.RLock()
+	defer lb.logger.RWMutex.RUnlock()
+
+	for i := lb.logger.Pos; i < lb.logger.Limit; i++ {
+		if s := lb.logger.Messages[i]; s != nil {
+			output = append(output, s.String())
+		}
+	}
+	for i := 0; i < lb.logger.Pos; i++ {
+		if s := lb.logger.Messages[i]; s != nil {
+			output = append(output, s.String())
+		}
+	}
+
+	return
+}
+
 func (lb *lb) AddListener(port int) (Listener, error) {
-	log.Debug("adding listener", log.Data{"port": port})
+	lb.logger.Message("<loadbalancer>", "adding listener", log.Data{"port": port})
 
 	if _, ok := lb.listeners[port]; ok {
 		return nil, errors.New("port already in use")
@@ -159,7 +142,7 @@ func (lb *lb) AddListener(port int) (Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	listener := &lbListener{l, port, make(map[string]struct{}, 0), new(sync.RWMutex), 0, 0, 0, 0, 0, 0, 0, 0, make(chan listenerStat, 500)}
+	listener := &lbListener{l, port, make(map[string]struct{}, 0), new(sync.RWMutex), lb.logger, 0, 0, 0, 0, 0, 0, 0, 0, make(chan listenerStat, 500)}
 	lb.listeners[port] = listener
 	go listener.start()
 	return listener, nil
@@ -176,45 +159,50 @@ func (li *lbListener) Instances() (res []string) {
 	return
 }
 
+func (li *lbListener) trackStats(doneCh chan struct{}) {
+	for {
+		select {
+		case n := <-li.statChan:
+			switch n.statType {
+			case statRX:
+				li.txRecv += n.n
+			case statTX:
+				li.txSend += n.n
+			case statConn:
+				li.activeConns += n.n
+				if n.n > 0 {
+					li.totalConns++
+				}
+			case statConnError:
+				li.connErrors++
+			case statReadError:
+				li.readErrors++
+			case statWriteError:
+				li.writeErrors++
+			case statDialError:
+				li.dialErrors++
+			}
+		case <-doneCh:
+			return
+		}
+	}
+}
+
 func (li *lbListener) start() {
 	doneCh := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case n := <-li.statChan:
-				switch n.statType {
-				case statRX:
-					li.txRecv += n.n
-				case statTX:
-					li.txSend += n.n
-				case statConn:
-					li.activeConns += n.n
-					if n.n > 0 {
-						li.totalConns++
-					}
-				case statConnError:
-					li.connErrors++
-				case statReadError:
-					li.readErrors++
-				case statWriteError:
-					li.writeErrors++
-				case statDialError:
-					li.dialErrors++
-				}
-			case <-doneCh:
-				return
-			}
-		}
-	}()
+	go li.trackStats(doneCh)
 
 	for {
+		connID := uuid.New()
+
 		lconn, err := li.Accept()
 		if err != nil {
-			log.Error(err, nil)
+			li.logger.Error(err, nil, connID, "", nil)
 			li.statChan <- listenerStat{statConnError, 1}
 			continue
 		}
 
+		li.logger.Message(connID, "connection accepted", log.Data{"remote_addr": lconn.RemoteAddr(), "local_addr": lconn.LocalAddr()})
 		li.statChan <- listenerStat{statConn, 1}
 
 		li.mutex.RLock()
@@ -222,14 +210,14 @@ func (li *lbListener) start() {
 		num := len(instances)
 		if num < 1 {
 			li.mutex.RUnlock()
-			log.Debug("no healthy instances", nil)
+			li.logger.Message(connID, "no healthy instances", nil)
 			lconn.Close()
 			li.statChan <- listenerStat{statConn, -1}
 			return
 		}
 
 		n := rand.Intn(num)
-		//log.Debug("instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
+		li.logger.Message(connID, "instances", log.Data{"count": len(li.instances), "n": n, "instances": li.instances})
 		dest := instances[n]
 		li.mutex.RUnlock()
 
@@ -242,34 +230,34 @@ func (li *lbListener) start() {
 			continue
 		}
 
+		li.logger.Message(connID, "connection opened", log.Data{"remote_addr": rconn.RemoteAddr(), "local_addr": rconn.LocalAddr()})
+
 		go func() {
 			defer lconn.Close()
 			defer rconn.Close()
 			defer func() {
 				li.statChan <- listenerStat{statConn, -1}
+				li.logger.Message(connID, "connection closed", log.Data{"remote_addr": lconn.RemoteAddr(), "local_addr": lconn.LocalAddr()})
 			}()
 
 			// TODO handle errors?
 			var wg sync.WaitGroup
 			var readErr, writeErr error
-
 			wg.Add(2)
+
 			go func() {
 				defer wg.Done()
 				writeErr = li.pipe(lconn, rconn)
+				li.logger.Message(connID, "lconn->rconn pipe closed", log.Data{"error": writeErr})
 			}()
 			go func() {
 				defer wg.Done()
 				readErr = li.pipe(rconn, lconn)
+				li.logger.Message(connID, "rconn->lconn pipe closed", log.Data{"error": readErr})
 			}()
-			wg.Wait()
 
-			if readErr != nil && readErr != io.EOF {
-				log.Error(errors.New("load balancer read error"), log.Data{"reason": readErr})
-			}
-			if writeErr != nil && writeErr != io.EOF {
-				log.Error(errors.New("load balancer write error"), log.Data{"reason": writeErr})
-			}
+			wg.Wait()
+			li.logger.Message(connID, "wait completed", nil)
 		}()
 	}
 }
@@ -290,16 +278,17 @@ func (li *lbListener) RemoveInstance(addr ...string) {
 	}
 }
 
-func (li *lbListener) pipe(src, dst io.ReadWriter) error {
+func (li *lbListener) pipe(src, dst io.ReadWriteCloser) error {
 	//directional copy (64k buffer)
 	buff := make([]byte, 0xffff)
 	for {
 		n, err := src.Read(buff)
 		li.statChan <- listenerStat{statRX, int64(n)}
 		if err != nil {
-			if err != io.EOF {
+			if err != io.EOF && err != io.ErrClosedPipe {
 				li.statChan <- listenerStat{statReadError, 1}
 			}
+			dst.Close()
 			return err
 		}
 		b := buff[:n]
@@ -311,6 +300,7 @@ func (li *lbListener) pipe(src, dst io.ReadWriter) error {
 			if err != io.EOF {
 				li.statChan <- listenerStat{statWriteError, 1}
 			}
+			src.Close()
 			return err
 		}
 	}

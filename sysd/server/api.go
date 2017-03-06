@@ -120,6 +120,19 @@ func (s *srv) loadBalancer(w http.ResponseWriter, req *http.Request) {
 	w.Write(b)
 }
 
+func (s *srv) loadBalancerLog(w http.ResponseWriter, req *http.Request) {
+	logs := s.sysd.LoadBalancer().Log()
+
+	b, err := json.Marshal(logs)
+	if err != nil {
+		log.ErrorR(req, err, nil)
+		w.WriteHeader(500)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write(b)
+}
+
 func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
 	o := workspacesOutput{
 		Workspaces: make([]workspacesOutputWorkspace, 0),

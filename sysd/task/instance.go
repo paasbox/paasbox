@@ -649,7 +649,7 @@ func (i *instance) tailLog() error {
 					}
 					time.Sleep(backoff)
 					if backoff == 0 {
-						backoff = time.Millisecond * 10
+						backoff = time.Millisecond * 100
 					} else {
 						backoff *= 2
 					}

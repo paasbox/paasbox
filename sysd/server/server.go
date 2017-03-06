@@ -79,6 +79,7 @@ func (s *srv) Start(bindAddr string) error {
 	p.Post("/api/workspaces", TODO /* create workspace */)
 	p.Get("/api/workspaces", s.workspaces /* list workspaces */)
 
+	p.Get("/api/loadbalancer/log", s.loadBalancerLog /* load balancer log */)
 	p.Get("/api/loadbalancer", s.loadBalancer /* load balancer stats */)
 
 	p.Get("/js", s.staticFiles)
