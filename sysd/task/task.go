@@ -702,7 +702,7 @@ func (t *task) Start() error {
 		}
 
 		doneCh := make(chan struct{})
-		
+
 		var net string
 		if len(t.network) > 0 {
 			net = "paasbox-" + env.Replace(t.network, t.Env())

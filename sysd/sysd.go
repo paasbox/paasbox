@@ -6,14 +6,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/user"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
-	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/server"
 	"github.com/paasbox/paasbox/sysd/workspace"
@@ -30,7 +27,7 @@ type sysd struct {
 	workspaces       map[string]workspace.Workspace
 	exitCh           chan struct{}
 
-	storage      state.Storage
+	stateLoader  State
 	server       server.Server
 	loadBalancer loadbalancer.LB
 }
@@ -57,60 +54,26 @@ var cli = &http.Client{Timeout: time.Second * 5}
 func New(exitCh chan struct{}) Sysd {
 	log.Debug("starting sysd", nil)
 
-	var stateFile string
-	if s := os.Getenv("PB_STATE_FILE"); len(s) > 0 {
-		stateFile = s
-	} else {
-		usr, err := user.Current()
-		if err != nil {
-			log.Error(errors.New("error fetching current user"), log.Data{"reason": err})
-			os.Exit(15)
-		}
-
-		dir := usr.HomeDir
-		if _, err = os.Stat(dir); err != nil {
-			log.Error(errors.New("user home directory doesn't exist"), log.Data{"reason": err})
-			os.Exit(16)
-		}
-
-		stateDir := filepath.Join(dir, ".paasbox")
-		if _, err = os.Stat(stateDir); err != nil {
-			err = os.MkdirAll(stateDir, 0770)
-			if err != nil {
-				log.Error(errors.New("error creating .paasbox state directory"), log.Data{"reason": err})
-				os.Exit(16)
-			}
-		}
-
-		stateFile = filepath.Join(stateDir, "state.db")
-	}
-
-	boltDB, err := state.NewBoltDB(stateFile)
-	if err != nil {
-		log.Error(errOpenBoltDBFailed, log.Data{"reason": err})
-		log.Debug("Check if other copies of paasbox are running", nil)
-		os.Exit(4)
-	}
-
 	lb, err := loadbalancer.New()
 	if err != nil {
 		log.Error(errCreateLoadbalancerFailed, log.Data{"reason": err})
 		os.Exit(7)
 	}
 
-	workspaces := make(map[string]workspace.Workspace)
-
-	workspacesState, err := boltDB.Wrap("workspaces")
-	if err != nil {
-		log.Error(errOpenBoltWorkspacesFailed, log.Data{"reason": err})
-		os.Exit(5)
+	s := &sysd{
+		workspaceConfigs: []workspace.Config{},
+		workspaces:       make(map[string]workspace.Workspace),
+		exitCh:           exitCh,
+		stateLoader:      NewState(),
+		loadBalancer:     lb,
 	}
+	srv := server.New(s)
+	s.server = srv
 
 	workspaceFiles := os.Args[1:]
-	var workspaceConfigs []workspace.Config
-
 	var loadFiles []string
 	var internalFiles []string
+
 	for _, f := range workspaceFiles {
 		if strings.HasPrefix(f, "@") {
 			internalFiles = append(internalFiles, strings.TrimPrefix(f, "@"))
@@ -131,26 +94,7 @@ func New(exitCh chan struct{}) Sysd {
 			return nil
 		}
 
-		var conf workspace.Config
-		err = json.Unmarshal(b, &conf)
-		if err != nil {
-			log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-			os.Exit(3)
-			return nil
-		}
-
-		state, err := workspacesState.Wrap(conf.ID)
-		if err != nil {
-			log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-			os.Exit(6)
-		}
-		ws, err := workspace.New(state, lb, conf)
-		if err != nil {
-			log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-			os.Exit(6)
-		}
-		workspaces[conf.ID] = ws
-		workspaceConfigs = append(workspaceConfigs, conf)
+		s.loadWorkspaces(b)
 	}
 
 	for _, workspaceFile := range loadFiles {
@@ -180,73 +124,8 @@ func New(exitCh chan struct{}) Sysd {
 			}
 		}
 
-		var m map[string]interface{}
-		err = json.Unmarshal(b, &m)
-		if err != nil {
-			log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-			os.Exit(3)
-			return nil
-		}
-
-		if _, ok := m["workspaces"]; ok {
-			if wsDefs, ok := m["workspaces"].([]interface{}); ok {
-				for _, wsDef := range wsDefs {
-					b2, err := json.Marshal(&wsDef)
-					if err != nil {
-						log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-						os.Exit(3)
-						return nil
-					}
-					var conf workspace.Config
-					err = json.Unmarshal(b2, &conf)
-					if err != nil {
-						log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-						os.Exit(3)
-						return nil
-					}
-
-					state, err := workspacesState.Wrap(conf.ID)
-					if err != nil {
-						log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-						os.Exit(6)
-					}
-					ws, err := workspace.New(state, lb, conf)
-					if err != nil {
-						log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-						os.Exit(6)
-					}
-					workspaces[conf.ID] = ws
-					workspaceConfigs = append(workspaceConfigs, conf)
-				}
-			}
-		} else {
-			var conf workspace.Config
-			err = json.Unmarshal(b, &conf)
-			if err != nil {
-				log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-				os.Exit(3)
-				return nil
-			}
-
-			state, err := workspacesState.Wrap(conf.ID)
-			if err != nil {
-				log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-				os.Exit(6)
-			}
-			ws, err := workspace.New(state, lb, conf)
-			if err != nil {
-				log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-				os.Exit(6)
-			}
-			workspaces[conf.ID] = ws
-			workspaceConfigs = append(workspaceConfigs, conf)
-		}
+		s.loadWorkspaces(b)
 	}
-
-	s := &sysd{workspaceConfigs, workspaces, exitCh, boltDB, nil, lb}
-
-	srv := server.New(s)
-	s.server = srv
 
 	return s
 }
@@ -301,11 +180,8 @@ func (s *sysd) stop(stopTasks bool) {
 			log.Error(err, nil)
 		}
 	}
-	err := s.storage.Close()
-	if err != nil {
-		log.Error(err, nil)
-	}
-	err = s.server.Stop()
+	s.stateLoader.Close()
+	err := s.server.Stop()
 	if err != nil {
 		log.Error(err, nil)
 	}
@@ -326,4 +202,54 @@ func (s *sysd) Workspace(id string) (ws workspace.Workspace, ok bool) {
 
 func (s *sysd) LoadBalancer() loadbalancer.LB {
 	return s.loadBalancer
+}
+
+func (s *sysd) loadWorkspaces(b []byte) {
+	var m map[string]interface{}
+	err := json.Unmarshal(b, &m)
+	if err != nil {
+		log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+		os.Exit(3)
+	}
+
+	if _, ok := m["workspaces"]; ok {
+		if wsDefs, ok := m["workspaces"].([]interface{}); ok {
+			for _, wsDef := range wsDefs {
+				b2, err := json.Marshal(&wsDef)
+				if err != nil {
+					log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+					os.Exit(3)
+				}
+				s.loadWorkspace(b2)
+			}
+		}
+	} else {
+		s.loadWorkspace(b)
+	}
+
+}
+
+func (s *sysd) loadWorkspace(b []byte) {
+	var conf workspace.Config
+	err := json.Unmarshal(b, &conf)
+	if err != nil {
+		log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
+		os.Exit(3)
+	}
+
+	state, err := s.stateLoader.Load(conf.ID)
+	if err != nil {
+		log.Error(errOpenBoltDBFailed, log.Data{"reason": err})
+		log.Debug("Check if other copies of paasbox are running", nil)
+		os.Exit(4)
+	}
+
+	ws, err := workspace.New(state, s.loadBalancer, conf)
+	if err != nil {
+		log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
+		os.Exit(6)
+	}
+
+	s.workspaces[conf.ID] = ws
+	s.workspaceConfigs = append(s.workspaceConfigs, conf)
 }
