@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"encoding/json"
+
 	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
@@ -568,6 +570,11 @@ func (i *instance) startExec(cmd string, args []string, env []string) error {
 	return nil
 }
 
+type logMessage struct {
+	message string
+	fd      string
+}
+
 func (i *instance) tailLog() error {
 	if !i.tailLogs {
 		i.log("not tailing logs", nil)
@@ -605,17 +612,42 @@ func (i *instance) tailLog() error {
 		return err
 	}
 
-	var sendLine = func(l string) error {
-		// FIXME consider handling timestamps, stdout/stderr, ws/task/instance IDs and line JSON?
+	var sendLine = func(l logMessage) error {
+		data := map[string]interface{}{
+			"paasbox": map[string]interface{}{
+				"workspace_id": i.workspaceID,
+				"task_id":      i.taskID,
+				"instance_id":  i.instanceID,
+				"fd":           l.fd,
+			},
+		}
 
-		req, err := http.NewRequest("POST", i.logConfig.URL, bytes.NewReader([]byte(l)))
+		var kv map[string]interface{}
+		if err := json.Unmarshal([]byte(l.message), &kv); err == nil {
+			for k, v := range kv {
+				data[k] = v
+			}
+		} else {
+			data["message"] = l.message
+		}
+
+		b, err := json.Marshal(&data)
 		if err != nil {
 			return err
 		}
+
+		req, err := http.NewRequest("POST", i.logConfig.URL, bytes.NewReader(b))
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+
 		res, err := cli.Do(req)
 		if err != nil {
 			return err
 		}
+
 		defer res.Body.Close()
 		defer io.Copy(ioutil.Discard, res.Body)
 
@@ -634,7 +666,7 @@ func (i *instance) tailLog() error {
 		return nil
 	}
 
-	messages := make(chan string, 100)
+	messages := make(chan logMessage, 100)
 	go func() {
 		/*
 			TODO: find a way to eventually abandon this loop if elasticsearch isn't available?
@@ -685,7 +717,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stdout", nil)
 		for l := range stdoutTail.Lines {
 			if l != nil {
-				messages <- l.Text
+				messages <- logMessage{l.Text, "stdout"}
 			}
 		}
 		i.log("finished tailing stdout", nil)
@@ -695,7 +727,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stderr", nil)
 		for l := range stderrTail.Lines {
 			if l != nil {
-				messages <- l.Text
+				messages <- logMessage{l.Text, "stderr"}
 			}
 		}
 		i.log("finished tailing stderr", nil)
