@@ -193,7 +193,7 @@ func (li *lbListener) start() {
 	go li.trackStats(doneCh)
 
 	for {
-		connID := uuid.New()
+		connID := uuid.New().String()
 
 		lconn, err := li.Accept()
 		if err != nil {
