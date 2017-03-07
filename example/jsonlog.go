@@ -17,6 +17,8 @@ type logOutput struct {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	appName := "elk-app"
 	if len(os.Args) > 1 {
 		appName = os.Args[1]

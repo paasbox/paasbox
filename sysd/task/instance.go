@@ -628,7 +628,7 @@ func (i *instance) tailLog() error {
 				logText = string(b)
 			}
 			i.error(errors.New("error storing log data"), errors.New("unexpected status code"), log.Data{"code": res.StatusCode, "message": logText})
-			return err
+			return errors.New("unexpected status code")
 		}
 
 		return nil
@@ -645,9 +645,9 @@ func (i *instance) tailLog() error {
 		var err error
 		var backoff time.Duration
 		for {
-			if messages == nil {
-				break
-			}
+			//if messages == nil {
+			//	break
+			//}
 			select {
 			case m := <-messages:
 				for {

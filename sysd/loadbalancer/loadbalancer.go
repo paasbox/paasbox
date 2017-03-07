@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"code.google.com/p/go-uuid/uuid"
+	"github.com/google/uuid"
 	"github.com/ian-kent/service.go/log"
 	"os"
 )
