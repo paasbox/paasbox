@@ -636,9 +636,18 @@ func (i *instance) tailLog() error {
 
 	messages := make(chan string, 100)
 	go func() {
+		/*
+			TODO: find a way to eventually abandon this loop if elasticsearch isn't available?
+			reminder:
+			 - can't use doneCh (might abandon tailing a recently terminated process without consuming all the logs)
+			 - can't count retries (either elasticsearch is there or it isn't, no point moving to next message)
+		*/
 		var err error
 		var backoff time.Duration
 		for {
+			if messages == nil {
+				break
+			}
 			select {
 			case m := <-messages:
 				for {
@@ -693,5 +702,7 @@ func (i *instance) tailLog() error {
 	}()
 	wg.Wait()
 	i.log("finished tailing log files", nil)
+	close(messages)
+	messages = nil
 	return nil
 }
