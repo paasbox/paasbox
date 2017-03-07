@@ -6,12 +6,12 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/ian-kent/service.go/log"
-	"os"
 )
 
 // LB is a load balancer
@@ -213,7 +213,7 @@ func (li *lbListener) start() {
 			li.logger.Message(connID, "no healthy instances", nil)
 			lconn.Close()
 			li.statChan <- listenerStat{statConn, -1}
-			return
+			continue
 		}
 
 		n := rand.Intn(num)
