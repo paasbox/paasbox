@@ -11,6 +11,7 @@ import (
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
+	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/task"
 	pbEnv "github.com/paasbox/paasbox/sysd/util/env"
 )
@@ -44,7 +45,6 @@ type Config struct {
 	LogPath    string        `json:"log_path"`
 	LogPattern string        `json:"log_pattern"`
 	Env        EnvConfig     `json:"env"`
-	Log        LogConfig     `json:"log"`
 }
 
 // EnvConfig ...
@@ -55,12 +55,6 @@ type EnvConfig struct {
 	Set        []string `json:"set"`
 }
 
-// LogConfig ...
-type LogConfig struct {
-	Type string `json:"type"`
-	URL  string `json:"url"`
-}
-
 type workspace struct {
 	id          string
 	name        string
@@ -68,7 +62,6 @@ type workspace struct {
 	env         EnvConfig
 	logPath     string
 	logPattern  string
-	logConfig   LogConfig
 
 	tasks        map[string]task.Task
 	store        state.Store
@@ -76,10 +69,11 @@ type workspace struct {
 	stopped      bool
 
 	dockerNetworks map[string]struct{}
+	logDriver      logger.Driver
 }
 
 // New ...
-func New(store state.Store, lb loadbalancer.LB, config Config) (Workspace, error) {
+func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config Config) (Workspace, error) {
 	log.Debug("creating workspace", log.Data{"id": config.ID, "tasks": config.Tasks})
 	ws := &workspace{
 		id:          config.ID,
@@ -89,10 +83,10 @@ func New(store state.Store, lb loadbalancer.LB, config Config) (Workspace, error
 		tasks:       make(map[string]task.Task),
 		logPath:     config.LogPath,
 		logPattern:  config.LogPattern,
-		logConfig:   config.Log,
 
 		loadBalancer:   lb,
 		dockerNetworks: make(map[string]struct{}),
+		logDriver:      logDriver,
 	}
 
 	if len(config.LogPath) == 0 {
@@ -152,10 +146,7 @@ func New(store state.Store, lb loadbalancer.LB, config Config) (Workspace, error
 		env = append(env, ws.env.Set...)
 		env = append(env, fmt.Sprintf("PAASBOX_WSID=%s", ws.id), fmt.Sprintf("PAASBOX_LOGPATH=%s", ws.logPath))
 
-		t1 := t.WithEnv(env)
-		t1.Log = task.LogConfig(ws.logConfig)
-
-		t2, err := task.NewTask(ws.id, s, ws.loadBalancer, t1, ws.log, func(instanceID, name string) (*os.File, error) {
+		t2, err := task.NewTask(ws.id, s, ws.logDriver, ws.loadBalancer, t.WithEnv(env), ws.log, func(instanceID, name string) (*os.File, error) {
 			logPattern := ws.logPattern
 			logPattern = strings.Replace(logPattern, "$WORKSPACE_ID$", ws.ID(), -1)
 			logPattern = strings.Replace(logPattern, "$TASK_ID$", taskID, -1)

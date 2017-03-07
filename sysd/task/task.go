@@ -17,6 +17,7 @@ import (
 	pconfig "github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
+	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/util/env"
 )
 
@@ -98,7 +99,6 @@ type Config struct {
 	Image        string              `json:"image"`
 	Network      string              `json:"network"`
 	Volumes      []string            `json:"volumes"`
-	Log          LogConfig           `json:"log"`
 }
 
 // HealthcheckConfig ...
@@ -109,12 +109,6 @@ type HealthcheckConfig struct {
 	UnhealthyThreshold int    `json:"unhealthy_threshold"`
 	ReapThreshold      int    `json:"reap_threshold"`
 	Frequency          string `json:"frequency"`
-}
-
-// LogConfig ...
-type LogConfig struct {
-	Type string `json:"type"`
-	URL  string `json:"url"`
 }
 
 // WithEnv ...
@@ -142,7 +136,7 @@ type task struct {
 	network         string
 	volumes         []string
 	logger          func(event string, data log.Data)
-	logConfig       LogConfig
+	logDriver       logger.Driver
 
 	store         state.Store
 	instanceStore state.Store
@@ -325,7 +319,7 @@ func (t *taskHealthcheck) Run(i Instance) bool {
 var _ Task = &task{}
 
 // NewTask ...
-func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
+func NewTask(workspaceID string, store state.Store, logDriver logger.Driver, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
 	if config.Driver == "docker" && !pconfig.HasDocker {
 		return nil, errors.New("docker is not available")
 	}
@@ -348,7 +342,7 @@ func NewTask(workspaceID string, store state.Store, lb loadbalancer.LB, config C
 		ports:           config.Ports,
 		portMap:         config.PortMap,
 		targetInstances: config.Instances,
-		logConfig:       config.Log,
+		logDriver:       logDriver,
 		loadBalancer:    lb,
 		lbListeners:     make(map[int]loadbalancer.Listener),
 		logger:          logger,
@@ -668,7 +662,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance("workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}, t.logConfig}, proc)
+		inst := RecoveredInstance(t.logDriver, "workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -708,7 +702,7 @@ func (t *task) Start() error {
 			net = "paasbox-" + env.Replace(t.network, t.Env())
 		}
 
-		inst := NewInstance(t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes, t.logConfig})
+		inst := NewInstance(t.logDriver, t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly

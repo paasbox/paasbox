@@ -1,11 +1,8 @@
 package task
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -15,12 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"encoding/json"
-
 	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/state"
+	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/util/env"
 )
 
@@ -70,7 +66,6 @@ type InstanceConfig struct {
 	Image       string
 	Network     string
 	Volumes     []string
-	Log         LogConfig
 }
 
 var _ Instance = &instance{}
@@ -93,7 +88,6 @@ type instance struct {
 	image       string
 	network     string
 	volumes     []string
-	logConfig   LogConfig
 
 	store     state.Store
 	process   *os.Process
@@ -107,11 +101,12 @@ type instance struct {
 	stdout string
 	stderr string
 
-	tailLogs bool
+	tailLogs  bool
+	logDriver logger.Driver
 }
 
 // NewInstance ...
-func NewInstance(workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig) Instance {
+func NewInstance(logDriver logger.Driver, workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig) Instance {
 	e := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
 	if len(config.Ports) > 0 {
 		e = append(e, fmt.Sprintf("PORT=%d", config.Ports[0]))
@@ -149,11 +144,8 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 		instanceID:     instanceID,
 		store:          store,
 		volumes:        config.Volumes,
-		logConfig:      config.Log,
-	}
-
-	if len(config.Log.Type) > 0 {
-		i.tailLogs = true
+		logDriver:      logDriver,
+		tailLogs:       logDriver != nil,
 	}
 
 	err := store.Set("driver", config.Driver)
@@ -201,8 +193,8 @@ func NewInstance(workspaceID, taskID, instanceID string, store state.Store, conf
 }
 
 // RecoveredInstance ...
-func RecoveredInstance(workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig, proc *os.Process) Instance {
-	i := NewInstance(workspaceID, taskID, instanceID, store, config).(*instance)
+func RecoveredInstance(logDriver logger.Driver, workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig, proc *os.Process) Instance {
+	i := NewInstance(logDriver, workspaceID, taskID, instanceID, store, config).(*instance)
 	i.process = proc
 	i.pid = proc.Pid
 	i.recovered = true
@@ -612,96 +604,6 @@ func (i *instance) tailLog() error {
 		return err
 	}
 
-	var sendLine = func(l logMessage) error {
-		data := map[string]interface{}{
-			"paasbox": map[string]interface{}{
-				"workspace_id": i.workspaceID,
-				"task_id":      i.taskID,
-				"instance_id":  i.instanceID,
-				"fd":           l.fd,
-			},
-		}
-
-		var kv map[string]interface{}
-		if err := json.Unmarshal([]byte(l.message), &kv); err == nil {
-			for k, v := range kv {
-				data[k] = v
-			}
-		} else {
-			data["message"] = l.message
-		}
-
-		b, err := json.Marshal(&data)
-		if err != nil {
-			return err
-		}
-
-		req, err := http.NewRequest("POST", i.logConfig.URL, bytes.NewReader(b))
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("Content-Type", "application/json")
-
-		res, err := cli.Do(req)
-		if err != nil {
-			return err
-		}
-
-		defer res.Body.Close()
-		defer io.Copy(ioutil.Discard, res.Body)
-
-		if res.StatusCode != 200 {
-			b, err := ioutil.ReadAll(res.Body)
-			var logText string
-			if err != nil {
-				logText = "<" + err.Error() + ">"
-			} else {
-				logText = string(b)
-			}
-			i.error(errors.New("error storing log data"), errors.New("unexpected status code"), log.Data{"code": res.StatusCode, "message": logText})
-			return errors.New("unexpected status code")
-		}
-
-		return nil
-	}
-
-	messages := make(chan logMessage, 100)
-	go func() {
-		/*
-			TODO: find a way to eventually abandon this loop if elasticsearch isn't available?
-			reminder:
-			 - can't use doneCh (might abandon tailing a recently terminated process without consuming all the logs)
-			 - can't count retries (either elasticsearch is there or it isn't, no point moving to next message)
-		*/
-		var err error
-		var backoff time.Duration
-		for {
-			//if messages == nil {
-			//	break
-			//}
-			select {
-			case m := <-messages:
-				for {
-					err = sendLine(m)
-					if err == nil {
-						backoff = 0
-						break
-					}
-					time.Sleep(backoff)
-					if backoff == 0 {
-						backoff = time.Millisecond * 100
-					} else {
-						backoff *= 2
-					}
-					if backoff > time.Second*5 {
-						backoff = time.Second * 5
-					}
-				}
-			}
-		}
-	}()
-
 	i.log("tailing log files", log.Data{"follow": follow})
 	var wg sync.WaitGroup
 	wg.Add(3)
@@ -717,7 +619,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stdout", nil)
 		for l := range stdoutTail.Lines {
 			if l != nil {
-				messages <- logMessage{l.Text, "stdout"}
+				i.logDriver.Send(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stdout", l.Text})
 			}
 		}
 		i.log("finished tailing stdout", nil)
@@ -727,14 +629,12 @@ func (i *instance) tailLog() error {
 		i.log("tailing stderr", nil)
 		for l := range stderrTail.Lines {
 			if l != nil {
-				messages <- logMessage{l.Text, "stderr"}
+				i.logDriver.Send(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stderr", l.Text})
 			}
 		}
 		i.log("finished tailing stderr", nil)
 	}()
 	wg.Wait()
 	i.log("finished tailing log files", nil)
-	close(messages)
-	messages = nil
 	return nil
 }

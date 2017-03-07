@@ -12,6 +12,7 @@ import (
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
+	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/server"
 	"github.com/paasbox/paasbox/sysd/workspace"
 )
@@ -20,6 +21,7 @@ import (
 type Sysd interface {
 	Start() error
 	LoadBalancer() loadbalancer.LB
+	LogDriver() logger.Driver
 }
 
 type sysd struct {
@@ -30,6 +32,7 @@ type sysd struct {
 	stateLoader  State
 	server       server.Server
 	loadBalancer loadbalancer.LB
+	logDriver    logger.Driver
 }
 
 var _ Sysd = &sysd{}
@@ -54,6 +57,16 @@ var cli = &http.Client{Timeout: time.Second * 5}
 func New(exitCh chan struct{}) Sysd {
 	log.Debug("starting sysd", nil)
 
+	var logDriver logger.Driver
+	if ld := os.Getenv("PAASBOX_LOG"); len(ld) > 0 {
+		driver, err := logger.NewDriver(ld)
+		if err != nil {
+			log.Error(errors.New("error creating log driver"), log.Data{"reason": err})
+			os.Exit(1)
+		}
+		logDriver = driver
+	}
+
 	lb, err := loadbalancer.New()
 	if err != nil {
 		log.Error(errCreateLoadbalancerFailed, log.Data{"reason": err})
@@ -66,6 +79,7 @@ func New(exitCh chan struct{}) Sysd {
 		exitCh:           exitCh,
 		stateLoader:      NewState(),
 		loadBalancer:     lb,
+		logDriver:        logDriver,
 	}
 	srv := server.New(s)
 	s.server = srv
@@ -141,6 +155,8 @@ func Start(exitCh chan struct{}) {
 }
 
 func (s *sysd) Start() error {
+	s.logDriver.Start()
+
 	log.Debug("starting workspaces", nil)
 	for _, ws := range s.workspaceConfigs {
 		err := s.workspaces[ws.ID].Start()
@@ -181,8 +197,10 @@ func (s *sysd) stop(stopTasks bool) {
 		}
 	}
 	s.stateLoader.Close()
-	err := s.server.Stop()
-	if err != nil {
+	if err := s.logDriver.Stop(); err != nil {
+		log.Error(err, nil)
+	}
+	if err := s.server.Stop(); err != nil {
 		log.Error(err, nil)
 	}
 	log.Debug("sysd stopped", nil)
@@ -202,6 +220,10 @@ func (s *sysd) Workspace(id string) (ws workspace.Workspace, ok bool) {
 
 func (s *sysd) LoadBalancer() loadbalancer.LB {
 	return s.loadBalancer
+}
+
+func (s *sysd) LogDriver() logger.Driver {
+	return s.logDriver
 }
 
 func (s *sysd) loadWorkspaces(b []byte) {
@@ -244,7 +266,7 @@ func (s *sysd) loadWorkspace(b []byte) {
 		os.Exit(4)
 	}
 
-	ws, err := workspace.New(state, s.loadBalancer, conf)
+	ws, err := workspace.New(s.logDriver, state, s.loadBalancer, conf)
 	if err != nil {
 		log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
 		os.Exit(6)
