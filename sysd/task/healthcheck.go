@@ -113,7 +113,9 @@ func (t *taskHealthcheck) Start() {
 				for _, i := range t.task.instances {
 					if _, ok := t.tracker[i.instance]; !ok {
 						mtx.Lock()
-						t.tracker[i.instance] = &taskInstanceTracker{i.instance, 0, true}
+						if _, ok := t.tracker[i.instance]; !ok {
+							t.tracker[i.instance] = &taskInstanceTracker{i.instance, 0, true}
+						}
 						mtx.Unlock()
 					}
 					go func(i taskInstance) {
@@ -131,7 +133,6 @@ func (t *taskHealthcheck) Start() {
 						} else if !healthy {
 							track.score--
 						}
-						t.task.log("healthcheck complete", log.Data{"instance_id": i.instance.ID(), "score": t.tracker[i.instance], "healthy": healthy})
 						if track.healthy && track.score == 0-t.unhealthyThreshold {
 							track.healthy = false
 							err := t.task.removeInstanceFromLB(i.instance)
@@ -166,6 +167,7 @@ func (t *taskHealthcheck) Start() {
 								}
 							}
 						}
+						t.task.log("healthcheck complete", log.Data{"instance_id": i.instance.ID(), "score": t.tracker[i.instance], "healthy": healthy})
 					}(i)
 				}
 			}
