@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"fmt"
+
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/assets"
 	"github.com/paasbox/paasbox/config"
@@ -39,30 +41,19 @@ type sysd struct {
 var _ Sysd = &sysd{}
 
 var (
-	errMissingFilenameArgument   = errors.New("missing filename argument")
-	errReadFileError             = errors.New("error reading file")
-	errInvalidWorkspaceJSON      = errors.New("invalid workspace json")
-	errWorkspaceValidationFailed = errors.New("workspace validation failed")
-	errLoadingStateFailed        = errors.New("failed loading state")
-	errStartingWorkspaceFailed   = errors.New("starting workspace failed")
-	errOpenBoltDBFailed          = errors.New("error opening bolt database")
-	errOpenBoltWorkspacesFailed  = errors.New("error opening bolt workspaces")
-	errOpenBoltWorkspaceFailed   = errors.New("error opening bolt workspace")
-	errCreateWorkspaceFailed     = errors.New("error creating workspace")
-	errCreateLoadbalancerFailed  = errors.New("error creating load balancer")
+	errOpenBoltDBFailed        = errors.New("error opening bolt database")
+	errOpenBoltWorkspaceFailed = errors.New("error opening bolt workspace")
 )
 
 var cli = &http.Client{Timeout: time.Second * 5}
 
 // New ...
 func New(exitCh chan struct{}) Sysd {
-	log.Debug("starting sysd", nil)
-
 	var logDriver logger.Driver
 	if ld := os.Getenv("PAASBOX_LOG"); len(ld) > 0 {
 		driver, err := logger.NewDriver(ld)
 		if err != nil {
-			log.Error(errors.New("error creating log driver"), log.Data{"reason": err})
+			fmt.Printf("error creating log driver: %s\n", err)
 			os.Exit(1)
 		}
 		logDriver = driver
@@ -70,8 +61,8 @@ func New(exitCh chan struct{}) Sysd {
 
 	lb, err := loadbalancer.New()
 	if err != nil {
-		log.Error(errCreateLoadbalancerFailed, log.Data{"reason": err})
-		os.Exit(7)
+		fmt.Printf("error creating load balancer: %s\n", err)
+		os.Exit(1)
 	}
 
 	s := &sysd{
@@ -104,12 +95,15 @@ func New(exitCh chan struct{}) Sysd {
 	for _, internalFile := range internalFiles {
 		b, e := loadInternal(internalFile)
 		if e != nil {
-			log.Error(errReadFileError, log.Data{"reason": e})
-			os.Exit(2)
-			return nil
+			fmt.Printf("error reading internal file %s: %s\n", internalFile, err)
+			os.Exit(1)
 		}
 
-		s.loadWorkspaces(b)
+		err = s.loadWorkspaces(b)
+		if err != nil {
+			fmt.Printf("error loading internal workspace %s: %s\n", internalFile, err)
+			os.Exit(1)
+		}
 	}
 
 	for _, workspaceFile := range loadFiles {
@@ -119,27 +113,28 @@ func New(exitCh chan struct{}) Sysd {
 			strings.HasPrefix(strings.ToLower(workspaceFile), "https://") {
 			res, e := cli.Get(workspaceFile)
 			if e != nil {
-				log.Error(errReadFileError, log.Data{"reason": e})
-				os.Exit(2)
-				return nil
+				fmt.Printf("error fetching file %s: %s\n", workspaceFile, e)
+				os.Exit(1)
 			}
 			b, err = ioutil.ReadAll(res.Body)
 			res.Body.Close()
 			if err != nil {
-				log.Error(errReadFileError, log.Data{"reason": err})
-				os.Exit(2)
-				return nil
+				fmt.Printf("error reading response body %s: %s\n", workspaceFile, err)
+				os.Exit(1)
 			}
 		} else {
 			b, err = ioutil.ReadFile(workspaceFile)
 			if err != nil {
-				log.Error(errReadFileError, log.Data{"reason": err})
-				os.Exit(2)
-				return nil
+				fmt.Printf("error reading file %s: %s\n", workspaceFile, err)
+				os.Exit(1)
 			}
 		}
 
-		s.loadWorkspaces(b)
+		err = s.loadWorkspaces(b)
+		if err != nil {
+			fmt.Printf("error loading workspace %s: %s\n", workspaceFile, err)
+			os.Exit(1)
+		}
 	}
 
 	return s
@@ -149,13 +144,15 @@ func New(exitCh chan struct{}) Sysd {
 func Start(exitCh chan struct{}) {
 	err := New(exitCh).Start()
 	if err != nil {
-		log.Error(err, nil)
-		os.Exit(4)
+		fmt.Printf("error starting paasbox: %s\n", err)
+		os.Exit(1)
 	}
 	os.Exit(0)
 }
 
 func (s *sysd) Start() error {
+	log.Debug("starting sysd", nil)
+
 	s.logDriver.Start()
 
 	log.Debug("starting workspaces", nil)
@@ -227,12 +224,11 @@ func (s *sysd) LogDriver() logger.Driver {
 	return s.logDriver
 }
 
-func (s *sysd) loadWorkspaces(b []byte) {
+func (s *sysd) loadWorkspaces(b []byte) error {
 	var m map[string]interface{}
 	err := json.Unmarshal(b, &m)
 	if err != nil {
-		log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-		os.Exit(3)
+		return err
 	}
 
 	if _, ok := m["workspaces"]; ok {
@@ -240,37 +236,36 @@ func (s *sysd) loadWorkspaces(b []byte) {
 			for _, wsDef := range wsDefs {
 				b2, err := json.Marshal(&wsDef)
 				if err != nil {
-					log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-					os.Exit(3)
+					return err
 				}
-				s.loadWorkspace(b2)
+				err = s.loadWorkspace(b2)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	} else {
-		s.loadWorkspace(b)
+		return s.loadWorkspace(b)
 	}
+	return nil
 
 }
 
-func (s *sysd) loadWorkspace(b []byte) {
+func (s *sysd) loadWorkspace(b []byte) error {
 	var conf workspace.Config
 	err := json.Unmarshal(b, &conf)
 	if err != nil {
-		log.Error(errInvalidWorkspaceJSON, log.Data{"reason": err})
-		os.Exit(3)
+		return err
 	}
 
 	state, err := s.stateLoader.Load(conf.ID)
 	if err != nil {
-		log.Error(errOpenBoltDBFailed, log.Data{"reason": err})
-		log.Debug("Check if other copies of paasbox are running", nil)
-		os.Exit(4)
+		return err
 	}
 
 	ws, err := workspace.New(s.logDriver, state, s.loadBalancer, conf)
 	if err != nil {
-		log.Error(errCreateWorkspaceFailed, log.Data{"reason": err, "workspace_id": conf.ID})
-		os.Exit(6)
+		return err
 	}
 
 	s.workspaces[conf.ID] = ws

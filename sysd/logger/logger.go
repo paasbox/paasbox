@@ -65,7 +65,10 @@ func NewLogstashDriver(host string, bufferSize int) Driver {
 }
 
 func (l *logstashDriver) Send(m AppMessage) {
-	// FIXME panics on shutdown
+	// FIXME nicer way of preventing panic on shutdown
+	defer func() {
+		recover()
+	}()
 	l.messages <- m
 }
 
