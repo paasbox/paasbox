@@ -2,17 +2,20 @@ package loadbalancer
 
 import (
 	"fmt"
-	"github.com/ian-kent/service.go/log"
 	"sync"
 	"time"
+
+	"github.com/ian-kent/service.go/log"
+	"github.com/paasbox/paasbox/sysd/logger"
 )
 
 type lbLogger struct {
-	Messages []*lbLoggerMessage
-	Limit    int
-	Pos      int
-	RWMutex  sync.RWMutex
-	Log      bool
+	logDriver logger.Driver
+	Messages  []*lbLoggerMessage
+	Limit     int
+	Pos       int
+	RWMutex   sync.RWMutex
+	Log       bool
 }
 
 type lbLoggerMessage struct {
@@ -35,6 +38,9 @@ func (l *lbLogger) Message(connID, message string, data log.Data) {
 
 	if l.Log {
 		log.DebugC(connID, message, data)
+	}
+	if l.logDriver != nil {
+		l.logDriver.SendPBMessage(logger.PBMessage{"loadbalancer", connID, message, data})
 	}
 
 	l.Messages[l.Pos] = m

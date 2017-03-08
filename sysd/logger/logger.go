@@ -12,7 +12,7 @@ import (
 
 	"strings"
 
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ian-kent/service.go/log"
 )
 
 var cli = &http.Client{
@@ -23,14 +23,16 @@ var cli = &http.Client{
 type Driver interface {
 	Start() error
 	Stop() error
-	Send(AppMessage)
+	SendAppMessage(AppMessage)
+	SendPBMessage(PBMessage)
 }
 
 type logstashDriver struct {
 	host              string
 	messageBufferSize int
 	wg                *sync.WaitGroup
-	messages          chan AppMessage
+	appMessages       chan AppMessage
+	pbMessages        chan PBMessage
 }
 
 var _ Driver = &logstashDriver{}
@@ -43,6 +45,13 @@ type AppMessage struct {
 	Message     string
 }
 
+type PBMessage struct {
+	Namespace string
+	Context   string
+	Event     string
+	Data      log.Data
+}
+
 // NewDriver ...
 func NewDriver(config string) (Driver, error) {
 	args := strings.SplitN(config, "@", 2)
@@ -52,7 +61,7 @@ func NewDriver(config string) (Driver, error) {
 
 	switch args[0] {
 	case "logstash":
-		return NewLogstashDriver(args[1], 100), nil
+		return NewLogstashDriver(args[1], 100, 500000), nil
 	default:
 		return nil, errors.New("unknown driver")
 
@@ -60,16 +69,27 @@ func NewDriver(config string) (Driver, error) {
 }
 
 // NewLogstashDriver ...
-func NewLogstashDriver(host string, bufferSize int) Driver {
-	return &logstashDriver{host, bufferSize, new(sync.WaitGroup), make(chan AppMessage, bufferSize)}
+func NewLogstashDriver(host string, bufferSize, pbBufferSize int) Driver {
+	return &logstashDriver{host, bufferSize, new(sync.WaitGroup), make(chan AppMessage, bufferSize), make(chan PBMessage, pbBufferSize)}
 }
 
-func (l *logstashDriver) Send(m AppMessage) {
+func (l *logstashDriver) SendAppMessage(m AppMessage) {
 	// FIXME nicer way of preventing panic on shutdown
 	defer func() {
 		recover()
 	}()
-	l.messages <- m
+	l.appMessages <- m
+}
+
+func (l *logstashDriver) SendPBMessage(m PBMessage) {
+	// FIXME nicer way of preventing panic on shutdown
+	defer func() {
+		recover()
+	}()
+
+	// FIXME manually buffer instead of relying on channel, no way to drop messages
+	// and this will block PB execution until it can deliver messages
+	l.pbMessages <- m
 }
 
 func (l *logstashDriver) Start() error {
@@ -85,13 +105,30 @@ func (l *logstashDriver) Start() error {
 		var err error
 		var backoff time.Duration
 		for {
-			//if messages == nil {
+			//if appMessages == nil {
 			//	break
 			//}
 			select {
-			case m := <-l.messages:
+			case m := <-l.appMessages:
 				for {
 					err = l.sendAppLine(m)
+					if err == nil {
+						backoff = 0
+						break
+					}
+					time.Sleep(backoff)
+					if backoff == 0 {
+						backoff = time.Millisecond * 100
+					} else {
+						backoff *= 2
+					}
+					if backoff > time.Second*5 {
+						backoff = time.Second * 5
+					}
+				}
+			case m := <-l.pbMessages:
+				for {
+					err = l.sendPBLine(m)
 					if err == nil {
 						backoff = 0
 						break
@@ -113,7 +150,8 @@ func (l *logstashDriver) Start() error {
 }
 
 func (l *logstashDriver) Stop() error {
-	close(l.messages)
+	close(l.appMessages)
+	close(l.pbMessages)
 	l.wg.Wait()
 	return nil
 }
@@ -136,6 +174,20 @@ func (l *logstashDriver) sendAppLine(m AppMessage) error {
 	} else {
 		data["message"] = m.Message
 	}
+
+	return l.send(data)
+}
+
+func (l *logstashDriver) sendPBLine(m PBMessage) error {
+	data := make(map[string]interface{})
+	if m.Data != nil {
+		data = m.Data
+	}
+	data["paasbox"] = map[string]interface{}{
+		"namespace": m.Namespace,
+		"context":   m.Context,
+	}
+	data["event"] = m.Event
 
 	return l.send(data)
 }

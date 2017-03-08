@@ -619,7 +619,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stdout", nil)
 		for l := range stdoutTail.Lines {
 			if l != nil {
-				i.logDriver.Send(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stdout", l.Text})
+				i.logDriver.SendAppMessage(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stdout", l.Text})
 			}
 		}
 		i.log("finished tailing stdout", nil)
@@ -629,7 +629,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stderr", nil)
 		for l := range stderrTail.Lines {
 			if l != nil {
-				i.logDriver.Send(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stderr", l.Text})
+				i.logDriver.SendAppMessage(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stderr", l.Text})
 			}
 		}
 		i.log("finished tailing stderr", nil)

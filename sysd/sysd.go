@@ -59,7 +59,7 @@ func New(exitCh chan struct{}) Sysd {
 		logDriver = driver
 	}
 
-	lb, err := loadbalancer.New()
+	lb, err := loadbalancer.New(logDriver)
 	if err != nil {
 		fmt.Printf("error creating load balancer: %s\n", err)
 		os.Exit(1)
@@ -270,6 +270,7 @@ func (s *sysd) loadWorkspace(b []byte) error {
 
 	s.workspaces[conf.ID] = ws
 	s.workspaceConfigs = append(s.workspaceConfigs, conf)
+	return nil
 }
 
 func loadInternal(f string) ([]byte, error) {

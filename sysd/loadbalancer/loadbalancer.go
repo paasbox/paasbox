@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ian-kent/service.go/log"
+	"github.com/paasbox/paasbox/sysd/logger"
 )
 
 // LB is a load balancer
@@ -35,6 +36,7 @@ var _ Listener = &lbListener{}
 type lb struct {
 	listeners map[int]*lbListener
 	logger    *lbLogger
+	logDriver logger.Driver
 }
 
 type lbListener struct {
@@ -62,7 +64,7 @@ type lbInstance struct {
 }
 
 // New creates a new load balancer
-func New() (LB, error) {
+func New(logDriver logger.Driver) (LB, error) {
 	var logOutput bool
 	if s := os.Getenv("PAASBOX_LB_LOG"); s == "y" || s == "1" {
 		logOutput = true
@@ -71,11 +73,13 @@ func New() (LB, error) {
 	return &lb{
 		listeners: make(map[int]*lbListener),
 		logger: &lbLogger{
-			Messages: make([]*lbLoggerMessage, 50000, 50000),
-			Pos:      0,
-			Limit:    50000,
-			Log:      logOutput,
+			Messages:  make([]*lbLoggerMessage, 50000, 50000),
+			Pos:       0,
+			Limit:     50000,
+			Log:       logOutput,
+			logDriver: logDriver,
 		},
+		logDriver: logDriver,
 	}, nil
 }
 
