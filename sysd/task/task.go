@@ -259,7 +259,7 @@ func (t *taskHealthcheck) Start() {
 								if err != nil {
 									t.task.error(errors.New("error stopping instance"), err, log.Data{"instance_id": i.instance.ID()})
 								}
-							} else if track.score > t.healthyThreshold {
+							} else if track.score >= t.healthyThreshold {
 								track.healthy = true
 								track.score = 0
 								healthy := true

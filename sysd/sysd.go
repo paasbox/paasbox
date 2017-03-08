@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ian-kent/service.go/log"
+	"github.com/paasbox/paasbox/assets"
 	"github.com/paasbox/paasbox/config"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/logger"
@@ -274,4 +275,8 @@ func (s *sysd) loadWorkspace(b []byte) {
 
 	s.workspaces[conf.ID] = ws
 	s.workspaceConfigs = append(s.workspaceConfigs, conf)
+}
+
+func loadInternal(f string) ([]byte, error) {
+	return assets.Asset("workspaces/" + f + ".json")
 }
