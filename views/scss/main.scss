@@ -15,3 +15,12 @@ h1, h2, h3, h4, h5 {
 
     }
 }
+
+.terminal {
+    height: 480px;
+    overflow: scroll;
+    padding: 16px;
+    background: black;
+    font-family: monospace;
+    color: white;
+}

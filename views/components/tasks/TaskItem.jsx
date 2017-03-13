@@ -17,7 +17,6 @@ export default class TaskItem extends Component {
 
     render() {
         const props = this.props;
-        console.log(props);
         return (
             <li>
                 <Card>
@@ -44,7 +43,7 @@ export default class TaskItem extends Component {
                         }
                     </CardText>
                     {
-                        props.activeTask && props.activeTask.id == props.task.id ?
+                        props.activeTask && props.activeTask.id === props.task.id ?
                             <Logs websocketURL={`ws://${window.location.host}/api${this.props.task.current_instances[0].url}/stdout.ws?tail=y`} />
                             :
                             ""

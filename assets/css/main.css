@@ -6,4 +6,12 @@
   .list--neutral li {
     list-style: none; }
 
+.terminal {
+  height: 480px;
+  overflow: scroll;
+  padding: 16px;
+  background: black;
+  font-family: monospace;
+  color: white; }
+
 /*# sourceMappingURL=main.css.map*/

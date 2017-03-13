@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import Websocket from 'react-websocket';
 
 export default class Logs extends Component {
     constructor(props) {
@@ -7,17 +6,34 @@ export default class Logs extends Component {
         this.state = {
             logs: ""
         };
+
+        let websocket;
     }
 
     handleData(data) {
-        console.log(data);
+        const existingLogs = this.state.logs;
+        this.setState({
+            logs: existingLogs + data
+        });
+    }
+
+    componentWillMount() {
+        this.websocket = new WebSocket(this.props.websocketURL);
+
+        this.websocket.addEventListener('message', event => {
+            this.handleData(event.data);
+        });
+    }
+
+    componentWillUnmount() {
+        console.log('Close websocket for ', this.props.websocketURL);
+        this.websocket.close();
     }
 
     render() {
         return (
-            <div>
-                <Websocket url={this.props.websocketURL}
-                           onMessage={this.handleData.bind(this)}/>
+            <div className="terminal">
+                {this.state.logs}
             </div>
         );
     }
