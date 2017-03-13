@@ -153,7 +153,9 @@ func Start(exitCh chan struct{}) {
 func (s *sysd) Start() error {
 	log.Debug("starting sysd", nil)
 
-	s.logDriver.Start()
+	if s.logDriver != nil {
+		s.logDriver.Start()
+	}
 
 	log.Debug("starting workspaces", nil)
 	for _, ws := range s.workspaceConfigs {
