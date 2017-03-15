@@ -12,6 +12,7 @@
   padding: 16px;
   background: black;
   font-family: monospace;
-  color: white; }
+  color: white;
+  white-space: pre-line; }
 
 /*# sourceMappingURL=main.css.map*/

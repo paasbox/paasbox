@@ -74,11 +74,11 @@
 	
 	var _TasksController2 = _interopRequireDefault(_TasksController);
 	
-	var _MuiThemeProvider = __webpack_require__(569);
+	var _MuiThemeProvider = __webpack_require__(571);
 	
 	var _MuiThemeProvider2 = _interopRequireDefault(_MuiThemeProvider);
 	
-	var _reactTapEventPlugin = __webpack_require__(619);
+	var _reactTapEventPlugin = __webpack_require__(621);
 	
 	var _reactTapEventPlugin2 = _interopRequireDefault(_reactTapEventPlugin);
 	
@@ -45345,6 +45345,10 @@
 	
 	var _react2 = _interopRequireDefault(_react);
 	
+	var _ansiToReact = __webpack_require__(568);
+	
+	var _ansiToReact2 = _interopRequireDefault(_ansiToReact);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -45372,9 +45376,9 @@
 	    _createClass(Logs, [{
 	        key: 'handleData',
 	        value: function handleData(data) {
-	            var existingLogs = this.state.logs;
+	            var logs = this.state.logs + '\n' + data;
 	            this.setState({
-	                logs: existingLogs + data
+	                logs: logs
 	            });
 	        }
 	    }, {
@@ -45400,7 +45404,11 @@
 	            return _react2.default.createElement(
 	                'div',
 	                { className: 'terminal' },
-	                this.state.logs
+	                _react2.default.createElement(
+	                    _ansiToReact2.default,
+	                    null,
+	                    this.state.logs
+	                )
 	            );
 	        }
 	    }]);
@@ -45411,8 +45419,747 @@
 	exports.default = Logs;
 
 /***/ },
-/* 568 */,
+/* 568 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _extends = Object.assign || function (target) {
+	  for (var i = 1; i < arguments.length; i++) {
+	    var source = arguments[i];for (var key in source) {
+	      if (Object.prototype.hasOwnProperty.call(source, key)) {
+	        target[key] = source[key];
+	      }
+	    }
+	  }return target;
+	};
+	
+	function _toConsumableArray(arr) {
+	  if (Array.isArray(arr)) {
+	    for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) {
+	      arr2[i] = arr[i];
+	    }return arr2;
+	  } else {
+	    return Array.from(arr);
+	  }
+	}
+	
+	var React = __webpack_require__(1);
+	var Anser = __webpack_require__(569);
+	var escapeCarriageReturn = __webpack_require__(570);
+	
+	/**
+	 * ansiToJson
+	 * Convert ANSI strings into JSON output.
+	 *
+	 * @name ansiToJSON
+	 * @function
+	 * @param {String} input The input string.
+	 * @return {Array} The parsed input.
+	 */
+	function ansiToJSON(input) {
+	  input = escapeCarriageReturn(input);
+	  return Anser.ansiToJson(input, {
+	    json: true,
+	    remove_empty: true
+	  });
+	}
+	
+	function ansiJSONtoStyleBundle(ansiBundle) {
+	  var style = {};
+	  if (ansiBundle.bg) {
+	    style.backgroundColor = 'rgb(' + ansiBundle.bg + ')';
+	  }
+	  if (ansiBundle.fg) {
+	    style.color = 'rgb(' + ansiBundle.fg + ')';
+	  }
+	  return {
+	    content: ansiBundle.content,
+	    style: style
+	  };
+	}
+	
+	function ansiToInlineStyle(text) {
+	  return ansiToJSON(text).map(ansiJSONtoStyleBundle);
+	}
+	
+	function linkifyBundle(bundle) {
+	  return _extends({}, bundle, {
+	    content: bundle.content.split(' ').reduce(function (result, word) {
+	      // If word is a URL
+	      if (/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/.test(word)) {
+	        return [].concat(_toConsumableArray(result), [' ', React.createElement('a', {
+	          href: word,
+	          target: '_blank'
+	        }, '' + word)]);
+	      }
+	      var lastWord = result.pop();
+	      if (lastWord) {
+	        // If lastWord is a `<a>` element
+	        if (lastWord.type) return [].concat(_toConsumableArray(result), [lastWord, ' ', word]);
+	        // If not, combine lastWord and word into single string
+	        return [].concat(_toConsumableArray(result), [[lastWord, word].join(' ')]);
+	      }
+	      // If there is no lastWord because word is the first
+	      return [].concat(_toConsumableArray(result), [word]);
+	    }, [])
+	  });
+	}
+	
+	function inlineBundleToReact(bundle, key) {
+	  return React.createElement('span', {
+	    style: bundle.style,
+	    key: key
+	  }, bundle.content);
+	}
+	
+	function Ansi(props) {
+	  return React.createElement('code', {}, props.linkify ? ansiToInlineStyle(props.children).map(linkifyBundle).map(inlineBundleToReact) : ansiToInlineStyle(props.children).map(inlineBundleToReact));
+	}
+	
+	Ansi.propTypes = {
+	  children: React.PropTypes.string
+	};
+	
+	module.exports = Ansi;
+	//# sourceMappingURL=index.js.map
+
+/***/ },
 /* 569 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	// This file was originally written by @drudru (https://github.com/drudru/ansi_up), MIT, 2011
+	
+	var _createClass = function () {
+	    function defineProperties(target, props) {
+	        for (var i = 0; i < props.length; i++) {
+	            var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+	        }
+	    }return function (Constructor, protoProps, staticProps) {
+	        if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+	    };
+	}();
+	
+	function _classCallCheck(instance, Constructor) {
+	    if (!(instance instanceof Constructor)) {
+	        throw new TypeError("Cannot call a class as a function");
+	    }
+	}
+	
+	var ANSI_COLORS = [[{ color: "0, 0, 0", "class": "ansi-black" }, { color: "187, 0, 0", "class": "ansi-red" }, { color: "0, 187, 0", "class": "ansi-green" }, { color: "187, 187, 0", "class": "ansi-yellow" }, { color: "0, 0, 187", "class": "ansi-blue" }, { color: "187, 0, 187", "class": "ansi-magenta" }, { color: "0, 187, 187", "class": "ansi-cyan" }, { color: "255,255,255", "class": "ansi-white" }], [{ color: "85, 85, 85", "class": "ansi-bright-black" }, { color: "255, 85, 85", "class": "ansi-bright-red" }, { color: "0, 255, 0", "class": "ansi-bright-green" }, { color: "255, 255, 85", "class": "ansi-bright-yellow" }, { color: "85, 85, 255", "class": "ansi-bright-blue" }, { color: "255, 85, 255", "class": "ansi-bright-magenta" }, { color: "85, 255, 255", "class": "ansi-bright-cyan" }, { color: "255, 255, 255", "class": "ansi-bright-white" }]];
+	
+	module.exports = function () {
+	    _createClass(Anser, null, [{
+	        key: "escapeForHtml",
+	
+	        /**
+	         * Anser.escapeForHtml
+	         * Escape the input HTML.
+	         *
+	         * This does the minimum escaping of text to make it compliant with HTML.
+	         * In particular, the '&','<', and '>' characters are escaped. This should
+	         * be run prior to `ansiToHtml`.
+	         *
+	         * @name Anser.escapeForHtml
+	         * @function
+	         * @param {String} txt The input text (containing the ANSI snippets).
+	         * @returns {String} The escaped html.
+	         */
+	        value: function escapeForHtml(txt) {
+	            return new Anser().escapeForHtml(txt);
+	        }
+	
+	        /**
+	         * Anser.linkify
+	         * Adds the links in the HTML.
+	         *
+	         * This replaces any links in the text with anchor tags that display the
+	         * link. The links should have at least one whitespace character
+	         * surrounding it. Also, you should apply this after you have run
+	         * `ansiToHtml` on the text.
+	         *
+	         * @name Anser.linkify
+	         * @function
+	         * @param {String} txt The input text.
+	         * @returns {String} The HTML containing the <a> tags (unescaped).
+	         */
+	
+	    }, {
+	        key: "linkify",
+	        value: function linkify(txt) {
+	            return new Anser().linkify(txt);
+	        }
+	
+	        /**
+	         * Anser.ansiToHtml
+	         * This replaces ANSI terminal escape codes with SPAN tags that wrap the
+	         * content.
+	         *
+	         * This function only interprets ANSI SGR (Select Graphic Rendition) codes
+	         * that can be represented in HTML.
+	         * For example, cursor movement codes are ignored and hidden from output.
+	         * The default style uses colors that are very close to the prescribed
+	         * standard. The standard assumes that the text will have a black
+	         * background. These colors are set as inline styles on the SPAN tags.
+	         *
+	         * Another option is to set `use_classes: true` in the options argument.
+	         * This will instead set classes on the spans so the colors can be set via
+	         * CSS. The class names used are of the format `ansi-*-fg/bg` and
+	         * `ansi-bright-*-fg/bg` where `*` is the color name,
+	         * i.e black/red/green/yellow/blue/magenta/cyan/white.
+	         *
+	         * @name Anser.ansiToHtml
+	         * @function
+	         * @param {String} txt The input text.
+	         * @param {Object} options The options passed to the ansiToHTML method.
+	         * @returns {String} The HTML output.
+	         */
+	
+	    }, {
+	        key: "ansiToHtml",
+	        value: function ansiToHtml(txt, options) {
+	            return new Anser().ansiToHtml(txt, options);
+	        }
+	
+	        /**
+	         * Anser.ansiToJson
+	         * Converts ANSI input into JSON output.
+	         *
+	         * @name Anser.ansiToJson
+	         * @function
+	         * @param {String} txt The input text.
+	         * @param {Object} options The options passed to the ansiToHTML method.
+	         * @returns {String} The HTML output.
+	         */
+	
+	    }, {
+	        key: "ansiToJson",
+	        value: function ansiToJson(txt, options) {
+	            return new Anser().ansiToJson(txt, options);
+	        }
+	
+	        /**
+	         * Anser.ansiToText
+	         * Converts ANSI input into text output.
+	         *
+	         * @name Anser.ansiToText
+	         * @function
+	         * @param {String} txt The input text.
+	         * @returns {String} The text output.
+	         */
+	
+	    }, {
+	        key: "ansiToText",
+	        value: function ansiToText(txt) {
+	            return new Anser().ansiToText(txt);
+	        }
+	
+	        /**
+	         * Anser
+	         * The `Anser` class.
+	         *
+	         * @name Anser
+	         * @function
+	         * @returns {Anser}
+	         */
+	
+	    }]);
+	
+	    function Anser() {
+	        _classCallCheck(this, Anser);
+	
+	        this.fg = this.bg = this.fg_truecolor = this.bg_truecolor = null;
+	        this.bright = 0;
+	    }
+	
+	    /**
+	     * setupPalette
+	     * Sets up the palette.
+	     *
+	     * @name setupPalette
+	     * @function
+	     */
+	
+	    _createClass(Anser, [{
+	        key: "setupPalette",
+	        value: function setupPalette() {
+	            this.PALETTE_COLORS = [];
+	
+	            // Index 0..15 : System color
+	            for (var i = 0; i < 2; ++i) {
+	                for (var j = 0; j < 8; ++j) {
+	                    this.PALETTE_COLORS.push(ANSI_COLORS[i][j].color);
+	                }
+	            }
+	
+	            // Index 16..231 : RGB 6x6x6
+	            // https://gist.github.com/jasonm23/2868981#file-xterm-256color-yaml
+	            var levels = [0, 95, 135, 175, 215, 255];
+	            var format = function format(r, g, b) {
+	                return levels[r] + ", " + levels[g] + ", " + levels[b];
+	            };
+	            var r = void 0,
+	                g = void 0,
+	                b = void 0;
+	            for (var _r = 0; _r < 6; ++_r) {
+	                for (var _g = 0; _g < 6; ++_g) {
+	                    for (var _b = 0; _b < 6; ++_b) {
+	                        this.PALETTE_COLORS.push(format(_r, _g, _b));
+	                    }
+	                }
+	            }
+	
+	            // Index 232..255 : Grayscale
+	            var level = 8;
+	            for (var _i = 0; _i < 24; ++_i, level += 10) {
+	                this.PALETTE_COLORS.push(format(level, level, level));
+	            }
+	        }
+	
+	        /**
+	         * escapeForHtml
+	         * Escapes the input text.
+	         *
+	         * @name escapeForHtml
+	         * @function
+	         * @param {String} txt The input text.
+	         * @returns {String} The escpaed HTML output.
+	         */
+	
+	    }, {
+	        key: "escapeForHtml",
+	        value: function escapeForHtml(txt) {
+	            return txt.replace(/[&<>]/gm, function (str) {
+	                return str == "&" ? "&amp;" : str == "<" ? "&lt;" : str == ">" ? "&gt;" : "";
+	            });
+	        }
+	
+	        /**
+	         * linkify
+	         * Adds HTML link elements.
+	         *
+	         * @name linkify
+	         * @function
+	         * @param {String} txt The input text.
+	         * @returns {String} The HTML output containing link elements.
+	         */
+	
+	    }, {
+	        key: "linkify",
+	        value: function linkify(txt) {
+	            return txt.replace(/(https?:\/\/[^\s]+)/gm, function (str) {
+	                return "<a href=\"" + str + "\">" + str + "</a>";
+	            });
+	        }
+	
+	        /**
+	         * ansiToHtml
+	         * Converts ANSI input into HTML output.
+	         *
+	         * @name ansiToHtml
+	         * @function
+	         * @param {String} txt The input text.
+	         * @param {Object} options The options passed ot the `process` method.
+	         * @returns {String} The HTML output.
+	         */
+	
+	    }, {
+	        key: "ansiToHtml",
+	        value: function ansiToHtml(txt, options) {
+	            return this.process(txt, options, true);
+	        }
+	
+	        /**
+	         * ansiToJson
+	         * Converts ANSI input into HTML output.
+	         *
+	         * @name ansiToJson
+	         * @function
+	         * @param {String} txt The input text.
+	         * @param {Object} options The options passed ot the `process` method.
+	         * @returns {String} The JSON output.
+	         */
+	
+	    }, {
+	        key: "ansiToJson",
+	        value: function ansiToJson(txt, options) {
+	            options = options || {};
+	            options.json = true;
+	            options.clearLine = false;
+	            return this.process(txt, options, true);
+	        }
+	
+	        /**
+	         * ansiToText
+	         * Converts ANSI input into HTML output.
+	         *
+	         * @name ansiToText
+	         * @function
+	         * @param {String} txt The input text.
+	         * @returns {String} The text output.
+	         */
+	
+	    }, {
+	        key: "ansiToText",
+	        value: function ansiToText(txt) {
+	            return this.process(txt, {}, false);
+	        }
+	
+	        /**
+	         * process
+	         * Processes the input.
+	         *
+	         * @name process
+	         * @function
+	         * @param {String} txt The input text.
+	         * @param {Object} options An object passed to `processChunk` method, extended with:
+	         *
+	         *  - `json` (Boolean): If `true`, the result will be an object.
+	         *  - `use_classes` (Boolean): If `true`, HTML classes will be appended to the HTML output.
+	         *
+	         * @param {Boolean} markup
+	         */
+	
+	    }, {
+	        key: "process",
+	        value: function process(txt, options, markup) {
+	            var _this = this;
+	
+	            var self = this;
+	            var raw_text_chunks = txt.split(/\033\[/);
+	            var first_chunk = raw_text_chunks.shift(); // the first chunk is not the result of the split
+	
+	            if (options === undefined || options === null) {
+	                options = {};
+	            }
+	            options.clearLine = /\r/.test(txt); // check for Carriage Return
+	            var color_chunks = raw_text_chunks.map(function (chunk) {
+	                return _this.processChunk(chunk, options, markup);
+	            });
+	
+	            if (options && options.json) {
+	                var first = self.processChunkJson("");
+	                first.content = first_chunk;
+	                first.clearLine = options.clearLine;
+	                color_chunks.unshift(first);
+	                if (options.remove_empty) {
+	                    color_chunks = color_chunks.filter(function (c) {
+	                        return !c.isEmpty();
+	                    });
+	                }
+	                return color_chunks;
+	            } else {
+	                color_chunks.unshift(first_chunk);
+	            }
+	
+	            return color_chunks.join("");
+	        }
+	
+	        /**
+	         * processChunkJson
+	         * Processes the current chunk into json output.
+	         *
+	         * @name processChunkJson
+	         * @function
+	         * @param {String} text The input text.
+	         * @param {Object} options An object containing the following fields:
+	         *
+	         *  - `json` (Boolean): If `true`, the result will be an object.
+	         *  - `use_classes` (Boolean): If `true`, HTML classes will be appended to the HTML output.
+	         *
+	         * @param {Boolean} markup If false, the colors will not be parsed.
+	         * @return {Object} The result object:
+	         *
+	         *  - `content` (String): The text.
+	         *  - `fg` (String|null): The foreground color.
+	         *  - `bg` (String|null): The background color.
+	         *  - `fg_truecolor` (String|null): The foreground true color (if 16m color is enabled).
+	         *  - `bg_truecolor` (String|null): The background true color (if 16m color is enabled).
+	         *  - `clearLine` (Boolean): `true` if a carriageReturn \r was fount at end of line.
+	         *  - `was_processed` (Bolean): `true` if the colors were processed, `false` otherwise.
+	         *  - `isEmpty` (Function): A function returning `true` if the content is empty, or `false` otherwise.
+	         *
+	         */
+	
+	    }, {
+	        key: "processChunkJson",
+	        value: function processChunkJson(text, options, markup) {
+	
+	            // Are we using classes or styles?
+	            options = typeof options == "undefined" ? {} : options;
+	            var use_classes = options.use_classes = typeof options.use_classes != "undefined" && options.use_classes;
+	            var key = options.key = use_classes ? "class" : "color";
+	
+	            var result = {
+	                content: text,
+	                fg: null,
+	                bg: null,
+	                fg_truecolor: null,
+	                bg_truecolor: null,
+	                clearLine: options.clearLine,
+	                decoration: null,
+	                was_processed: false,
+	                isEmpty: function isEmpty() {
+	                    return !result.content;
+	                }
+	            };
+	
+	            // Each "chunk" is the text after the CSI (ESC + "[") and before the next CSI/EOF.
+	            //
+	            // This regex matches four groups within a chunk.
+	            //
+	            // The first and third groups match code type.
+	            // We supported only SGR command. It has empty first group and "m" in third.
+	            //
+	            // The second group matches all of the number+semicolon command sequences
+	            // before the "m" (or other trailing) character.
+	            // These are the graphics or SGR commands.
+	            //
+	            // The last group is the text (including newlines) that is colored by
+	            // the other group"s commands.
+	            var matches = text.match(/^([!\x3c-\x3f]*)([\d;]*)([\x20-\x2c]*[\x40-\x7e])([\s\S]*)/m);
+	
+	            if (!matches) return result;
+	
+	            var orig_txt = result.content = matches[4];
+	            var nums = matches[2].split(";");
+	
+	            // We currently support only "SGR" (Select Graphic Rendition)
+	            // Simply ignore if not a SGR command.
+	            if (matches[1] !== "" || matches[3] !== "m") {
+	                return result;
+	            }
+	
+	            if (!markup) {
+	                return result;
+	            }
+	
+	            var self = this;
+	
+	            self.decoration = null;
+	
+	            while (nums.length > 0) {
+	                var num_str = nums.shift();
+	                var num = parseInt(num_str);
+	
+	                if (isNaN(num) || num === 0) {
+	                    self.fg = self.bg = self.decoration = null;
+	                    self.bright = 0;
+	                } else if (num === 1) {
+	                    self.bright = 1;
+	                    self.decoration = "bright";
+	                } else if (num === 2) {
+	                    self.decoration = "dim";
+	                } else if (num == 4) {
+	                    self.decoration = "underline";
+	                } else if (num == 5) {
+	                    self.decoration = "blink";
+	                } else if (num === 7) {
+	                    self.decoration = "reverse";
+	                } else if (num === 8) {
+	                    self.decoration = "hidden";
+	                } else if (num == 39) {
+	                    self.fg = null;
+	                } else if (num == 49) {
+	                    self.bg = null;
+	                } else if (num >= 30 && num < 38) {
+	                    self.fg = ANSI_COLORS[self.bright][num % 10][key];
+	                } else if (num >= 90 && num < 98) {
+	                    self.fg = ANSI_COLORS[1][num % 10][key];
+	                } else if (num >= 40 && num < 48) {
+	                    self.bg = ANSI_COLORS[0][num % 10][key];
+	                } else if (num >= 100 && num < 108) {
+	                    self.bg = ANSI_COLORS[1][num % 10][key];
+	                } else if (num === 38 || num === 48) {
+	                    // extend color (38=fg, 48=bg)
+	                    var is_foreground = num === 38;
+	                    if (nums.length >= 1) {
+	                        var mode = nums.shift();
+	                        if (mode === "5" && nums.length >= 1) {
+	                            // palette color
+	                            var palette_index = parseInt(nums.shift());
+	                            if (palette_index >= 0 && palette_index <= 255) {
+	                                if (!use_classes) {
+	                                    if (!this.PALETTE_COLORS) {
+	                                        self.setupPalette();
+	                                    }
+	                                    if (is_foreground) {
+	                                        self.fg = this.PALETTE_COLORS[palette_index];
+	                                    } else {
+	                                        self.bg = this.PALETTE_COLORS[palette_index];
+	                                    }
+	                                } else {
+	                                    var klass = palette_index >= 16 ? "ansi-palette-" + palette_index : ANSI_COLORS[palette_index > 7 ? 1 : 0][palette_index % 8]["class"];
+	                                    if (is_foreground) {
+	                                        self.fg = klass;
+	                                    } else {
+	                                        self.bg = klass;
+	                                    }
+	                                }
+	                            }
+	                        } else if (mode === "2" && nums.length >= 3) {
+	                            // true color
+	                            var r = parseInt(nums.shift());
+	                            var g = parseInt(nums.shift());
+	                            var b = parseInt(nums.shift());
+	                            if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+	                                var color = r + ", " + g + ", " + b;
+	                                if (!use_classes) {
+	                                    if (is_foreground) {
+	                                        self.fg = color;
+	                                    } else {
+	                                        self.bg = color;
+	                                    }
+	                                } else {
+	                                    if (is_foreground) {
+	                                        self.fg = "ansi-truecolor";
+	                                        self.fg_truecolor = color;
+	                                    } else {
+	                                        self.bg = "ansi-truecolor";
+	                                        self.bg_truecolor = color;
+	                                    }
+	                                }
+	                            }
+	                        }
+	                    }
+	                }
+	            }
+	
+	            if (self.fg === null && self.bg === null && self.decoration === null) {
+	                return result;
+	            } else {
+	                var styles = [];
+	                var classes = [];
+	                var data = {};
+	
+	                result.fg = self.fg;
+	                result.bg = self.bg;
+	                result.fg_truecolor = self.fg_truecolor;
+	                result.bg_truecolor = self.bg_truecolor;
+	                result.decoration = self.decoration;
+	                result.was_processed = true;
+	
+	                return result;
+	            }
+	        }
+	
+	        /**
+	         * processChunk
+	         * Processes the current chunk of text.
+	         *
+	         * @name processChunk
+	         * @function
+	         * @param {String} text The input text.
+	         * @param {Object} options An object containing the following fields:
+	         *
+	         *  - `json` (Boolean): If `true`, the result will be an object.
+	         *  - `use_classes` (Boolean): If `true`, HTML classes will be appended to the HTML output.
+	         *
+	         * @param {Boolean} markup If false, the colors will not be parsed.
+	         * @return {Object|String} The result (object if `json` is wanted back or string otherwise).
+	         */
+	
+	    }, {
+	        key: "processChunk",
+	        value: function processChunk(text, options, markup) {
+	            var _this2 = this;
+	
+	            var self = this;
+	            options = options || {};
+	            var jsonChunk = this.processChunkJson(text, options, markup);
+	
+	            if (options.json) {
+	                return jsonChunk;
+	            }
+	            if (jsonChunk.isEmpty()) {
+	                return "";
+	            }
+	            if (!jsonChunk.was_processed) {
+	                return jsonChunk.content;
+	            }
+	
+	            var use_classes = options.use_classes;
+	
+	            var styles = [];
+	            var classes = [];
+	            var data = {};
+	            var render_data = function render_data(data) {
+	                var fragments = [];
+	                var key = void 0;
+	                for (key in data) {
+	                    if (data.hasOwnProperty(key)) {
+	                        fragments.push("data-" + key + "=\"" + _this2.escapeForHtml(data[key]) + "\"");
+	                    }
+	                }
+	                return fragments.length > 0 ? " " + fragments.join(" ") : "";
+	            };
+	
+	            if (jsonChunk.fg) {
+	                if (use_classes) {
+	                    classes.push(jsonChunk.fg + "-fg");
+	                    if (jsonChunk.fg_truecolor !== null) {
+	                        data["ansi-truecolor-fg"] = jsonChunk.fg_truecolor;
+	                        jsonChunk.fg_truecolor = null;
+	                    }
+	                } else {
+	                    styles.push("color:rgb(" + jsonChunk.fg + ")");
+	                }
+	            }
+	
+	            if (jsonChunk.bg) {
+	                if (use_classes) {
+	                    classes.push(jsonChunk.bg + "-bg");
+	                    if (jsonChunk.bg_truecolor !== null) {
+	                        data["ansi-truecolor-bg"] = jsonChunk.bg_truecolor;
+	                        jsonChunk.bg_truecolor = null;
+	                    }
+	                } else {
+	                    styles.push("background-color:rgb(" + jsonChunk.bg + ")");
+	                }
+	            }
+	
+	            if (jsonChunk.decoration) {
+	                if (use_classes) {
+	                    classes.push("ansi-" + jsonChunk.decoration);
+	                } else if (jsonChunk.decoration === "underline" || jsonChunk.decoration === "blink") {
+	                    styles.push("text-decoration:" + jsonChunk.decoration);
+	                }
+	            }
+	
+	            if (use_classes) {
+	                return "<span class=\"" + classes.join(" ") + "\"" + render_data(data) + ">" + jsonChunk.content + "</span>";
+	            } else {
+	                return "<span style=\"" + styles.join(";") + "\"" + render_data(data) + ">" + jsonChunk.content + "</span>";
+	            }
+	        }
+	    }]);
+	
+	    return Anser;
+	}();
+
+/***/ },
+/* 570 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	function escapeCarriageReturn(txt) {
+	    txt = txt.replace(/\r+\n/gm, '\n'); // \r followed by \n --> newline
+	    while (txt.search(/\r[^$]/g) > -1) {
+	        var base = txt.match(/^(.*)\r+/m)[1];
+	        var insert = txt.match(/\r+(.*)$/m)[1];
+	        insert = insert + base.slice(insert.length, base.length);
+	        txt = txt.replace(/\r+.*$/m, '\r').replace(/^.*\r/m, insert);
+	    }
+	    return txt;
+	}
+	
+	module.exports = escapeCarriageReturn;
+
+/***/ },
+/* 571 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -45443,7 +46190,7 @@
 	
 	var _react = __webpack_require__(1);
 	
-	var _getMuiTheme = __webpack_require__(570);
+	var _getMuiTheme = __webpack_require__(572);
 	
 	var _getMuiTheme2 = _interopRequireDefault(_getMuiTheme);
 	
@@ -45486,7 +46233,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 570 */
+/* 572 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -45501,41 +46248,41 @@
 	
 	exports.default = getMuiTheme;
 	
-	var _lodash = __webpack_require__(571);
+	var _lodash = __webpack_require__(573);
 	
 	var _lodash2 = _interopRequireDefault(_lodash);
 	
 	var _colorManipulator = __webpack_require__(506);
 	
-	var _lightBaseTheme = __webpack_require__(572);
+	var _lightBaseTheme = __webpack_require__(574);
 	
 	var _lightBaseTheme2 = _interopRequireDefault(_lightBaseTheme);
 	
-	var _zIndex = __webpack_require__(575);
+	var _zIndex = __webpack_require__(577);
 	
 	var _zIndex2 = _interopRequireDefault(_zIndex);
 	
-	var _autoprefixer = __webpack_require__(576);
+	var _autoprefixer = __webpack_require__(578);
 	
 	var _autoprefixer2 = _interopRequireDefault(_autoprefixer);
 	
-	var _callOnce = __webpack_require__(612);
+	var _callOnce = __webpack_require__(614);
 	
 	var _callOnce2 = _interopRequireDefault(_callOnce);
 	
-	var _rtl = __webpack_require__(613);
+	var _rtl = __webpack_require__(615);
 	
 	var _rtl2 = _interopRequireDefault(_rtl);
 	
-	var _compose = __webpack_require__(617);
+	var _compose = __webpack_require__(619);
 	
 	var _compose2 = _interopRequireDefault(_compose);
 	
-	var _typography = __webpack_require__(618);
+	var _typography = __webpack_require__(620);
 	
 	var _typography2 = _interopRequireDefault(_typography);
 	
-	var _colors = __webpack_require__(573);
+	var _colors = __webpack_require__(575);
 	
 	function _interopRequireDefault(obj) {
 	  return obj && obj.__esModule ? obj : { default: obj };
@@ -45872,7 +46619,7 @@
 	}
 
 /***/ },
-/* 571 */
+/* 573 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, module) {'use strict';
@@ -48033,7 +48780,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(265)(module)))
 
 /***/ },
-/* 572 */
+/* 574 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -48042,11 +48789,11 @@
 	  value: true
 	});
 	
-	var _colors = __webpack_require__(573);
+	var _colors = __webpack_require__(575);
 	
 	var _colorManipulator = __webpack_require__(506);
 	
-	var _spacing = __webpack_require__(574);
+	var _spacing = __webpack_require__(576);
 	
 	var _spacing2 = _interopRequireDefault(_spacing);
 	
@@ -48084,7 +48831,7 @@
 	    */
 
 /***/ },
-/* 573 */
+/* 575 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -48379,7 +49126,7 @@
 	var lightWhite = exports.lightWhite = 'rgba(255, 255, 255, 0.54)';
 
 /***/ },
-/* 574 */
+/* 576 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -48403,7 +49150,7 @@
 	};
 
 /***/ },
-/* 575 */
+/* 577 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -48425,7 +49172,7 @@
 	};
 
 /***/ },
-/* 576 */
+/* 578 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -48491,7 +49238,7 @@
 	  }
 	};
 	
-	var _inlineStylePrefixer = __webpack_require__(577);
+	var _inlineStylePrefixer = __webpack_require__(579);
 	
 	var _inlineStylePrefixer2 = _interopRequireDefault(_inlineStylePrefixer);
 	
@@ -48507,7 +49254,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 577 */
+/* 579 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -48528,67 +49275,67 @@
 	// special flexbox specifications
 	
 	
-	var _prefixAll2 = __webpack_require__(578);
+	var _prefixAll2 = __webpack_require__(580);
 	
 	var _prefixAll3 = _interopRequireDefault(_prefixAll2);
 	
-	var _getBrowserInformation = __webpack_require__(595);
+	var _getBrowserInformation = __webpack_require__(597);
 	
 	var _getBrowserInformation2 = _interopRequireDefault(_getBrowserInformation);
 	
-	var _getPrefixedKeyframes = __webpack_require__(598);
+	var _getPrefixedKeyframes = __webpack_require__(600);
 	
 	var _getPrefixedKeyframes2 = _interopRequireDefault(_getPrefixedKeyframes);
 	
-	var _capitalizeString = __webpack_require__(580);
+	var _capitalizeString = __webpack_require__(582);
 	
 	var _capitalizeString2 = _interopRequireDefault(_capitalizeString);
 	
-	var _sortPrefixedStyle = __webpack_require__(581);
+	var _sortPrefixedStyle = __webpack_require__(583);
 	
 	var _sortPrefixedStyle2 = _interopRequireDefault(_sortPrefixedStyle);
 	
-	var _prefixProps = __webpack_require__(599);
+	var _prefixProps = __webpack_require__(601);
 	
 	var _prefixProps2 = _interopRequireDefault(_prefixProps);
 	
-	var _position = __webpack_require__(600);
+	var _position = __webpack_require__(602);
 	
 	var _position2 = _interopRequireDefault(_position);
 	
-	var _calc = __webpack_require__(602);
+	var _calc = __webpack_require__(604);
 	
 	var _calc2 = _interopRequireDefault(_calc);
 	
-	var _zoomCursor = __webpack_require__(603);
+	var _zoomCursor = __webpack_require__(605);
 	
 	var _zoomCursor2 = _interopRequireDefault(_zoomCursor);
 	
-	var _grabCursor = __webpack_require__(604);
+	var _grabCursor = __webpack_require__(606);
 	
 	var _grabCursor2 = _interopRequireDefault(_grabCursor);
 	
-	var _flex = __webpack_require__(605);
+	var _flex = __webpack_require__(607);
 	
 	var _flex2 = _interopRequireDefault(_flex);
 	
-	var _sizing = __webpack_require__(606);
+	var _sizing = __webpack_require__(608);
 	
 	var _sizing2 = _interopRequireDefault(_sizing);
 	
-	var _gradient = __webpack_require__(607);
+	var _gradient = __webpack_require__(609);
 	
 	var _gradient2 = _interopRequireDefault(_gradient);
 	
-	var _transition = __webpack_require__(608);
+	var _transition = __webpack_require__(610);
 	
 	var _transition2 = _interopRequireDefault(_transition);
 	
-	var _flexboxIE = __webpack_require__(610);
+	var _flexboxIE = __webpack_require__(612);
 	
 	var _flexboxIE2 = _interopRequireDefault(_flexboxIE);
 	
-	var _flexboxOld = __webpack_require__(611);
+	var _flexboxOld = __webpack_require__(613);
 	
 	var _flexboxOld2 = _interopRequireDefault(_flexboxOld);
 	
@@ -48753,7 +49500,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 578 */
+/* 580 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -48763,51 +49510,51 @@
 	});
 	exports.default = prefixAll;
 	
-	var _prefixProps = __webpack_require__(579);
+	var _prefixProps = __webpack_require__(581);
 	
 	var _prefixProps2 = _interopRequireDefault(_prefixProps);
 	
-	var _capitalizeString = __webpack_require__(580);
+	var _capitalizeString = __webpack_require__(582);
 	
 	var _capitalizeString2 = _interopRequireDefault(_capitalizeString);
 	
-	var _sortPrefixedStyle = __webpack_require__(581);
+	var _sortPrefixedStyle = __webpack_require__(583);
 	
 	var _sortPrefixedStyle2 = _interopRequireDefault(_sortPrefixedStyle);
 	
-	var _position = __webpack_require__(583);
+	var _position = __webpack_require__(585);
 	
 	var _position2 = _interopRequireDefault(_position);
 	
-	var _calc = __webpack_require__(584);
+	var _calc = __webpack_require__(586);
 	
 	var _calc2 = _interopRequireDefault(_calc);
 	
-	var _cursor = __webpack_require__(587);
+	var _cursor = __webpack_require__(589);
 	
 	var _cursor2 = _interopRequireDefault(_cursor);
 	
-	var _flex = __webpack_require__(588);
+	var _flex = __webpack_require__(590);
 	
 	var _flex2 = _interopRequireDefault(_flex);
 	
-	var _sizing = __webpack_require__(589);
+	var _sizing = __webpack_require__(591);
 	
 	var _sizing2 = _interopRequireDefault(_sizing);
 	
-	var _gradient = __webpack_require__(590);
+	var _gradient = __webpack_require__(592);
 	
 	var _gradient2 = _interopRequireDefault(_gradient);
 	
-	var _transition = __webpack_require__(591);
+	var _transition = __webpack_require__(593);
 	
 	var _transition2 = _interopRequireDefault(_transition);
 	
-	var _flexboxIE = __webpack_require__(593);
+	var _flexboxIE = __webpack_require__(595);
 	
 	var _flexboxIE2 = _interopRequireDefault(_flexboxIE);
 	
-	var _flexboxOld = __webpack_require__(594);
+	var _flexboxOld = __webpack_require__(596);
 	
 	var _flexboxOld2 = _interopRequireDefault(_flexboxOld);
 	
@@ -48875,7 +49622,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 579 */
+/* 581 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -48887,7 +49634,7 @@
 	module.exports = exports["default"];
 
 /***/ },
-/* 580 */
+/* 582 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -48904,7 +49651,7 @@
 	module.exports = exports["default"];
 
 /***/ },
-/* 581 */
+/* 583 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -48914,7 +49661,7 @@
 	});
 	exports.default = sortPrefixedStyle;
 	
-	var _isPrefixedProperty = __webpack_require__(582);
+	var _isPrefixedProperty = __webpack_require__(584);
 	
 	var _isPrefixedProperty2 = _interopRequireDefault(_isPrefixedProperty);
 	
@@ -48938,7 +49685,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 582 */
+/* 584 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -48954,7 +49701,7 @@
 	module.exports = exports["default"];
 
 /***/ },
-/* 583 */
+/* 585 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -48971,7 +49718,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 584 */
+/* 586 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -48981,11 +49728,11 @@
 	});
 	exports.default = calc;
 	
-	var _joinPrefixedValue = __webpack_require__(585);
+	var _joinPrefixedValue = __webpack_require__(587);
 	
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 	
-	var _isPrefixedValue = __webpack_require__(586);
+	var _isPrefixedValue = __webpack_require__(588);
 	
 	var _isPrefixedValue2 = _interopRequireDefault(_isPrefixedValue);
 	
@@ -49003,7 +49750,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 585 */
+/* 587 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49034,7 +49781,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 586 */
+/* 588 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49052,7 +49799,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 587 */
+/* 589 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -49062,7 +49809,7 @@
 	});
 	exports.default = cursor;
 	
-	var _joinPrefixedValue = __webpack_require__(585);
+	var _joinPrefixedValue = __webpack_require__(587);
 	
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 	
@@ -49085,7 +49832,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 588 */
+/* 590 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49106,7 +49853,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 589 */
+/* 591 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -49116,7 +49863,7 @@
 	});
 	exports.default = sizing;
 	
-	var _joinPrefixedValue = __webpack_require__(585);
+	var _joinPrefixedValue = __webpack_require__(587);
 	
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 	
@@ -49149,7 +49896,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 590 */
+/* 592 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -49159,11 +49906,11 @@
 	});
 	exports.default = gradient;
 	
-	var _joinPrefixedValue = __webpack_require__(585);
+	var _joinPrefixedValue = __webpack_require__(587);
 	
 	var _joinPrefixedValue2 = _interopRequireDefault(_joinPrefixedValue);
 	
-	var _isPrefixedValue = __webpack_require__(586);
+	var _isPrefixedValue = __webpack_require__(588);
 	
 	var _isPrefixedValue2 = _interopRequireDefault(_isPrefixedValue);
 	
@@ -49181,7 +49928,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 591 */
+/* 593 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -49191,19 +49938,19 @@
 	});
 	exports.default = transition;
 	
-	var _hyphenateStyleName = __webpack_require__(592);
+	var _hyphenateStyleName = __webpack_require__(594);
 	
 	var _hyphenateStyleName2 = _interopRequireDefault(_hyphenateStyleName);
 	
-	var _capitalizeString = __webpack_require__(580);
+	var _capitalizeString = __webpack_require__(582);
 	
 	var _capitalizeString2 = _interopRequireDefault(_capitalizeString);
 	
-	var _isPrefixedValue = __webpack_require__(586);
+	var _isPrefixedValue = __webpack_require__(588);
 	
 	var _isPrefixedValue2 = _interopRequireDefault(_isPrefixedValue);
 	
-	var _prefixProps = __webpack_require__(579);
+	var _prefixProps = __webpack_require__(581);
 	
 	var _prefixProps2 = _interopRequireDefault(_prefixProps);
 	
@@ -49276,7 +50023,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 592 */
+/* 594 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49292,7 +50039,7 @@
 	module.exports = hyphenateStyleName;
 
 /***/ },
-/* 593 */
+/* 595 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49335,7 +50082,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 594 */
+/* 596 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -49382,7 +50129,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 595 */
+/* 597 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -49391,7 +50138,7 @@
 	  value: true
 	});
 	
-	var _bowser = __webpack_require__(596);
+	var _bowser = __webpack_require__(598);
 	
 	var _bowser2 = _interopRequireDefault(_bowser);
 	
@@ -49497,7 +50244,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 596 */
+/* 598 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -49509,7 +50256,7 @@
 	 */
 	
 	!function (root, name, definition) {
-	  if (typeof module != 'undefined' && module.exports) module.exports = definition();else if (true) __webpack_require__(597)(name, definition);else root[name] = definition();
+	  if (typeof module != 'undefined' && module.exports) module.exports = definition();else if (true) __webpack_require__(599)(name, definition);else root[name] = definition();
 	}(undefined, 'bowser', function () {
 	  /**
 	    * See useragents.js for examples of navigator.userAgent
@@ -50015,14 +50762,14 @@
 	});
 
 /***/ },
-/* 597 */
+/* 599 */
 /***/ function(module, exports) {
 
 	module.exports = function() { throw new Error("define cannot be used indirect"); };
 
 
 /***/ },
-/* 598 */
+/* 600 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -50047,7 +50794,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 599 */
+/* 601 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -50059,7 +50806,7 @@
 	module.exports = exports["default"];
 
 /***/ },
-/* 600 */
+/* 602 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50069,7 +50816,7 @@
 	});
 	exports.default = position;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50099,7 +50846,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 601 */
+/* 603 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -50115,7 +50862,7 @@
 	module.exports = exports["default"];
 
 /***/ },
-/* 602 */
+/* 604 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50125,7 +50872,7 @@
 	});
 	exports.default = calc;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50157,7 +50904,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 603 */
+/* 605 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50167,7 +50914,7 @@
 	});
 	exports.default = zoomCursor;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50195,7 +50942,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 604 */
+/* 606 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50205,7 +50952,7 @@
 	});
 	exports.default = grabCursor;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50232,7 +50979,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 605 */
+/* 607 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50242,7 +50989,7 @@
 	});
 	exports.default = flex;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50270,7 +51017,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 606 */
+/* 608 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50280,7 +51027,7 @@
 	});
 	exports.default = sizing;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50328,7 +51075,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 607 */
+/* 609 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50338,7 +51085,7 @@
 	});
 	exports.default = gradient;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50372,7 +51119,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 608 */
+/* 610 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50391,11 +51138,11 @@
 	
 	exports.default = transition;
 	
-	var _hyphenateStyleName = __webpack_require__(592);
+	var _hyphenateStyleName = __webpack_require__(594);
 	
 	var _hyphenateStyleName2 = _interopRequireDefault(_hyphenateStyleName);
 	
-	var _unprefixProperty = __webpack_require__(609);
+	var _unprefixProperty = __webpack_require__(611);
 	
 	var _unprefixProperty2 = _interopRequireDefault(_unprefixProperty);
 	
@@ -50452,7 +51199,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 609 */
+/* 611 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -50469,7 +51216,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 610 */
+/* 612 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50479,7 +51226,7 @@
 	});
 	exports.default = flexboxIE;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50541,7 +51288,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 611 */
+/* 613 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50551,7 +51298,7 @@
 	});
 	exports.default = flexboxOld;
 	
-	var _getPrefixedValue = __webpack_require__(601);
+	var _getPrefixedValue = __webpack_require__(603);
 	
 	var _getPrefixedValue2 = _interopRequireDefault(_getPrefixedValue);
 	
@@ -50620,7 +51367,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 612 */
+/* 614 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
@@ -50654,7 +51401,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 613 */
+/* 615 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50663,7 +51410,7 @@
 	  value: true
 	});
 	
-	var _keys = __webpack_require__(614);
+	var _keys = __webpack_require__(616);
 	
 	var _keys2 = _interopRequireDefault(_keys);
 	
@@ -50758,24 +51505,24 @@
 	}
 
 /***/ },
-/* 614 */
+/* 616 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 	
-	module.exports = { "default": __webpack_require__(615), __esModule: true };
+	module.exports = { "default": __webpack_require__(617), __esModule: true };
 
 /***/ },
-/* 615 */
+/* 617 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	__webpack_require__(616);
+	__webpack_require__(618);
 	module.exports = __webpack_require__(298).Object.keys;
 
 /***/ },
-/* 616 */
+/* 618 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50791,7 +51538,7 @@
 	});
 
 /***/ },
-/* 617 */
+/* 619 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -50821,7 +51568,7 @@
 	}
 
 /***/ },
-/* 618 */
+/* 620 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -50834,7 +51581,7 @@
 	
 	var _classCallCheck3 = _interopRequireDefault(_classCallCheck2);
 	
-	var _colors = __webpack_require__(573);
+	var _colors = __webpack_require__(575);
 	
 	function _interopRequireDefault(obj) {
 	  return obj && obj.__esModule ? obj : { default: obj };
@@ -50863,13 +51610,13 @@
 	exports.default = new Typography();
 
 /***/ },
-/* 619 */
+/* 621 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 	
 	var invariant = __webpack_require__(8);
-	var defaultClickRejectionStrategy = __webpack_require__(620);
+	var defaultClickRejectionStrategy = __webpack_require__(622);
 	
 	var alreadyInjected = false;
 	
@@ -50888,13 +51635,13 @@
 	  alreadyInjected = true;
 	
 	  __webpack_require__(42).injection.injectEventPluginsByName({
-	    'TapEventPlugin': __webpack_require__(621)(shouldRejectClick)
+	    'TapEventPlugin': __webpack_require__(623)(shouldRejectClick)
 	  });
 	};
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3)))
 
 /***/ },
-/* 620 */
+/* 622 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -50906,7 +51653,7 @@
 	};
 
 /***/ },
-/* 621 */
+/* 623 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -50930,14 +51677,14 @@
 	
 	"use strict";
 	
-	var EventConstants = __webpack_require__(622);
+	var EventConstants = __webpack_require__(624);
 	var EventPluginUtils = __webpack_require__(44);
 	var EventPropagators = __webpack_require__(41);
 	var SyntheticUIEvent = __webpack_require__(75);
-	var TouchEventUtils = __webpack_require__(623);
+	var TouchEventUtils = __webpack_require__(625);
 	var ViewportMetrics = __webpack_require__(76);
 	
-	var keyOf = __webpack_require__(624);
+	var keyOf = __webpack_require__(626);
 	var topLevelTypes = EventConstants.topLevelTypes;
 	
 	var isStartish = EventPluginUtils.isStartish;
@@ -51053,7 +51800,7 @@
 	module.exports = createTapEventPlugin;
 
 /***/ },
-/* 622 */
+/* 624 */
 /***/ function(module, exports) {
 
 	/**
@@ -51150,7 +51897,7 @@
 	module.exports = EventConstants;
 
 /***/ },
-/* 623 */
+/* 625 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -51197,7 +51944,7 @@
 	module.exports = TouchEventUtils;
 
 /***/ },
-/* 624 */
+/* 626 */
 /***/ function(module, exports) {
 
 	"use strict";

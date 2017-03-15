@@ -1,4 +1,6 @@
 import React, { Component } from 'react';
+import Ansi from 'ansi-to-react';
+
 
 export default class Logs extends Component {
     constructor(props) {
@@ -11,9 +13,9 @@ export default class Logs extends Component {
     }
 
     handleData(data) {
-        const existingLogs = this.state.logs;
+        const logs = this.state.logs + '\n' + data;
         this.setState({
-            logs: existingLogs + data
+            logs: logs
         });
     }
 
@@ -33,7 +35,7 @@ export default class Logs extends Component {
     render() {
         return (
             <div className="terminal">
-                {this.state.logs}
+                <Ansi>{this.state.logs}</Ansi>
             </div>
         );
     }
