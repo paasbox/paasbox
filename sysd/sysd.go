@@ -197,8 +197,10 @@ func (s *sysd) stop(stopTasks bool) {
 		}
 	}
 	s.stateLoader.Close()
-	if err := s.logDriver.Stop(); err != nil {
-		log.Error(err, nil)
+	if s.logDriver != nil {
+		if err := s.logDriver.Stop(); err != nil {
+			log.Error(err, nil)
+		}
 	}
 	if err := s.server.Stop(); err != nil {
 		log.Error(err, nil)
