@@ -124,9 +124,12 @@ func (s *srv) Start(bindAddr string) error {
 // Stop ...
 func (s *srv) Stop() error {
 	log.Debug("stopping http server", nil)
-	err := s.server.Shutdown(nil)
-	if err != nil {
-		log.Error(errStoppingServer, log.Data{"reason": err})
+	if s.server != nil {
+		err := s.server.Shutdown(nil)
+		if err != nil {
+			log.Error(errStoppingServer, log.Data{"reason": err})
+		}
+		return err
 	}
-	return err
+	return nil
 }

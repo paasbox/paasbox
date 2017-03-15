@@ -6,6 +6,9 @@ import (
 	"os"
 	"strings"
 
+	"fmt"
+	"strconv"
+
 	"github.com/gorilla/websocket"
 	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/log"
@@ -25,6 +28,19 @@ func (s *srv) getInstanceStdout(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Request) {
+	/*
+		TODO
+
+		Finish implementing range/offset, but its currently wrong
+
+		In normal 'download' mode, default is to return the entire file,
+		controlled by Range header
+
+		In tail mode, default should be to get last few thousand bytes of the file,
+		unless its overridden by query string. offset/length sort of works, but need
+		a way to specify "last n bytes" - maybe do similar to how `tail -f` works?
+	*/
+
 	var useWS bool
 	if strings.HasSuffix(req.URL.Path, ".ws") {
 		useWS = true
@@ -78,9 +94,56 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		return
 	}
 
+	w.Header().Set("Accept-Ranges", "bytes")
+
+	var offset, end int64 = -1, -1
+
+	if r := req.Header.Get("Range"); len(r) > 0 {
+		p := strings.SplitN(r, "-", 2)
+		i, err := strconv.ParseInt(p[0], 10, 64)
+		if err != nil {
+			w.WriteHeader(400)
+			w.Write([]byte(fmt.Sprintf("invalid range header: %s", err)))
+			return
+		}
+		offset = i
+		if len(p) > 1 && len(p[1]) > 0 {
+			i, err := strconv.ParseInt(p[1], 10, 64)
+			if err != nil {
+				w.WriteHeader(400)
+				w.Write([]byte(fmt.Sprintf("invalid range header (end): %s", err)))
+				return
+			}
+			end = i
+		}
+	} else if r := req.URL.Query().Get("offset"); len(r) > 0 {
+		i, err := strconv.ParseInt(r, 10, 64)
+		if err != nil {
+			w.WriteHeader(400)
+			w.Write([]byte(fmt.Sprintf("invalid offset parameter: %s", err)))
+			return
+		}
+		offset = i
+		if s := req.URL.Query().Get("length"); len(s) > 0 {
+			i, err := strconv.ParseInt(r, 10, 64)
+			if err != nil {
+				w.WriteHeader(400)
+				w.Write([]byte(fmt.Sprintf("invalid length parameter: %s", err)))
+				return
+			}
+			end = offset + i
+		}
+	}
+
 	if isTail {
 		var t *tail.Tail
-		t, err = tail.TailFile(logFile, tail.Config{Follow: true})
+		wh := os.SEEK_END
+		if offset > -1 {
+			wh = os.SEEK_SET
+		} else {
+			offset = -1024
+		}
+		t, err = tail.TailFile(logFile, tail.Config{Follow: true, Location: &tail.SeekInfo{Offset: offset, Whence: wh}})
 		if err != nil {
 			w.WriteHeader(500)
 			log.ErrorR(req, err, nil)
@@ -92,27 +155,60 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		}
 
 		if useWS {
+			log.DebugR(req, "upgrading connection to websocket", nil)
 			conn, err := upgrader.Upgrade(w, req, nil)
 			if err != nil {
 				w.WriteHeader(400)
 				log.ErrorR(req, err, nil)
 				return
 			}
+
+			log.DebugR(req, "beginning range over lines", nil)
 			for line := range t.Lines {
 				err = conn.WriteMessage(websocket.TextMessage, []byte(line.Text))
 				if err != nil {
-					t.Stop()
+					log.ErrorR(req, err, nil)
+					err := t.Stop()
+					if err != nil {
+						log.ErrorR(req, err, nil)
+					}
+					t.Cleanup()
 					break
 				}
+				if end > -1 {
+					if o, err := t.Tell(); err != nil && o > end {
+						log.DebugR(req, "stopping tail, end exceeded", nil)
+						err := t.Stop()
+						if err != nil {
+							log.ErrorR(req, err, nil)
+						}
+						t.Cleanup()
+						break
+					}
+				}
 			}
+
+			err = t.Stop()
+			if err != nil {
+				log.ErrorR(req, err, nil)
+			}
+			t.Cleanup()
+
 			conn.Close()
 			return
 		}
 
+		log.DebugR(req, "beginning range over lines", nil)
+
 		for line := range t.Lines {
 			_, err = w.Write([]byte(line.Text + "\n"))
 			if err != nil {
-				t.Stop()
+				log.ErrorR(req, err, nil)
+				err := t.Stop()
+				if err != nil {
+					log.ErrorR(req, err, nil)
+				}
+				t.Cleanup()
 				break
 			}
 			if flusher != nil {
@@ -120,8 +216,16 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			}
 		}
 
+		err := t.Stop()
+		if err != nil {
+			log.ErrorR(req, err, nil)
+		}
+		t.Cleanup()
+
 		return
 	}
+
+	log.DebugR(req, "reading file from disk", nil)
 
 	b, err := ioutil.ReadFile(logFile)
 	if err != nil {

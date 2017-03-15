@@ -1,0 +1,14 @@
+{
+  "id": "log-test",
+  "name": "Log test",
+  "tasks": [
+    {
+      "id": "log-test",
+      "name": "Output a log line every second",
+      "service": true,
+      "persist": false,
+      "driver": "shell",
+      "command": "go run example/rapidlog.go"
+    }
+  ]
+}
