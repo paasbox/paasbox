@@ -162,14 +162,6 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			flusher = f
 		}
 
-		offset, err := t.Tell()
-		if err != nil {
-			// FIXME logging error but silently ignoring
-			// not sure what ideal behaviour is here, log tailing will still work, but
-			// offset data for back scroll won't be available
-			log.ErrorR(req, err, nil)
-		}
-
 		if useWS {
 			log.DebugR(req, "upgrading connection to websocket", nil)
 			conn, err := upgrader.Upgrade(w, req, nil)
@@ -190,15 +182,25 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 				}
 			}()
 
-			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Offset: %d", offset)))
-			if err != nil {
-
-				log.ErrorR(req, err, nil)
-				return
-			}
-
 			log.DebugR(req, "beginning range over lines", nil)
+			firstLine := true
 			for line := range t.Lines {
+				if firstLine {
+					offset, err := t.Tell()
+					if err != nil {
+						// FIXME logging error but silently ignoring
+						// not sure what ideal behaviour is here, log tailing will still work, but
+						// offset data for back scroll won't be available
+						log.ErrorR(req, err, nil)
+					} else {
+						err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Offset: %d", offset)))
+						if err != nil {
+							log.ErrorR(req, err, nil)
+							return
+						}
+					}
+					firstLine = false
+				}
 				err = conn.WriteMessage(websocket.TextMessage, []byte(line.Text))
 				if err != nil {
 					log.ErrorR(req, err, nil)
