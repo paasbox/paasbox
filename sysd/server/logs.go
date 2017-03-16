@@ -17,6 +17,9 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(req *http.Request) bool {
+		return true
+	},
 }
 
 func (s *srv) getInstanceStderr(w http.ResponseWriter, req *http.Request) {
@@ -176,8 +179,20 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 				return
 			}
 
+			defer conn.Close()
+
+			go func() {
+				for {
+					if _, _, err := conn.NextReader(); err != nil {
+						conn.Close()
+						break
+					}
+				}
+			}()
+
 			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Offset: %d", offset)))
 			if err != nil {
+
 				log.ErrorR(req, err, nil)
 				return
 			}
@@ -200,7 +215,6 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 				}
 			}
 
-			conn.Close()
 			return
 		}
 
@@ -280,7 +294,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		_, err = io.Copy(w, lf)
 	}
 
-	if err != nil {
+	if err != nil && err != io.EOF {
 		log.ErrorR(req, err, nil)
 	}
 }
