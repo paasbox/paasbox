@@ -113,7 +113,7 @@ func (s *srv) Start(bindAddr string) error {
 	go func() {
 		log.Debug("calling Serve", nil)
 		err := s.server.Serve(l)
-		if err != nil {
+		if err != nil && err != http.ErrServerClosed {
 			log.Error(errStartingServer, log.Data{"reason": err})
 		}
 	}()
