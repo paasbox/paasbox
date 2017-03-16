@@ -1,7 +1,6 @@
 package server
 
 import (
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/golang/go/src/io"
 	"github.com/gorilla/websocket"
 	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/log"
@@ -144,15 +144,27 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		} else {
 			offset = -1024
 		}
+
 		t, err = s.tailMap.get(logFile, offset, wh)
 		if err != nil {
 			w.WriteHeader(500)
 			log.ErrorR(req, err, nil)
 			return
 		}
+
+		defer s.tailMap.done(logFile, t)
+
 		var flusher http.Flusher
 		if f, ok := w.(http.Flusher); ok {
 			flusher = f
+		}
+
+		offset, err := t.Tell()
+		if err != nil {
+			// FIXME logging error but silently ignoring
+			// not sure what ideal behaviour is here, log tailing will still work, but
+			// offset data for back scroll won't be available
+			log.ErrorR(req, err, nil)
 		}
 
 		if useWS {
@@ -164,24 +176,29 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 				return
 			}
 
+			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Offset: %d", offset)))
+			if err != nil {
+				log.ErrorR(req, err, nil)
+				return
+			}
+
 			log.DebugR(req, "beginning range over lines", nil)
 			for line := range t.Lines {
 				err = conn.WriteMessage(websocket.TextMessage, []byte(line.Text))
 				if err != nil {
 					log.ErrorR(req, err, nil)
-					s.tailMap.done(logFile, t)
 					break
 				}
+				// FIXME does this even make sense? why would we limit tail output on the server side,
+				// when the client can just close the connection?
 				if end > -1 {
+					// FIXME this isn't 100% reliable (see https://godoc.org/github.com/hpcloud/tail docs)
 					if o, err := t.Tell(); err != nil && o > end {
 						log.DebugR(req, "stopping tail, end exceeded", nil)
-						s.tailMap.done(logFile, t)
 						break
 					}
 				}
 			}
-
-			s.tailMap.done(logFile, t)
 
 			conn.Close()
 			return
@@ -193,7 +210,6 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			_, err = w.Write([]byte(line.Text + "\n"))
 			if err != nil {
 				log.ErrorR(req, err, nil)
-				s.tailMap.done(logFile, t)
 				break
 			}
 			if flusher != nil {
@@ -201,21 +217,70 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			}
 		}
 
-		s.tailMap.done(logFile, t)
-
 		return
 	}
 
 	log.DebugR(req, "reading file from disk", nil)
+	var size int64 = -1
 
-	// TODO handle range values
-
-	b, err := ioutil.ReadFile(logFile)
-	if err != nil {
-		w.WriteHeader(500)
-		log.ErrorR(req, err, nil)
-		return
+	if offset > -1 || end > -1 {
+		stat, err := os.Stat(logFile)
+		if err != nil {
+			log.ErrorR(req, err, nil)
+			w.WriteHeader(404)
+			return
+		}
+		if (offset > -1 && offset > stat.Size()) || (end > -1 && end > stat.Size()) {
+			w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
+			return
+		}
+		size = stat.Size()
+		if end == -1 {
+			end = size
+		}
 	}
 
-	w.Write(b)
+	lf, err := os.OpenFile(logFile, os.O_RDONLY, 0)
+	if err != nil {
+		log.ErrorR(req, err, nil)
+		w.WriteHeader(404)
+		return
+	}
+	defer lf.Close()
+
+	if offset > -1 || end > -1 {
+		_, err = lf.Seek(offset, os.SEEK_SET)
+		if err != nil {
+			log.ErrorR(req, err, nil)
+			w.WriteHeader(500)
+			return
+		}
+
+		var rng string
+		if offset > -1 {
+			rng += fmt.Sprintf("%d-", offset)
+		}
+		if end > -1 {
+			if offset == -1 {
+				rng += "-"
+			}
+			rng += fmt.Sprintf("%d", end)
+		}
+		if size > -1 {
+			rng += fmt.Sprintf("/%d", size)
+		}
+
+		w.Header().Set("Content-Range", rng)
+		w.WriteHeader(http.StatusPartialContent)
+	}
+
+	if end > -1 {
+		_, err = io.CopyN(w, lf, end-offset)
+	} else {
+		_, err = io.Copy(w, lf)
+	}
+
+	if err != nil {
+		log.ErrorR(req, err, nil)
+	}
 }
