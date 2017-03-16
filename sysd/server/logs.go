@@ -172,7 +172,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 					if err != nil {
 						log.ErrorR(req, err, nil)
 					}
-					t.Cleanup()
+					//t.Cleanup()
 					break
 				}
 				if end > -1 {
@@ -182,7 +182,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 						if err != nil {
 							log.ErrorR(req, err, nil)
 						}
-						t.Cleanup()
+						//t.Cleanup()
 						break
 					}
 				}
@@ -192,7 +192,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			if err != nil {
 				log.ErrorR(req, err, nil)
 			}
-			t.Cleanup()
+			//t.Cleanup()
 
 			conn.Close()
 			return
@@ -208,7 +208,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 				if err != nil {
 					log.ErrorR(req, err, nil)
 				}
-				t.Cleanup()
+				//t.Cleanup()
 				break
 			}
 			if flusher != nil {
@@ -220,12 +220,14 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		if err != nil {
 			log.ErrorR(req, err, nil)
 		}
-		t.Cleanup()
+		//t.Cleanup()
 
 		return
 	}
 
 	log.DebugR(req, "reading file from disk", nil)
+
+	// TODO handle range values
 
 	b, err := ioutil.ReadFile(logFile)
 	if err != nil {
