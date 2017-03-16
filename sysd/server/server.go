@@ -4,9 +4,11 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/pat"
+	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/handlers/requestID"
 	"github.com/ian-kent/service.go/log"
 	"github.com/justinas/alice"
@@ -28,8 +30,15 @@ type Sysd interface {
 }
 
 type srv struct {
-	server *http.Server
-	sysd   Sysd
+	server  *http.Server
+	sysd    Sysd
+	tailMap *tailMap
+}
+
+type tailMap struct {
+	mtx       *sync.Mutex
+	fileCount map[string]int
+	tails     map[string][]*tail.Tail
 }
 
 var (
@@ -39,7 +48,74 @@ var (
 
 // New ...
 func New(sysd Sysd) Server {
-	return &srv{nil, sysd}
+	return &srv{nil, sysd, &tailMap{
+		mtx:       new(sync.Mutex),
+		fileCount: make(map[string]int),
+		tails:     make(map[string][]*tail.Tail),
+	}}
+}
+
+func (t *tailMap) Stop() {
+	for _, f := range t.tails {
+		for _, f2 := range f {
+			f2.Stop()
+			f2.Cleanup()
+		}
+	}
+}
+
+func (t *tailMap) done(file string, tf *tail.Tail) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+
+	if _, ok := t.fileCount[file]; !ok {
+		log.Debug("file not found in fileCount", log.Data{"file": file})
+		return
+	}
+
+	t.fileCount[file]--
+
+	if t.fileCount[file] == 0 {
+		log.Debug("fileCount is zero, stopping tf", log.Data{"file": file})
+		err := tf.Stop()
+		if err != nil {
+			log.Error(err, nil)
+		}
+		tf.Cleanup()
+	}
+
+	var tfArr []*tail.Tail
+	for _, tf2 := range t.tails[file] {
+		if tf2 != tf {
+			tfArr = append(tfArr, tf2)
+		}
+	}
+	t.tails[file] = tfArr
+}
+
+func (t *tailMap) get(file string, offset int64, whence int) (*tail.Tail, error) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+
+	if _, ok := t.fileCount[file]; !ok {
+		log.Debug("first tail, adding entry to fileCount", log.Data{"file": file})
+		t.fileCount[file] = 0
+	}
+	t.fileCount[file]++
+
+	tf, err := tail.TailFile(file, tail.Config{Follow: true, Location: &tail.SeekInfo{Offset: offset, Whence: whence}})
+	if err != nil {
+		log.Error(err, nil)
+		t.fileCount[file]--
+		return nil, err
+	}
+
+	if _, ok := t.tails[file]; !ok {
+		t.tails[file] = make([]*tail.Tail, 0)
+	}
+	t.tails[file] = append(t.tails[file], tf)
+
+	return tf, nil
 }
 
 // Start ...
@@ -123,6 +199,10 @@ func (s *srv) Start(bindAddr string) error {
 
 // Stop ...
 func (s *srv) Stop() error {
+	log.Debug("stopping tail", nil)
+	if s.tailMap != nil {
+		s.tailMap.Stop()
+	}
 	log.Debug("stopping http server", nil)
 	if s.server != nil {
 		err := s.server.Shutdown(nil)

@@ -137,13 +137,14 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 
 	if isTail {
 		var t *tail.Tail
+
 		wh := os.SEEK_END
 		if offset > -1 {
 			wh = os.SEEK_SET
 		} else {
 			offset = -1024
 		}
-		t, err = tail.TailFile(logFile, tail.Config{Follow: true, Location: &tail.SeekInfo{Offset: offset, Whence: wh}})
+		t, err = s.tailMap.get(logFile, offset, wh)
 		if err != nil {
 			w.WriteHeader(500)
 			log.ErrorR(req, err, nil)
@@ -168,31 +169,19 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 				err = conn.WriteMessage(websocket.TextMessage, []byte(line.Text))
 				if err != nil {
 					log.ErrorR(req, err, nil)
-					err := t.Stop()
-					if err != nil {
-						log.ErrorR(req, err, nil)
-					}
-					//t.Cleanup()
+					s.tailMap.done(logFile, t)
 					break
 				}
 				if end > -1 {
 					if o, err := t.Tell(); err != nil && o > end {
 						log.DebugR(req, "stopping tail, end exceeded", nil)
-						err := t.Stop()
-						if err != nil {
-							log.ErrorR(req, err, nil)
-						}
-						//t.Cleanup()
+						s.tailMap.done(logFile, t)
 						break
 					}
 				}
 			}
 
-			err = t.Stop()
-			if err != nil {
-				log.ErrorR(req, err, nil)
-			}
-			//t.Cleanup()
+			s.tailMap.done(logFile, t)
 
 			conn.Close()
 			return
@@ -204,11 +193,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			_, err = w.Write([]byte(line.Text + "\n"))
 			if err != nil {
 				log.ErrorR(req, err, nil)
-				err := t.Stop()
-				if err != nil {
-					log.ErrorR(req, err, nil)
-				}
-				//t.Cleanup()
+				s.tailMap.done(logFile, t)
 				break
 			}
 			if flusher != nil {
@@ -216,11 +201,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			}
 		}
 
-		err := t.Stop()
-		if err != nil {
-			log.ErrorR(req, err, nil)
-		}
-		//t.Cleanup()
+		s.tailMap.done(logFile, t)
 
 		return
 	}
