@@ -1,0 +1,22 @@
+{
+  "id": "workspace-init",
+  "name": "Workspace init example",
+  "tasks": [
+    {
+      "id": "log-test",
+      "name": "Output a log line every second",
+      "service": true,
+      "persist": false,
+      "driver": "shell",
+      "command": "go run example/main.go",
+      "init": [
+        {
+          "type": "git",
+          "source": "git@github.com:paasbox/paasbox",
+          "dest": "$GOPATH/github.com/paasbox/paasbox-test",
+          "branch": "master"
+        }
+      ]
+    }
+  ]
+}

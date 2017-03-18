@@ -61,22 +61,23 @@ type Task interface {
 
 // Config ...
 type Config struct {
-	ID           string              `json:"id"`
-	Name         string              `json:"name"`
-	Service      bool                `json:"service"`
-	Persist      bool                `json:"persist"`
-	Driver       string              `json:"driver"`
-	Command      string              `json:"command"`
-	Args         []string            `json:"args"`
-	Env          []string            `json:"env"`
-	Pwd          string              `json:"pwd"`
-	Ports        []int               `json:"ports"`
-	PortMap      []int               `json:"port_map"`
-	Instances    int                 `json:"instances"`
-	Healthchecks []HealthcheckConfig `json:"healthchecks"`
-	Image        string              `json:"image"`
-	Network      string              `json:"network"`
-	Volumes      []string            `json:"volumes"`
+	ID           string                   `json:"id"`
+	Name         string                   `json:"name"`
+	Service      bool                     `json:"service"`
+	Persist      bool                     `json:"persist"`
+	Driver       string                   `json:"driver"`
+	Command      string                   `json:"command"`
+	Args         []string                 `json:"args"`
+	Env          []string                 `json:"env"`
+	Pwd          string                   `json:"pwd"`
+	Ports        []int                    `json:"ports"`
+	PortMap      []int                    `json:"port_map"`
+	Instances    int                      `json:"instances"`
+	Healthchecks []HealthcheckConfig      `json:"healthchecks"`
+	Image        string                   `json:"image"`
+	Network      string                   `json:"network"`
+	Volumes      []string                 `json:"volumes"`
+	Init         []map[string]interface{} `json:"init"`
 }
 
 // WithEnv ...
@@ -116,6 +117,7 @@ type task struct {
 	stopped       bool
 	execCount     int
 	execMutex     *sync.Mutex
+	init          []taskInit
 }
 
 type taskInstance struct {
@@ -160,6 +162,22 @@ func NewTask(workspaceID string, store state.Store, logDriver logger.Driver, lb 
 		},
 		instances: make(map[string]taskInstance),
 		store:     store,
+	}
+	for _, i := range config.Init {
+		if tt, ok := i["type"]; ok {
+			switch tt {
+			case "git":
+				gI, err := NewGitInit(i)
+				if err != nil {
+					return nil, err
+				}
+				t.init = append(t.init, gI)
+			default:
+				return nil, fmt.Errorf("unknown init type: %s", t)
+			}
+		} else {
+			return nil, errors.New("init type not specified")
+		}
 	}
 	for _, hc := range config.Healthchecks {
 		var d time.Duration
