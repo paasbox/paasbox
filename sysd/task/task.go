@@ -31,6 +31,7 @@ var _ Task = &task{}
 
 // Task ...
 type Task interface {
+	Init() error
 	Start() error
 	Stop() error
 	Recover() (ok bool, err error)
@@ -125,8 +126,6 @@ type taskInstance struct {
 	instance Instance
 }
 
-var _ Task = &task{}
-
 // NewTask ...
 func NewTask(workspaceID string, store state.Store, logDriver logger.Driver, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
 	if config.Driver == "docker" && !pconfig.HasDocker {
@@ -167,7 +166,7 @@ func NewTask(workspaceID string, store state.Store, logDriver logger.Driver, lb 
 		if tt, ok := i["type"]; ok {
 			switch tt {
 			case "git":
-				gI, err := NewGitInit(i)
+				gI, err := NewGitInit(t, i, t.env)
 				if err != nil {
 					return nil, err
 				}
@@ -495,6 +494,21 @@ func (t *task) Recover() (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (t *task) Init() error {
+	t.log("initialising task", nil)
+
+	for _, i := range t.init {
+		err := i.Do()
+		if err != nil {
+			return err
+		}
+	}
+
+	t.log("task initialisation complete", nil)
+
+	return nil
 }
 
 func (t *task) Start() error {

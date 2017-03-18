@@ -11,6 +11,8 @@ import (
 
 	"fmt"
 
+	"sync"
+
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/assets"
 	"github.com/paasbox/paasbox/config"
@@ -135,6 +137,29 @@ func New(exitCh chan struct{}) Sysd {
 			fmt.Printf("error loading workspace %s: %s\n", workspaceFile, err)
 			os.Exit(1)
 		}
+	}
+
+	var wg sync.WaitGroup
+	var initErrors bool
+
+	for _, ws := range s.workspaces {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			err := ws.Init()
+			if err != nil {
+				fmt.Printf("error initialising workspace %s: %s\n", ws.ID(), err)
+				initErrors = true
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	if initErrors {
+		fmt.Println("workspace initialisation failed")
+		os.Exit(1)
 	}
 
 	return s

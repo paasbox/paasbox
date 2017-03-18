@@ -1,6 +1,9 @@
 {
   "id": "workspace-init",
   "name": "Workspace init example",
+  "env": {
+    "inherit": [ "GOPATH" ]
+  },
   "tasks": [
     {
       "id": "log-test",
@@ -13,7 +16,7 @@
         {
           "type": "git",
           "source": "git@github.com:paasbox/paasbox",
-          "dest": "$GOPATH/github.com/paasbox/paasbox-test",
+          "dest": "$GOPATH/src/github.com/paasbox/paasbox-test",
           "branch": "master"
         }
       ]

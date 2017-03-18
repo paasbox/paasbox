@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"sync"
+
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
@@ -25,6 +27,7 @@ var (
 
 // Workspace ...
 type Workspace interface {
+	Init() error
 	Start() error
 	Stop() error
 	Shutdown() error
@@ -239,6 +242,56 @@ func (ws *workspace) error(err error, reason error, data log.Data) {
 	data["error"] = err
 	data["reason"] = reason
 	ws.log("error", data)
+}
+
+type initError struct {
+	error
+	errs []error
+}
+
+func (ws *workspace) Init() (err error) {
+	ws.log("initialising workspace", nil)
+
+	var wg sync.WaitGroup
+	errChan := make(chan error)
+	var errs []error
+
+	go func() {
+		for {
+			if errChan == nil {
+				break
+			}
+
+			select {
+			case e := <-errChan:
+				errs = append(errs, e)
+			}
+		}
+	}()
+
+	for _, t := range ws.tasks {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			err := t.Init()
+			if err != nil {
+				errChan <- err
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	if len(errs) > 0 {
+		err = initError{errors.New("workspace initialisation failed"), errs}
+		return
+	}
+
+	ws.log("workspace initialisation complete", nil)
+
+	return
 }
 
 func (ws *workspace) Start() error {
