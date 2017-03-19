@@ -1,4 +1,4 @@
-baseURL = "https://paasbox.github.io/"
+baseURL = "http://paasbox.io/"
 languageCode = "en-us"
 title = "paasbox"
 
