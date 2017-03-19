@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Configurations on paasbox</title>
+    <link>https://paasbox.github.io/configuration/index.xml</link>
+    <description>Recent content in Configurations on paasbox</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>Released under the MIT license</copyright>
+    <lastBuildDate>Tue, 08 Mar 2016 21:07:13 +0100</lastBuildDate>
+    <atom:link href="https://paasbox.github.io/configuration/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>Configuration</title>
+      <link>https://paasbox.github.io/configuration/</link>
+      <pubDate>Tue, 08 Mar 2016 21:07:13 +0100</pubDate>
+      
+      <guid>https://paasbox.github.io/configuration/</guid>
+      <description>
+
+&lt;h2 id=&#34;command-line&#34;&gt;Command line&lt;/h2&gt;
+
+&lt;p&gt;There are no command line parameters.&lt;/p&gt;
+
+&lt;p&gt;Anything which follows &lt;code&gt;pb&lt;/code&gt; will be treated as a workspace file.&lt;/p&gt;
+
+&lt;h2 id=&#34;environment-variables&#34;&gt;Environment variables&lt;/h2&gt;
+
+&lt;p&gt;You can control global paasbox options using environment variables.&lt;/p&gt;
+
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Environment variable&lt;/th&gt;
+&lt;th&gt;Default&lt;/th&gt;
+&lt;th&gt;Description&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;BIND_ADDR&lt;/td&gt;
+&lt;td&gt;:8080&lt;/td&gt;
+&lt;td&gt;The host/port to listen on&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;PAASBOX_PROFILE_CPU&lt;/td&gt;
+&lt;td&gt;n&lt;/td&gt;
+&lt;td&gt;Enable CPU profiling&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;PB_DEBUG&lt;/td&gt;
+&lt;td&gt;n&lt;/td&gt;
+&lt;td&gt;Enable BoltDB logging&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;PAASBOX_LB_LOG&lt;/td&gt;
+&lt;td&gt;n&lt;/td&gt;
+&lt;td&gt;Enable load balancer logging&lt;/td&gt;
+&lt;/tr&gt;
+
+&lt;tr&gt;
+&lt;td&gt;PAASBOX_LOG&lt;/td&gt;
+&lt;td&gt;&lt;/td&gt;
+&lt;td&gt;Logstash endpoint for centralised logging&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h2 id=&#34;workspace-files&#34;&gt;Workspace files&lt;/h2&gt;
+
+&lt;p&gt;A workspace file defines one or more workspaces.&lt;/p&gt;
+
+&lt;p&gt;A workspace can be loaded from disk or over HTTP/HTTPS.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;pb ./example/workspaces.json
+pb https://some.domain/workspace.json
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;You can load multiple workspace files at a time.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-sh&#34;&gt;pb ./example/workspaces.json https://some.domain/workspace.json
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
