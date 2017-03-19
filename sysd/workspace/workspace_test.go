@@ -23,7 +23,7 @@ func TestNewWorkspace(t *testing.T) {
 		return
 	}
 
-	lb, _ := loadbalancer.New()
+	lb, _ := loadbalancer.New(nil)
 
 	defer func() {
 		err := os.RemoveAll(logTemp)
@@ -50,7 +50,7 @@ func TestNewWorkspace(t *testing.T) {
 				},
 			},
 		}
-		w, err := New(storage, lb, cfg)
+		w, err := New(nil, storage, lb, cfg)
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		So(ws, ShouldNotBeNil)
@@ -79,7 +79,7 @@ func TestNewWorkspace(t *testing.T) {
 				},
 			},
 		}
-		w, err := New(storage, lb, cfg)
+		w, err := New(nil, storage, lb, cfg)
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]
@@ -115,7 +115,7 @@ func TestNewWorkspace(t *testing.T) {
 				},
 			},
 		}
-		w, err := New(storage, lb, cfg)
+		w, err := New(nil, storage, lb, cfg)
 		So(err, ShouldBeNil)
 		ws := w.(*workspace)
 		task := ws.tasks["sleep"]

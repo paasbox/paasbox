@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/facebookgo/freeport"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
@@ -38,38 +39,46 @@ func stopServers() {
 func TestLoadBalancer(t *testing.T) {
 	defer stopServers()
 	Convey("Load balancer", t, func() {
-		lb, err := New()
+		p0, err := freeport.Get()
+		So(err, ShouldBeNil)
+		p1, err := freeport.Get()
+		So(err, ShouldBeNil)
+		p2, err := freeport.Get()
+		So(err, ShouldBeNil)
+
+		lb, err := New(nil)
 		So(err, ShouldBeNil)
 		So(lb, ShouldNotBeNil)
 
-		listener, err := lb.AddListener(9000)
+		listener, err := lb.AddListener(p0)
 		So(err, ShouldBeNil)
 		So(listener, ShouldNotBeNil)
 
 		http.DefaultTransport.(*http.Transport).DisableKeepAlives = true
 
-		newServer(10000)
-		listener.AddInstances("127.0.0.1:10000")
-		res, err := http.Get(fmt.Sprintf("http://127.0.0.1:9000"))
+		newServer(p1)
+		listener.AddInstances(fmt.Sprintf("127.0.0.1:%d", p1))
+		res, err := http.Get(fmt.Sprintf(fmt.Sprintf("http://127.0.0.1:%d", p0)))
 		So(err, ShouldBeNil)
 		So(res, ShouldNotBeNil)
 		So(res.StatusCode, ShouldEqual, 200)
 		b, _ := ioutil.ReadAll(res.Body)
 		res.Body.Close()
-		So(string(b), ShouldEqual, "10000")
+		So(string(b), ShouldEqual, fmt.Sprintf("%d", p1))
 
-		newServer(10001)
-		listener.AddInstances("127.0.0.1:10001")
+		newServer(p2)
+		listener.AddInstances(fmt.Sprintf("127.0.0.1:%d", p2))
+		ports := []string{fmt.Sprintf("%d", p1), fmt.Sprintf("%d", p2)}
 
 		for i := 0; i < 10; i++ {
-			res, err = http.Get(fmt.Sprintf("http://127.0.0.1:9000"))
+			res, err = http.Get(fmt.Sprintf("http://127.0.0.1:%d", p0))
 			So(err, ShouldBeNil)
 			So(res, ShouldNotBeNil)
 			So(res.StatusCode, ShouldEqual, 200)
 			b, _ = ioutil.ReadAll(res.Body)
 			res.Body.Close()
 			s := string(b)
-			So(s, ShouldBeIn, []string{"10000", "10001"})
+			So(s, ShouldBeIn, ports)
 		}
 	})
 }
