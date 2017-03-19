@@ -5,9 +5,9 @@ type: index
 weight: 0
 ---
 
-## PaaS in a box
+paasbox is a lightweight PaaS environment for local development of microservices and other 12-factor apps.
 
-paasbox is a lightweight PaaS environment (like Mesos or Kubernetes) for local development of microservices and other 12-factor apps.
+It simulates environments like Mesos or Kubernetes. 
 
 ![paasbox screenshot](/images/screen.png)
 
