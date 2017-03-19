@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"io/ioutil"
+
 	"github.com/ian-kent/service.go/log"
 )
 
@@ -345,6 +347,62 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
+}
+
+type updateTaskModel struct {
+	Env *[]string `json:"env"`
+}
+
+func (s *srv) updateTask(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":workspace_id")
+	taskID := req.URL.Query().Get(":task_id")
+
+	ws, ok := s.sysd.Workspace(wsID)
+
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	t, ok := ws.Tasks()[taskID]
+
+	if !ok {
+		w.WriteHeader(404)
+		return
+	}
+
+	b, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
+
+	req.Body.Close()
+
+	var m updateTaskModel
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
+
+	var updatedSomething bool
+
+	if m.Env != nil {
+		updatedSomething = true
+		err = t.SetEnv(*m.Env)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+	}
+
+	if !updatedSomething {
+		w.WriteHeader(400)
+		w.Write([]byte(`nothing to update`))
+		return
+	}
 }
 
 func (s *srv) startTask(w http.ResponseWriter, req *http.Request) {

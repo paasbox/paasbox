@@ -58,6 +58,9 @@ type Task interface {
 
 	ExecCount() int
 	Started() bool
+
+	// TODO not sure how/if to persist changes made with these functions
+	SetEnv([]string) error
 }
 
 // Config ...
@@ -430,6 +433,30 @@ func (t *task) Volumes() []string {
 
 func (t *task) TargetInstances() int {
 	return t.targetInstances
+}
+
+func (t *task) SetEnv(e []string) error {
+	// FIXME does this make sense? append to the end so don't have to resend the entire env again
+	for _, ev := range e {
+		t.env = append(t.env, env.Replace(ev, t.env))
+	}
+	t.RestartInstances()
+	return nil
+}
+
+func (t *task) RestartInstances() {
+	t.execMutex.Lock()
+	defer t.execMutex.Unlock()
+
+	var instances []taskInstance
+	for _, i := range t.instances {
+		instances = append(instances, i)
+	}
+
+	// TODO error handling
+	for _, i := range instances {
+		i.instance.Stop()
+	}
 }
 
 func (t *task) Healthchecks() (res []Healthcheck) {

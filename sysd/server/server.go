@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/go/src/net/http/pprof"
 	"github.com/gorilla/pat"
 	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/handlers/requestID"
@@ -136,7 +137,7 @@ func (s *srv) Start(bindAddr string) error {
 	p.Post("/api/workspaces/{workspace_id}/tasks/{task_id}/start", s.startTask /* start task */)
 	p.Post("/api/workspaces/{workspace_id}/tasks/{task_id}/stop", s.stopTask /* stop task */)
 	p.Delete("/api/workspaces/{workspace_id}/tasks/{task_id}", TODO /* delete task */)
-	p.Put("/api/workspaces/{workspace_id}/tasks/{task_id}", TODO /* update task */)
+	p.Put("/api/workspaces/{workspace_id}/tasks/{task_id}", s.updateTask /* update task */)
 	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}", s.task /* get task */)
 	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/stdout", TODO /* get task stdout */)
 	p.Get("/api/workspaces/{workspace_id}/tasks/{task_id}/stderr", TODO /* get task stderr */)
@@ -160,6 +161,12 @@ func (s *srv) Start(bindAddr string) error {
 
 	p.Get("/js", s.staticFiles)
 	p.Get("/css", s.staticFiles)
+
+	p.Get("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+	p.Get("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+	p.Get("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+	p.Get("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+	p.Get("/debug/pprof", http.HandlerFunc(pprof.Index))
 
 	p.Get("/", s.home)
 

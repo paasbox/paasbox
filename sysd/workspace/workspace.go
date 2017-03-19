@@ -257,15 +257,8 @@ func (ws *workspace) Init() (err error) {
 	var errs []error
 
 	go func() {
-		for {
-			if errChan == nil {
-				break
-			}
-
-			select {
-			case e := <-errChan:
-				errs = append(errs, e)
-			}
+		for e := range errChan {
+			errs = append(errs, e)
 		}
 	}()
 

@@ -17,9 +17,8 @@ Start paasbox with the example workspace:
 - auto-tail latest/all instances from task endpoint
 - store state in remote db/s3/api(?)
 - support HTTP-specific load balancer and Host headers?
-- workspace initialisation stage?
 - $ref to external JSON files?
-- native SCM support?
+- native SCM support? (e.g. git info in task api output?)
 - exponential back-off on restarts after failure?
 
 ### Notes

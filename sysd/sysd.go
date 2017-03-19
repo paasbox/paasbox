@@ -172,7 +172,6 @@ func Start(exitCh chan struct{}) {
 		fmt.Printf("error starting paasbox: %s\n", err)
 		os.Exit(1)
 	}
-	os.Exit(0)
 }
 
 func (s *sysd) Start() error {
