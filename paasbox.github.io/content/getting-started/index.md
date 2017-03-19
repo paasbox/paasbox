@@ -20,4 +20,4 @@ Start paasbox and load an example workspace:
 pb https://raw.githubusercontent.com/paasbox/paasbox/master/example/workspaces.json
 ```
 
-Then open your browser at [http://localhost:8080]()
+Then open your browser at http://localhost:8080
