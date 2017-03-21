@@ -1,7 +1,7 @@
 ---
 date: 2016-03-08T21:15:00+01:00
 title: License
-weight: 20
+weight: 200
 ---
 
 paasbox is released under the MIT license.

@@ -56,14 +56,34 @@ title = "paasbox"
 	weight = 20
 
 [[menu.main]]
+	name   = "Workspaces"
+	url    = "workspaces/"
+	weight = 50
+
+[[menu.main]]
+	name   = "Tasks"
+	url    = "tasks/"
+	weight = 100
+
+[[menu.main]]
+	name   = "Load balancer"
+	url    = "load-balancer/"
+	weight = 150
+
+[[menu.main]]
+	name   = "Logging"
+	url    = "logging/"
+	weight = 200
+
+[[menu.main]]
 	name   = "Roadmap"
 	url    = "roadmap/"
-	weight = 30
+	weight = 300
 
 [[menu.main]]
 	name   = "License"
 	url    = "license/"
-	weight = 40
+	weight = 400
 
 
 [blackfriday]

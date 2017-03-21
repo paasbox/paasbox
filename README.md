@@ -12,6 +12,21 @@ Start paasbox with the example workspace:
 
 ### Todo
 
+- rethink workspace IDs
+  - global-uniqueness/collisions
+  - go-like scm support, e.g. `github.com/paasbox/workspace`
+  - internal workspaces - `@elk`, or should `@` be different?
+    - @elk => github.com/paasbox/workspaces/elk/latest
+    - @elk:5.2.2 => github.com/paasbox/workspaces/elk/5.2.2
+    - @github.com/paasbox/workspaces/elk
+    - @github.com/paasbox/workspaces/elk:5.2.2 (branch/tag switch)
+    - @bitbucket.org/<id>/<repo>/<dir>
+    - @bitbucket.org/<id>/<repo>/<dir>:5.2.2 (branch/tag switch)
+  - store workspaces locally, e.g. in `~/.paasbox/workspaces`?
+  - how/if runtime updates are persisted (e.g. for http)
+  - is a workspace a 'stack'?
+  - versioning?
+  - workspaces.paasbox.io? or stacks.paasbox.io?
 - enabled flag for workspaces/tasks in config?
 - handle log/instance retention
 - auto-tail latest/all instances from task endpoint
