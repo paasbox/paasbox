@@ -47,6 +47,6 @@ debug: build
 	HUMAN_LOG=1 ./build/pb example/workspace.json
 
 elk: build
-	BIND_ADDR=:8081 HUMAN_LOG=1 PAASBOX_LOG=logstash@http://localhost:52000 pb @elk example/elk_demo.json
+	HUMAN_LOG=1 PAASBOX_LOG=logstash@http://localhost:52000 pb @elk example/elk_demo.json
 
 .PHONY: all test version debug elk

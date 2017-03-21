@@ -1,7 +1,7 @@
 ---
-date: 2016-03-08T21:07:13+01:00
+date: 2016-03-08T21:00:00+01:00
 title: Getting started
-weight: 0
+weight: 5
 ---
 
 ## Quick start

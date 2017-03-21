@@ -1,7 +1,7 @@
 ---
-date: 2016-03-08T21:07:13+01:00
+date: 2016-03-08T21:05:00+01:00
 title: Configuration
-weight: 0
+weight: 10
 ---
 
 ## Command line
