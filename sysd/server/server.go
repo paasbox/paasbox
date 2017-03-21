@@ -4,10 +4,10 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"sync"
 	"time"
 
-	"github.com/golang/go/src/net/http/pprof"
 	"github.com/gorilla/pat"
 	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/handlers/requestID"

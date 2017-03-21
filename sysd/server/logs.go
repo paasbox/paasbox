@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -8,7 +9,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/go/src/io"
 	"github.com/gorilla/websocket"
 	"github.com/hpcloud/tail"
 	"github.com/ian-kent/service.go/log"
