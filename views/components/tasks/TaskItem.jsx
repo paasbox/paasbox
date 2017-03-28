@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { browserHistory } from 'react-router';
 import {Card, CardActions, CardHeader, CardText} from 'material-ui/Card';
 import FlatButton from 'material-ui/FlatButton';
 import Logs from '../logs/Logs.jsx';
@@ -8,11 +7,11 @@ export default class TaskItem extends Component {
     constructor(props) {
         super(props);
 
-        this.handleLogClick = this.handleLogClick.bind(this);
+        this.bindLogClick = this.bindLogClick.bind(this);
     }
 
-    handleLogClick() {
-        browserHistory.push(`/${this.props.activeWorkspaceID}/${this.props.task.id}/logs`);
+    bindLogClick() {
+        this.props.handleLogClick(this.props);
     }
 
     render() {
@@ -25,7 +24,7 @@ export default class TaskItem extends Component {
                         actAsExpander={true}
                         showExpandableButton={true}/>
                     <CardActions>
-                        <FlatButton label="Logs" onClick={this.handleLogClick} />
+                        <FlatButton label="Logs" onClick={this.bindLogClick} />
                         <FlatButton label="Action2" />
                     </CardActions>
                     <CardText expandable={true}>

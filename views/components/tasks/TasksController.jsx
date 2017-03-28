@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { push } from 'react-router-redux'
+import { browserHistory } from 'react-router';
 import get from '../../shared/get';
 import { updateActiveWorkspaceTasks, updateActiveTask } from '../../shared/actions';
 import TasksList from './TasksList.jsx';
@@ -11,7 +11,9 @@ class TasksController extends Component {
 
         this.state = {
             isFetchingTasks: false
-        }
+        };
+
+        this.handleLogClick = this.handleLogClick.bind(this);
     }
 
     componentWillMount() {
@@ -45,7 +47,7 @@ class TasksController extends Component {
         // }
 
         // New active task, update state
-        if (this.props.activeTask.id && nextProps.routeParams.task && (nextProps.routeParams.task !== this.props.activeTask.id)) {
+        if (nextProps.routeParams.task && (nextProps.routeParams.task !== this.props.activeTask.id)) {
             const activeTask = nextProps.activeWorkspace.tasks.find(task => {
                 return task.id === nextProps.params.task;
             });
@@ -53,6 +55,11 @@ class TasksController extends Component {
             this.props.dispatch(updateActiveTask(activeTask));
         }
 
+    }
+
+    handleLogClick(itemProps) {
+        browserHistory.push(`/${itemProps.activeWorkspaceID}/${itemProps.task.id}/logs`);
+        // this.props.dispatch(updateActiveTask())
     }
 
     fetchTasks(workspace) {
@@ -72,7 +79,7 @@ class TasksController extends Component {
             this.state.isFetchingTasks ?
                 <p>Loading tasks...</p>
                 :
-                <TasksList activeWorkspace={this.props.activeWorkspace} activeTask={this.props.activeTask} />
+                <TasksList activeWorkspace={this.props.activeWorkspace} activeTask={this.props.activeTask} handleLogClick={this.handleLogClick} />
 
         )
     }

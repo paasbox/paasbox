@@ -1,4 +1,3 @@
-import get from '../shared/get';
 import store from '../shared/store';
 
 export const UPDATE_WORKSPACES = 'UPDATE_WORKSPACES';
@@ -14,6 +13,7 @@ export function updateWorkspaces(workspaces) {
 }
 
 export function updateActiveWorkspace(activeWorkspace) {
+    store.dispatch(updateActiveTask({}));
     return {
         type: UPDATE_ACTIVE_WORKSPACE,
         activeWorkspace: activeWorkspace
