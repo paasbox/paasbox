@@ -14,6 +14,7 @@ import store from './shared/store';
 // app component
 import App from './App.jsx';
 import TasksController from './components/tasks/TasksController.jsx';
+import RedirectToWorkspace from './components/utilities/RedirectToWorkspace.jsx';
 
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
@@ -36,6 +37,7 @@ const routes = (
         <Provider store={ store }>
             <Router history={ history }>
                 <Route component={ App }>
+                    <Route path="/" component={ RedirectToWorkspace }/>
                     <Route path="/:workspace" component={ TasksController }/>
                     <Route path="/:workspace/:task/logs" component={ TasksController }/>
                     <Route path="*" components={ NoMatch }/>

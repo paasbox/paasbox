@@ -8,7 +8,7 @@ module.exports = {
         filename: 'js/bundle.js',
         publicPath: 'http://localhost:8080/'
     },
-    devtool: '#source-map',
+    devtool: 'cheap-module-eval-source-map',
     module: {
         loaders: [
             {

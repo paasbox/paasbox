@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { push } from 'react-router-redux'
 import get from '../../shared/get';
 import { updateActiveWorkspaceTasks, updateActiveTask } from '../../shared/actions';
 import TasksList from './TasksList.jsx';
@@ -14,7 +15,8 @@ class TasksController extends Component {
     }
 
     componentWillMount() {
-        this.fetchTasks(this.props.params.workspace).then(() => {
+        const workspace = this.props.params.workspace;
+        this.fetchTasks(workspace).then(() => {
             if (!this.props.params.task) {
                 return;
             }
@@ -78,6 +80,7 @@ class TasksController extends Component {
 
 function mapStateToProps(state) {
     return {
+        workspaces: state.state.workspaces,
         activeWorkspace: state.state.activeWorkspace,
         activeTask: state.state.activeTask
     }
