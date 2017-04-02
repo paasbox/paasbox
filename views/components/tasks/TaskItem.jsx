@@ -21,6 +21,8 @@ export default class TaskItem extends Component {
                 <Card>
                     <CardHeader
                         title={props.task.name}
+                        subtitle={ props.task.is_healthy ? "" : "Not running" }
+                        subtitleColor={ props.task.is_healthy ? "" : "#E53935" }
                         actAsExpander={true}
                         showExpandableButton={true}/>
                     <CardActions>

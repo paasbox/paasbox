@@ -41,11 +41,6 @@ class TasksController extends Component {
             return;
         }
 
-        // No active task anymore, so empty state
-        // if (this.props.activeTask && !nextProps.routeParams.task) {
-        //     this.props.dispatch(updateActiveTask({}));
-        // }
-
         // New active task, update state
         if (nextProps.routeParams.task && (nextProps.routeParams.task !== this.props.activeTask.id)) {
             const activeTask = nextProps.activeWorkspace.tasks.find(task => {
@@ -63,14 +58,28 @@ class TasksController extends Component {
     }
 
     fetchTasks(workspace) {
-        return new Promise((resolve) => {
-            this.setState({isFetchingTasks: true});
+        this.setState({isFetchingTasks: true});
 
+        const fetches = [
             get.tasks(workspace).then(tasks => {
-                this.setState({isFetchingTasks: false});
-                this.props.dispatch(updateActiveWorkspaceTasks(tasks));
-                resolve();
+                return tasks;
+            }),
+            get.loadBalancer(workspace).then(loadBalancer => {
+                return loadBalancer;
+            })
+        ]
+
+        return Promise.all(fetches).then(responses => {
+            const tasksWithoutHealth = responses[0];
+            const portStatuses = responses[1].listeners;
+            const tasks = tasksWithoutHealth.map(task => {
+                const health = portStatuses[task.ports[0]].healthy_instances > 0;
+                task.is_healthy = health;
+                return task;
             });
+
+            this.setState({isFetchingTasks: false});
+            this.props.dispatch(updateActiveWorkspaceTasks(tasks));
         });
     }
 

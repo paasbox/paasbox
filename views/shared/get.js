@@ -16,8 +16,18 @@ export default class get {
             getRequest(`/api/workspaces/${workspace}/tasks`).then(response => {
                 resolve(response.tasks);
             }).catch(error => {
-                console.log(`Fetching workspaces returned \n` + error.status ` ` + error.statusText);
+                console.log(`Fetching tasks returned \n` + error.status ` ` + error.statusText);
             });
+        });
+    }
+
+    static loadBalancer(workspace) {
+        return new Promise((resolve, reject) => {
+            getRequest(`/api/loadbalancer`).then(response => {
+                resolve(response);
+            }).catch(error => {
+                console.log(`Fetching load balancer data return \n${error.status} ${error.statusText}`)
+            })
         });
     }
 
