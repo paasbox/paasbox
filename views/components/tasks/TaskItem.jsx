@@ -7,11 +7,23 @@ export default class TaskItem extends Component {
     constructor(props) {
         super(props);
 
+        this.state = {
+            hasStarted: this.props.task.is_started
+        }
+
         this.bindLogClick = this.bindLogClick.bind(this);
+        this.bindStartStopClick = this.bindStartStopClick.bind(this);
     }
 
     bindLogClick() {
         this.props.handleLogClick(this.props);
+    }
+
+    bindStartStopClick() {
+        this.setState({hasStarted: !this.state.hasStarted});
+        let callbackData = this.props;
+        this.props.task.is_started = this.state.hasStarted;
+        this.props.handleStartStopClick(callbackData);
     }
 
     render() {
@@ -21,13 +33,13 @@ export default class TaskItem extends Component {
                 <Card>
                     <CardHeader
                         title={props.task.name}
-                        subtitle={ props.task.is_healthy ? "" : "Not running" }
-                        subtitleColor={ props.task.is_healthy ? "" : "#E53935" }
+                        subtitle={ this.state.hasStarted ? "" : "Not running" }
+                        subtitleColor={ this.state.hasStarted ? "" : "#E53935" }
                         actAsExpander={true}
                         showExpandableButton={true}/>
                     <CardActions>
                         <FlatButton label="Logs" onClick={this.bindLogClick} />
-                        <FlatButton label="Action2" />
+                        <FlatButton label={ this.state.hasStarted ? "Stop" : "Start" } onClick={this.bindStartStopClick} />
                     </CardActions>
                     <CardText expandable={true}>
                         {

@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { browserHistory } from 'react-router';
 import get from '../../shared/get';
+import post from '../../shared/post';
 import { updateActiveWorkspaceTasks, updateActiveTask } from '../../shared/actions';
 import TasksList from './TasksList.jsx';
 
@@ -14,6 +15,7 @@ class TasksController extends Component {
         };
 
         this.handleLogClick = this.handleLogClick.bind(this);
+        this.handleStartStopClick = this.handleStartStopClick.bind(this);
     }
 
     componentWillMount() {
@@ -54,7 +56,16 @@ class TasksController extends Component {
 
     handleLogClick(itemProps) {
         browserHistory.push(`/${itemProps.activeWorkspaceID}/${itemProps.task.id}/logs`);
-        // this.props.dispatch(updateActiveTask())
+    }
+
+    handleStartStopClick(itemProps) {
+        const stopOrStart = itemProps.task.is_started ? "stop" : "start";
+        const apiURL = `/api${itemProps.task.task_url}/${itemProps.task.is_started ? "stop" : "start"}`;
+        post(apiURL).then(() => {
+            console.debug(`Successful ${stopOrStart} of ${itemProps.task.name}`);
+        }).catch(error => {
+            console.debug(`Error during ${stopOrStart} of ${itemProps.task.name}: \n${error}`);
+        });
     }
 
     fetchTasks(workspace) {
@@ -88,7 +99,11 @@ class TasksController extends Component {
             this.state.isFetchingTasks ?
                 <p>Loading tasks...</p>
                 :
-                <TasksList activeWorkspace={this.props.activeWorkspace} activeTask={this.props.activeTask} handleLogClick={this.handleLogClick} />
+                <TasksList 
+                    activeWorkspace={this.props.activeWorkspace} 
+                    activeTask={this.props.activeTask} 
+                    handleLogClick={this.handleLogClick} 
+                    handleStartStopClick={this.handleStartStopClick} />
 
         )
     }

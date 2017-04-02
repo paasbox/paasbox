@@ -9,7 +9,13 @@ export default class TasksList extends Component {
                 <ul className="list--neutral">
                     {this.props.activeWorkspace.tasks.map(task => {
                         return (
-                            <TaskItem key={task.id} task={task} activeWorkspaceID={this.props.activeWorkspace.id} activeTask={this.props.activeTask} handleLogClick={this.props.handleLogClick} />
+                            <TaskItem 
+                                key={task.id} 
+                                task={task} 
+                                activeWorkspaceID={this.props.activeWorkspace.id} 
+                                activeTask={this.props.activeTask} 
+                                handleLogClick={this.props.handleLogClick}
+                                handleStartStopClick={this.props.handleStartStopClick} />
                         );
                     })}
                 </ul>
