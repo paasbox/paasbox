@@ -84,8 +84,10 @@ class TasksController extends Component {
             const tasksWithoutHealth = responses[0];
             const portStatuses = responses[1].listeners;
             const tasks = tasksWithoutHealth.map(task => {
-                const health = portStatuses[task.ports[0]].healthy_instances > 0;
-                task.is_healthy = health;
+                if(task.ports) {
+                    const health = portStatuses[task.ports[0]].healthy_instances > 0;
+                    task.is_healthy = health;
+                }
                 return task;
             });
 
