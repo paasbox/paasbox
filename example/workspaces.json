@@ -51,6 +51,19 @@
             "BAR=1",
             "DURATION=10"
           ]
+        },
+        {
+          "id": "another-sleep",
+          "name": "Sleep for 60 seconds",
+          "service": true,
+          "persist": false,
+          "driver": "exec",
+          "command": "/bin/sleep",
+          "args": [ "$DURATION" ],
+          "env": [
+            "BAR=1",
+            "DURATION=10"
+          ]
         }
       ]
     }

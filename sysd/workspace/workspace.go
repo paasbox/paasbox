@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"sync"
@@ -31,7 +32,8 @@ type Workspace interface {
 	Start() error
 	Stop() error
 	Shutdown() error
-	Tasks() map[string]task.Task
+	Tasks() []task.Task
+	Task(id string) (t task.Task, ok bool)
 	ID() string
 	Name() string
 	Env() EnvConfig
@@ -67,6 +69,7 @@ type workspace struct {
 	logPattern  string
 
 	tasks        map[string]task.Task
+	taskIDs      []string
 	store        state.Store
 	loadBalancer loadbalancer.LB
 	stopped      bool
@@ -204,6 +207,11 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 		}
 	}
 
+	for _, t := range ws.tasks {
+		ws.taskIDs = append(ws.taskIDs, t.ID())
+	}
+	sort.Strings(ws.taskIDs)
+
 	return ws, nil
 }
 
@@ -211,8 +219,18 @@ func (ws *workspace) ID() string {
 	return ws.id
 }
 
-func (ws *workspace) Tasks() map[string]task.Task {
-	return ws.tasks
+func (ws *workspace) Tasks() (t []task.Task) {
+	for _, tID := range ws.taskIDs {
+		if task, ok := ws.tasks[tID]; ok {
+			t = append(t, task)
+		}
+	}
+	return
+}
+
+func (ws *workspace) Task(id string) (t task.Task, ok bool) {
+	t, ok = ws.tasks[id]
+	return
 }
 
 func (ws *workspace) Name() string {
@@ -264,14 +282,14 @@ func (ws *workspace) Init() (err error) {
 
 	for _, t := range ws.tasks {
 		wg.Add(1)
-		go func() {
+		go func(t task.Task) {
 			defer wg.Done()
 
 			err := t.Init()
 			if err != nil {
 				errChan <- err
 			}
-		}()
+		}(t)
 	}
 
 	wg.Wait()

@@ -279,7 +279,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	t, ok := ws.Tasks()[taskID]
+	t, ok := ws.Task(taskID)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -364,7 +364,7 @@ func (s *srv) updateTask(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	t, ok := ws.Tasks()[taskID]
+	t, ok := ws.Task(taskID)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -421,7 +421,7 @@ func (s *srv) startTask(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	t, ok := ws.Tasks()[taskID]
+	t, ok := ws.Task(taskID)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -484,7 +484,7 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	task, ok := ws.Tasks()[taskID]
+	task, ok := ws.Task(taskID)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -587,7 +587,7 @@ func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	task, ok := ws.Tasks()[taskID]
+	task, ok := ws.Task(taskID)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -647,7 +647,7 @@ func (s *srv) stopInstance(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	task, ok := ws.Tasks()[taskID]
+	task, ok := ws.Task(taskID)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -689,7 +689,7 @@ func (s *srv) stopTask(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	task, ok := ws.Tasks()[taskID]
+	task, ok := ws.Task(taskID)
 	if !ok {
 		w.WriteHeader(404)
 		return

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -32,6 +33,7 @@ type Sysd interface {
 type sysd struct {
 	workspaceConfigs []workspace.Config
 	workspaces       map[string]workspace.Workspace
+	workspaceIDs     []string
 	exitCh           chan struct{}
 
 	stateLoader  State
@@ -143,6 +145,7 @@ func New(exitCh chan struct{}) Sysd {
 	var initErrors bool
 
 	for _, ws := range s.workspaces {
+		s.workspaceIDs = append(s.workspaceIDs, ws.ID())
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -154,6 +157,8 @@ func New(exitCh chan struct{}) Sysd {
 			}
 		}()
 	}
+
+	sort.Strings(s.workspaceIDs)
 
 	wg.Wait()
 
@@ -233,8 +238,10 @@ func (s *sysd) stop(stopTasks bool) {
 }
 
 func (s *sysd) Workspaces() (ws []workspace.Workspace) {
-	for _, v := range s.workspaces {
-		ws = append(ws, v)
+	for _, v := range s.workspaceIDs {
+		if w, ok := s.workspaces[v]; ok {
+			ws = append(ws, w)
+		}
 	}
 	return
 }

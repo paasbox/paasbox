@@ -65,7 +65,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	task, ok := ws.Tasks()[taskID]
+	task, ok := ws.Task(taskID)
 	if !ok {
 		w.WriteHeader(404)
 		return
