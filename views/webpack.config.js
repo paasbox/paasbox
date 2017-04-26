@@ -19,10 +19,6 @@ module.exports = {
             {
                 test: /\.scss$/,
                 loader: ExtractTextPlugin.extract("style-loader", "css-loader!sass-loader")
-            },
-            {
-                test: /\.jsx$/,
-                loader: "eslint-loader"
             }
         ]
     },
@@ -32,9 +28,6 @@ module.exports = {
             { from: 'images', to: 'images' }
         ])
     ],
-    eslint: {
-        configFile: '.eslintrc.json'
-    },
     resolve: {
         extensions: ['', '.js', '.jsx']
     }
