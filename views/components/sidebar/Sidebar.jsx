@@ -16,11 +16,12 @@ class Sidebar extends Component {
 
     render() {
         return (
-            <div>
-                <Drawer open={this.state.open}>
-                    <Workspaces workspaces={this.props.workspaces} />
-                </Drawer>
-            </div>
+            <Drawer open={this.state.open}>
+                <div className="logo">
+                    <img src="/images/logo.jpg" alt="Paasbox logo"/>
+                </div>
+                <Workspaces workspaces={this.props.workspaces} />
+            </Drawer>
         );
     }
 }

@@ -14,3 +14,8 @@
   font-family: monospace;
   color: white;
   white-space: pre-line; }
+
+.logo {
+  width: 50%; }
+  .logo img {
+    width: 100%; }

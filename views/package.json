@@ -50,6 +50,7 @@
     "ansi-to-html": "^0.6.0",
     "ansi-to-react": "^1.1.1",
     "babel-eslint": "^7.1.1",
+    "copy-webpack-plugin": "^4.0.1",
     "material-ui": "^0.17.0",
     "react": "^15.4.2",
     "react-ansi-style": "^1.0.0",

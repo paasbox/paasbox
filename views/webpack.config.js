@@ -1,5 +1,6 @@
 const webpack = require('webpack');
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry: './index.js',
@@ -26,7 +27,10 @@ module.exports = {
         ]
     },
     plugins: [
-        new ExtractTextPlugin("css/main.css")
+        new ExtractTextPlugin("css/main.css"),
+        new CopyWebpackPlugin([
+            { from: 'images', to: 'images' }
+        ])
     ],
     eslint: {
         configFile: '.eslintrc.json'

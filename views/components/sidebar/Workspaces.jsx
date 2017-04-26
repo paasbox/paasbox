@@ -7,7 +7,7 @@ export default class Workspaces extends Component {
         return (
             <div style={{padding:0}}>
                 {this.props.workspaces.map(workspace => {
-                    return <MenuItem key={workspace.id} containerElement={<Link to={`/${workspace.id}`} />}>{workspace.id}</MenuItem>;
+                    return <MenuItem key={workspace.id} containerElement={<Link to={`/${workspace.id}`} />}>{workspace.name}</MenuItem>;
                 })}
             </div>
         )
