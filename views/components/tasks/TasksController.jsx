@@ -105,7 +105,8 @@ class TasksController extends Component {
                     activeWorkspace={this.props.activeWorkspace} 
                     activeTask={this.props.activeTask} 
                     handleLogClick={this.handleLogClick} 
-                    handleStartStopClick={this.handleStartStopClick} />
+                    handleStartStopClick={this.handleStartStopClick} 
+                    handleOpenClick={this.handleOpenClick}/>
 
         )
     }

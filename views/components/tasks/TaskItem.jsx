@@ -13,6 +13,11 @@ export default class TaskItem extends Component {
 
         this.bindLogClick = this.bindLogClick.bind(this);
         this.bindStartStopClick = this.bindStartStopClick.bind(this);
+        this.bindOpenClick = this.bindOpenClick.bind(this);
+    }
+
+    bindOpenClick() {
+        this.props.handleOpenClick(this.props);
     }
 
     bindLogClick() {
@@ -32,29 +37,14 @@ export default class TaskItem extends Component {
             <li>
                 <Card>
                     <CardHeader
-                        title={props.task.name}
-                        subtitle={ this.state.hasStarted ? "" : "Not running" }
-                        subtitleColor={ this.state.hasStarted ? "" : "#E53935" }
-                        actAsExpander={true}
-                        showExpandableButton={true}/>
+                        title={`${props.task.name} ${this.state.hasStarted ? "" : "(not running)"}`}
+                        subtitle={ props.task.ports && props.task.ports.length ? <div>Port: {props.task.ports[0]}</div> : <div>No port provided</div>}
+                        actAsExpander={false}
+                        showExpandableButton={false}/>
                     <CardActions>
                         <FlatButton label="Logs" onClick={this.bindLogClick} />
                         <FlatButton label={ this.state.hasStarted ? "Stop" : "Start" } onClick={this.bindStartStopClick} />
                     </CardActions>
-                    <CardText expandable={true}>
-                        {
-                            props.task.ports && props.task.ports.length ?
-                                <div>Port: {props.task.ports[0]}</div>
-                                :
-                                <div>No port provided</div>
-                        }
-                        {
-                            props.task.healthchecks && props.task.healthchecks.length ?
-                                <div>Healthy: {(props.task.healthchecks[0].instances && props.task.healthchecks[0].instances[0].healthy) ? `true` : `false`}</div>
-                                :
-                                <div>No health checks</div>
-                        }
-                    </CardText>
                     {
                         props.activeTask && props.activeTask.id === props.task.id ?
                             <Logs websocketURL={`ws://${window.location.host}/api${this.props.task.current_instances[0].url}/stdout.ws?tail=y`} />
