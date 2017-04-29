@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/state"
@@ -57,7 +58,18 @@ func getStateDir() string {
 }
 
 func (s *stateLoader) Load(workspaceID string) (state.Store, error) {
+	workspaceID = strings.TrimPrefix(workspaceID, "@")
+
 	stateFile := filepath.Join(s.stateDir, fmt.Sprintf("%s.db", workspaceID))
+	dir := filepath.Dir(stateFile)
+	if _, err := os.Stat(dir); err != nil {
+		err = os.MkdirAll(dir, os.FileMode(0755))
+		if err != nil {
+			log.Error(errOpenBoltDBFailed, log.Data{"reason": err})
+			log.Debug("error creating state directory for workspace", log.Data{"dir": dir})
+			os.Exit(4)
+		}
+	}
 
 	boltDB, err := state.NewBoltDB(stateFile)
 	if err != nil {

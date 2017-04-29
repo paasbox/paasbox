@@ -82,32 +82,46 @@ func New(exitCh chan struct{}) Sysd {
 
 	workspaceFiles := os.Args[1:]
 	var loadFiles []string
-	var internalFiles []string
+	var atFiles []string
 
 	for _, f := range workspaceFiles {
 		if strings.HasPrefix(f, "@") {
-			internalFiles = append(internalFiles, strings.TrimPrefix(f, "@"))
+			atFiles = append(atFiles, strings.TrimPrefix(f, "@"))
 			continue
 		}
 		loadFiles = append(loadFiles, f)
 	}
 
-	if len(loadFiles) == 0 {
+	if len(loadFiles) == 0 && len(atFiles) == 0 {
 		loadFiles = append(loadFiles, "workspace.json")
 	}
 
-	for _, internalFile := range internalFiles {
-		b, e := loadInternal(internalFile)
-		if e != nil {
-			fmt.Printf("error reading internal file %s: %s\n", internalFile, err)
+	// @elk => github.com/paasbox/workspaces/elk/latest
+	// @elk:5.2.2 => github.com/paasbox/workspaces/elk/5.2.2
+	// @github.com/paasbox/workspaces/elk
+	// @github.com/paasbox/workspaces/elk:5.2.2 (branch/tag switch)
+
+	for _, internalFile := range atFiles {
+		path, err := getAtFilePath(internalFile)
+		if err != nil {
+			fmt.Printf("error parsing @file %s: %s\n", internalFile, err)
 			os.Exit(1)
 		}
 
-		err = s.loadWorkspaces(b)
-		if err != nil {
-			fmt.Printf("error loading internal workspace %s: %s\n", internalFile, err)
-			os.Exit(1)
-		}
+		fmt.Println("PATH: ", path)
+		loadFiles = append(loadFiles, path)
+
+		// b, e := loadInternal(internalFile)
+		// if e != nil {
+		// 	fmt.Printf("error reading internal file %s: %s\n", internalFile, err)
+		// 	os.Exit(1)
+		// }
+
+		// err = s.loadWorkspaces(b)
+		// if err != nil {
+		// 	fmt.Printf("error loading internal workspace %s: %s\n", internalFile, err)
+		// 	os.Exit(1)
+		// }
 	}
 
 	for _, workspaceFile := range loadFiles {
@@ -147,7 +161,7 @@ func New(exitCh chan struct{}) Sysd {
 	for _, ws := range s.workspaces {
 		s.workspaceIDs = append(s.workspaceIDs, ws.ID())
 		wg.Add(1)
-		go func() {
+		go func(ws workspace.Workspace) {
 			defer wg.Done()
 
 			err := ws.Init()
@@ -155,7 +169,7 @@ func New(exitCh chan struct{}) Sysd {
 				fmt.Printf("error initialising workspace %s: %s\n", ws.ID(), err)
 				initErrors = true
 			}
-		}()
+		}(ws)
 	}
 
 	sort.Strings(s.workspaceIDs)
@@ -168,6 +182,33 @@ func New(exitCh chan struct{}) Sysd {
 	}
 
 	return s
+}
+
+func getAtFilePath(internalFile string) (string, error) {
+	version := "latest"
+	var path string
+
+	parts := strings.SplitN(internalFile, ":", 2)
+	if len(parts) > 1 {
+		version = parts[len(parts)-1]
+	}
+
+	path = parts[0]
+	parts = strings.Split(path, "/")
+	if len(parts) > 1 {
+		switch strings.ToLower(parts[0]) {
+		case "github.com":
+			if len(parts) <= 3 {
+				return "", errors.New("invalid @file path: " + internalFile)
+			}
+			path = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/master/%s/%s.json", parts[1], parts[2], strings.Join(parts[3:], "/"), version)
+		default:
+		}
+	} else {
+		path = fmt.Sprintf("https://raw.githubusercontent.com/paasbox/workspaces/master/%s/%s.json", parts[0], version)
+	}
+
+	return path, nil
 }
 
 // Start ...
