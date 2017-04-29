@@ -31,11 +31,11 @@ version:
 
 generate: ${GOPATH}/bin/go-bindata
 	# build the production version
-	cd assets; ${GOPATH}/bin/go-bindata -o templates.go -pkg assets templates/... css/... js/... workspaces/...
+	cd assets; ${GOPATH}/bin/go-bindata -o templates.go -pkg assets templates/... css/... js/... images/... workspaces/...
 	{ echo "// +build production"; cat assets/templates.go; } > assets/templates.go.new
 	mv assets/templates.go.new assets/templates.go
 	# build the dev version
-	cd assets; ${GOPATH}/bin/go-bindata -debug -o debug.go -pkg assets templates/... css/... js/... workspaces/...
+	cd assets; ${GOPATH}/bin/go-bindata -debug -o debug.go -pkg assets templates/... css/... js/... images/... workspaces/...
 	{ echo "// +build debug"; cat assets/debug.go; } > assets/debug.go.new
 	mv assets/debug.go.new assets/debug.go
 

@@ -161,6 +161,7 @@ func (s *srv) Start(bindAddr string) error {
 
 	p.Get("/js", s.staticFiles)
 	p.Get("/css", s.staticFiles)
+	p.Get("/images", s.staticFiles)
 
 	p.Get("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 	p.Get("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
