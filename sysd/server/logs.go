@@ -141,11 +141,21 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 	if isTail {
 		var t *tail.Tail
 
+		stat, err := os.Stat(logFile)
+		if err != nil {
+			log.ErrorR(req, err, nil)
+			w.WriteHeader(404)
+			return
+		}
+
 		wh := os.SEEK_END
 		if offset > -1 {
 			wh = os.SEEK_SET
 		} else {
 			offset = -1024
+			if stat.Size() < 1024 {
+				offset = -stat.Size()
+			}
 		}
 
 		t, err = s.tailMap.get(logFile, offset, wh)
