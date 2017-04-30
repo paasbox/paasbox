@@ -58,9 +58,9 @@ func getStateDir() string {
 }
 
 func (s *stateLoader) Load(stackID string) (state.Store, error) {
-	stackID = strings.TrimPrefix(stackID, "@")
+	stackID = strings.Replace(strings.TrimPrefix(stackID, "@"), "/", "_", -1)
 
-	stateFile := filepath.Join(s.stateDir, fmt.Sprintf("%s.db", stackID))
+	stateFile := filepath.Join(s.stateDir, "state/"+fmt.Sprintf("%s.db", stackID))
 	dir := filepath.Dir(stateFile)
 	if _, err := os.Stat(dir); err != nil {
 		err = os.MkdirAll(dir, os.FileMode(0755))

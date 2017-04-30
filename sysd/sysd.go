@@ -5,7 +5,9 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -130,16 +132,47 @@ func New(exitCh chan struct{}) Sysd {
 
 		if strings.HasPrefix(strings.ToLower(stackFile), "http://") ||
 			strings.HasPrefix(strings.ToLower(stackFile), "https://") {
-			res, e := cli.Get(stackFile)
+			u, e := url.Parse(stackFile)
 			if e != nil {
-				fmt.Printf("error fetching file %s: %s\n", stackFile, e)
+				fmt.Printf("error parsing url %s: %s\n", stackFile, e)
 				os.Exit(1)
 			}
-			b, err = ioutil.ReadAll(res.Body)
-			res.Body.Close()
-			if err != nil {
-				fmt.Printf("error reading response body %s: %s\n", stackFile, err)
-				os.Exit(1)
+			cachePath := u.Host + "/" + u.Path
+			cachePath = strings.Replace(cachePath, "/", "_", -1)
+			cachePath = filepath.Join(getStateDir(), "stacks/"+cachePath)
+			var loaded bool
+			if _, err := os.Stat(cachePath); err == nil {
+				b, err = ioutil.ReadFile(cachePath)
+				if err != nil {
+					fmt.Printf("error reading cached file %s: %s\n", stackFile, err)
+				} else {
+					fmt.Printf("loaded cached file %s\n", cachePath)
+					loaded = true
+				}
+			}
+			if !loaded {
+				res, e := cli.Get(stackFile)
+				if e != nil {
+					fmt.Printf("error fetching file %s: %s\n", stackFile, e)
+					os.Exit(1)
+				}
+				b, err = ioutil.ReadAll(res.Body)
+				res.Body.Close()
+				if err != nil {
+					fmt.Printf("error reading response body %s: %s\n", stackFile, err)
+					os.Exit(1)
+				}
+
+				dirName := filepath.Dir(cachePath)
+				err = os.MkdirAll(dirName, os.FileMode(0755))
+				if err != nil {
+					fmt.Printf("error creating cache directory %s: %s", dirName, err)
+				} else {
+					err = ioutil.WriteFile(cachePath, b, os.FileMode(0755))
+					if err != nil {
+						fmt.Printf("error writing cache file %s: %s", cachePath, err)
+					}
+				}
 			}
 		} else {
 			b, err = ioutil.ReadFile(stackFile)

@@ -5,7 +5,10 @@ VERSIONFILE := version/version.go
 all: build test
 
 build: generate version
-	go install -tags 'production' ./cmd/...
+	go build -o ./build/pb -tags 'production' ./cmd/pb
+
+install:
+	go install ./build/pb -tags 'production' ./cmd/pb
 
 test: generate
 	go test -tags 'debug' ./...

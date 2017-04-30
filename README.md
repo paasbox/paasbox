@@ -8,14 +8,14 @@ paasbox
 Start paasbox with the example stack:
 
 - `go get github.com/paasbox/paasbox/cmd/pb`
-- `pb https://raw.githubusercontent.com/paasbox/paasbox/master/example/stack.json`
+- `pb @demo`
+- Open http://localhost:8080
 
 ### Todo
 
-- rethink stack IDs
+- stack IDs
   - test for invalid IDs? i.e. compare expected against value in stack?
     - might not be relevant if stack is local file
-  - store stacks locally, e.g. in `~/.paasbox/stacks`?
   - how/if runtime updates are persisted (e.g. for http)
   - versioning? (works with @, but not boltdb)
   - stacks.paasbox.io? or is SCM URL enough?
