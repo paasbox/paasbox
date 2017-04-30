@@ -129,6 +129,7 @@ func New(exitCh chan struct{}) Sysd {
 
 	for _, stackFile := range loadFiles {
 		var b []byte
+		var remote string
 
 		if strings.HasPrefix(strings.ToLower(stackFile), "http://") ||
 			strings.HasPrefix(strings.ToLower(stackFile), "https://") {
@@ -139,6 +140,7 @@ func New(exitCh chan struct{}) Sysd {
 			}
 			cachePath := u.Host + "/" + u.Path
 			cachePath = strings.Replace(cachePath, "/", "_", -1)
+			remote = cachePath
 			cachePath = filepath.Join(getStateDir(), "stacks/"+cachePath)
 			var loaded bool
 			if _, err := os.Stat(cachePath); err == nil {
@@ -182,7 +184,7 @@ func New(exitCh chan struct{}) Sysd {
 			}
 		}
 
-		err = s.loadStacks(b)
+		err = s.loadStacks(remote, b)
 		if err != nil {
 			fmt.Printf("error loading stack %s: %s\n", stackFile, err)
 			os.Exit(1)
@@ -336,7 +338,7 @@ func (s *sysd) LogDriver() logger.Driver {
 	return s.logDriver
 }
 
-func (s *sysd) loadStacks(b []byte) error {
+func (s *sysd) loadStacks(remote string, b []byte) error {
 	var m map[string]interface{}
 	err := json.Unmarshal(b, &m)
 	if err != nil {
@@ -350,27 +352,31 @@ func (s *sysd) loadStacks(b []byte) error {
 				if err != nil {
 					return err
 				}
-				err = s.loadStack(b2)
+				err = s.loadStack(remote, b2)
 				if err != nil {
 					return err
 				}
 			}
 		}
 	} else {
-		return s.loadStack(b)
+		return s.loadStack(remote, b)
 	}
 	return nil
 
 }
 
-func (s *sysd) loadStack(b []byte) error {
+func (s *sysd) loadStack(remote string, b []byte) error {
 	var conf stack.Config
 	err := json.Unmarshal(b, &conf)
 	if err != nil {
 		return err
 	}
 
-	state, err := s.stateLoader.Load(conf.ID)
+	stateFile := conf.ID
+	if len(remote) > 0 {
+		stateFile = remote + "/" + conf.ID
+	}
+	state, err := s.stateLoader.Load(stateFile)
 	if err != nil {
 		return err
 	}
