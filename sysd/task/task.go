@@ -93,7 +93,7 @@ func (c Config) WithEnv(env []string) Config {
 }
 
 type task struct {
-	workspaceID     string
+	stackID         string
 	taskID          string
 	name            string
 	service         bool
@@ -131,14 +131,14 @@ type taskInstance struct {
 }
 
 // NewTask ...
-func NewTask(workspaceID string, store state.Store, logDriver logger.Driver, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
+func NewTask(stackID string, store state.Store, logDriver logger.Driver, lb loadbalancer.LB, config Config, logger func(event string, data log.Data), fileCreator func(instanceID, name string) (*os.File, error)) (Task, error) {
 	if config.Driver == "docker" && !pconfig.HasDocker {
 		return nil, errors.New("docker is not available")
 	}
 	e := append(config.Env, fmt.Sprintf("PAASBOX_TASKID=%s", config.ID))
 	var t *task
 	t = &task{
-		workspaceID:     workspaceID,
+		stackID:         stackID,
 		taskID:          config.ID,
 		name:            config.Name,
 		service:         config.Service,
@@ -516,7 +516,7 @@ func (t *task) Recover() (bool, error) {
 		}
 
 		doneCh := make(chan struct{})
-		inst := RecoveredInstance(t.logDriver, "workspaceID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}}, proc)
+		inst := RecoveredInstance(t.logDriver, "stackID", "taskID", instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, nil, "", ports, t.portMap, "", "", []string{}}, proc)
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors
@@ -573,7 +573,7 @@ func (t *task) Start() error {
 			net = "paasbox-" + env.Replace(t.network, t.Env())
 		}
 
-		inst := NewInstance(t.logDriver, t.workspaceID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes})
+		inst := NewInstance(t.logDriver, t.stackID, t.taskID, instanceID, instanceStore, InstanceConfig{doneCh, t.logger, t.fileCreator, t.driver, t.command, t.args, t.getEnv(), t.pwd, t.getInstancePorts(), t.portMap, t.image, net, t.volumes})
 		t.instances[instanceID] = taskInstance{doneCh, inst}
 
 		// TODO handle waitLoop errors properly

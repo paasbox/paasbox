@@ -40,7 +40,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t, ShouldNotBeNil)
 		So(t.doneCh, ShouldEqual, doneCh)
 		So(t.isDone, ShouldEqual, false)
@@ -60,7 +60,7 @@ func TestInstance(t *testing.T) {
 			fData = data
 			calls++
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		t.log("test", nil)
 		So(fEvent, ShouldEqual, "test")
 		So(fData, ShouldHaveSameTypeAs, log.Data{})
@@ -79,7 +79,7 @@ func TestInstance(t *testing.T) {
 			fData = data
 			calls++
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		t.error(errors.New("foo"), errors.New("bar"), nil)
 		So(fEvent, ShouldEqual, "error")
 		So(fData, ShouldResemble, log.Data{"error": errors.New("foo"), "reason": errors.New("bar"), "instance_id": t.instanceID})
@@ -91,7 +91,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		t.done()
 		So(t.isDone, ShouldEqual, true)
@@ -104,7 +104,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "driver", "command", []string{"args"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldEqual, errUnsupportedDriver)
@@ -116,7 +116,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -134,7 +134,7 @@ func TestInstance(t *testing.T) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
 		start := time.Now()
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 1"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 1"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -150,7 +150,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -168,7 +168,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -187,7 +187,7 @@ func TestInstance(t *testing.T) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
 		start := time.Now()
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "shell", "sleep", []string{"1"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "shell", "sleep", []string{"1"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -204,7 +204,7 @@ func TestInstance(t *testing.T) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
 		start := time.Now()
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -233,7 +233,7 @@ func TestInstance(t *testing.T) {
 		}
 		start := time.Now()
 		cfg1 := InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "sleep 10"}, env, "", []int{}, []int{}, "", "", []string{}}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, cfg1).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, cfg1).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -243,7 +243,7 @@ func TestInstance(t *testing.T) {
 		proc, err := os.FindProcess(t.process.Pid)
 		So(err, ShouldBeNil)
 		So(proc, ShouldNotBeNil)
-		t2 := RecoveredInstance(nil, "workspaceID", "taskID", "instanceID", storage, cfg2, proc).(*instance)
+		t2 := RecoveredInstance(nil, "stackID", "taskID", "instanceID", storage, cfg2, proc).(*instance)
 		So(t2, ShouldNotBeNil)
 		So(t2.recovered, ShouldEqual, true)
 		// 2 is the magic number which allows t2 signal loop to complete in a reasonable time,
@@ -284,7 +284,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		err := t.Start()
 		So(err, ShouldBeNil)
@@ -298,7 +298,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		So(t.isDone, ShouldEqual, false)
 		So(t.Stop(), ShouldBeNil)
 	})
@@ -308,7 +308,7 @@ func TestInstance(t *testing.T) {
 		logger := func(event string, data log.Data) {
 			fmt.Printf("%s: %+v\n", event, data)
 		}
-		t := NewInstance(nil, "workspaceID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
+		t := NewInstance(nil, "stackID", "taskID", "instanceID", storage, InstanceConfig{doneCh, logger, tempFile, "exec", "/bin/sh", []string{"-c", "echo 'foo'"}, env, "", []int{}, []int{}, "", "", []string{}}).(*instance)
 		t.isDone = true
 		t.wait()
 		So(func() { close(doneCh) }, ShouldNotPanic)

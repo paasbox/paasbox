@@ -1,4 +1,4 @@
-package workspace
+package stack
 
 import (
 	"io/ioutil"
@@ -12,9 +12,9 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-func TestNewWorkspace(t *testing.T) {
+func TestNewStack(t *testing.T) {
 	s := state.NewMock(func(string) string { return "" }, func(string, string) {})
-	storage, _ := s.Wrap("workspaces")
+	storage, _ := s.Wrap("stacks")
 
 	logTemp, err := ioutil.TempDir("", "paasbox")
 	if err != nil {
@@ -32,10 +32,10 @@ func TestNewWorkspace(t *testing.T) {
 		}
 	}()
 
-	Convey("New creates a new workspace with correct field data", t, func() {
+	Convey("New creates a new stack with correct field data", t, func() {
 		cfg := Config{
-			ID:      "example-workspace",
-			Name:    "Example workspace",
+			ID:      "example-stack",
+			Name:    "Example stack",
 			Env:     EnvConfig{Set: []string{"FOO=bar"}},
 			LogPath: logTemp,
 			Tasks: []task.Config{
@@ -52,7 +52,7 @@ func TestNewWorkspace(t *testing.T) {
 		}
 		w, err := New(nil, storage, lb, cfg)
 		So(err, ShouldBeNil)
-		ws := w.(*workspace)
+		ws := w.(*stack)
 		So(ws, ShouldNotBeNil)
 		So(ws.id, ShouldEqual, cfg.ID)
 		So(ws.taskConfigs, ShouldResemble, cfg.Tasks)
@@ -65,7 +65,7 @@ func TestNewWorkspace(t *testing.T) {
 		So(wsTask.CurrentInstances(), ShouldHaveLength, 0)
 	})
 
-	Convey("Start starts a workspace", t, func() {
+	Convey("Start starts a stack", t, func() {
 		cfg := Config{
 			LogPath: logTemp,
 			Tasks: []task.Config{
@@ -81,7 +81,7 @@ func TestNewWorkspace(t *testing.T) {
 		}
 		w, err := New(nil, storage, lb, cfg)
 		So(err, ShouldBeNil)
-		ws := w.(*workspace)
+		ws := w.(*stack)
 		task := ws.tasks["sleep"]
 		So(task.CurrentInstances(), ShouldHaveLength, 0)
 		So(err, ShouldBeNil)
@@ -100,7 +100,7 @@ func TestNewWorkspace(t *testing.T) {
 		So(err, ShouldBeNil)
 	})
 
-	Convey("Workspace env is passed through", t, func() {
+	Convey("Stack env is passed through", t, func() {
 		cfg := Config{
 			LogPath: logTemp,
 			Env:     EnvConfig{Set: []string{"FOO=1"}},
@@ -117,7 +117,7 @@ func TestNewWorkspace(t *testing.T) {
 		}
 		w, err := New(nil, storage, lb, cfg)
 		So(err, ShouldBeNil)
-		ws := w.(*workspace)
+		ws := w.(*stack)
 		task := ws.tasks["sleep"]
 		So(task.CurrentInstances(), ShouldHaveLength, 0)
 

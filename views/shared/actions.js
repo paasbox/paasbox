@@ -1,29 +1,29 @@
 import store from '../shared/store';
 
-export const UPDATE_WORKSPACES = 'UPDATE_WORKSPACES';
-export const UPDATE_ACTIVE_WORKSPACE = 'UPDATE_ACTIVE_WORKSPACE';
-export const UPDATE_ACTIVE_WORKSPACE_TASKS = 'UPDATE_ACTIVE_WORKSPACE_TASKS';
+export const UPDATE_STACKS = 'UPDATE_STACKS';
+export const UPDATE_ACTIVE_STACK = 'UPDATE_ACTIVE_STACK';
+export const UPDATE_ACTIVE_STACK_TASKS = 'UPDATE_ACTIVE_STACK_TASKS';
 export const UPDATE_ACTIVE_TASK = 'UPDATE_ACTIVE_TASK';
 
-export function updateWorkspaces(workspaces) {
+export function updateStacks(stacks) {
     return {
-        type: UPDATE_WORKSPACES,
-        workspaces: workspaces
+        type: UPDATE_STACKS,
+        stacks: stacks
     }
 }
 
-export function updateActiveWorkspace(activeWorkspace) {
+export function updateActiveStack(activeStack) {
     store.dispatch(updateActiveTask({}));
     return {
-        type: UPDATE_ACTIVE_WORKSPACE,
-        activeWorkspace: activeWorkspace
+        type: UPDATE_ACTIVE_STACK,
+        activeStack: activeStack
     }
 
 }
 
-export function updateActiveWorkspaceTasks(tasks) {
+export function updateActiveStackTasks(tasks) {
     return {
-        type: UPDATE_ACTIVE_WORKSPACE_TASKS,
+        type: UPDATE_ACTIVE_STACK_TASKS,
         tasks: tasks
     }
 }

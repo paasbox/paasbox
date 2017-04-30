@@ -5,14 +5,14 @@ export default class TasksList extends Component {
     render() {
         return (
             <div>
-                <h2>{this.props.activeWorkspace.name}</h2>
+                <h2>{this.props.activeStack.name}</h2>
                 <ul className="list--neutral">
-                    {this.props.activeWorkspace.tasks.map(task => {
+                    {this.props.activeStack.tasks.map(task => {
                         return (
                             <TaskItem 
                                 key={task.id} 
                                 task={task} 
-                                activeWorkspaceID={this.props.activeWorkspace.id} 
+                                activeStackID={this.props.activeStack.id} 
                                 activeTask={this.props.activeTask} 
                                 handleLogClick={this.props.handleLogClick}
                                 handleStartStopClick={this.props.handleStartStopClick} />

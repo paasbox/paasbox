@@ -1,8 +1,8 @@
 {
-  "id": "example-workspace",
-  "name": "Example workspace",
+  "id": "example-stack",
+  "name": "Example stack",
   "log_path": "./logs",
-  "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+  "log_pattern": "$STACK_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
   "env": {
     "inherit_all": false,
     "inherit": [

@@ -31,11 +31,11 @@ version:
 
 generate: ${GOPATH}/bin/go-bindata
 	# build the production version
-	cd assets; ${GOPATH}/bin/go-bindata -o templates.go -pkg assets templates/... css/... js/... images/... workspaces/...
+	cd assets; ${GOPATH}/bin/go-bindata -o templates.go -pkg assets templates/... css/... js/... images/...
 	{ echo "// +build production"; cat assets/templates.go; } > assets/templates.go.new
 	mv assets/templates.go.new assets/templates.go
 	# build the dev version
-	cd assets; ${GOPATH}/bin/go-bindata -debug -o debug.go -pkg assets templates/... css/... js/... images/... workspaces/...
+	cd assets; ${GOPATH}/bin/go-bindata -debug -o debug.go -pkg assets templates/... css/... js/... images/...
 	{ echo "// +build debug"; cat assets/debug.go; } > assets/debug.go.new
 	mv assets/debug.go.new assets/debug.go
 
@@ -44,11 +44,11 @@ ${GOPATH}/bin/go-bindata:
 
 debug: build
 	go build -tags 'debug' -o ./build/pb ./cmd/pb
-	HUMAN_LOG=1 ./build/pb workspaces/ons-stack.json
+	HUMAN_LOG=1 ./build/pb stacks/ons-stack.json
 
 ws: build
 	go build -tags 'debug' -o ./build/pb ./cmd/pb
-	HUMAN_LOG=1 ./build/pb example/workspaces.json
+	HUMAN_LOG=1 ./build/pb example/stacks.json
 
 elk: build
 	HUMAN_LOG=1 PAASBOX_LOG=logstash@http://localhost:52000 pb @elk example/elk_demo.json

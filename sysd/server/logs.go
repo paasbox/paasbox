@@ -49,7 +49,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		useWS = true
 	}
 
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 	instanceID := req.URL.Query().Get(":instance_id")
 	tailFile := strings.ToLower(req.URL.Query().Get("tail"))
@@ -59,7 +59,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		isTail = true
 	}
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 	if !ok {
 		w.WriteHeader(404)
 		return

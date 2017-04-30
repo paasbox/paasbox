@@ -1,6 +1,6 @@
 {
-  "id": "workspace-init",
-  "name": "Workspace init example",
+  "id": "stack-init",
+  "name": "Stack init example",
   "env": {
     "inherit": [ "GOPATH" ]
   },

@@ -1,10 +1,10 @@
 {
-  "workspaces": [
+  "stacks": [
     {
-      "id": "example-workspace-1",
-      "name": "Example workspace 1",
+      "id": "example-stack-1",
+      "name": "Example stack 1",
       "log_path": "./logs",
-      "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+      "log_pattern": "$STACK_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
       "env": {
         "inherit_all": false,
         "inherit": [ "PATH", "USER", "HOME" ],
@@ -28,10 +28,10 @@
       ]
     },
     {
-      "id": "example-workspace-2",
-      "name": "Example workspace 2",
+      "id": "example-stack-2",
+      "name": "Example stack 2",
       "log_path": "./logs",
-      "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+      "log_pattern": "$STACK_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
       "env": {
         "inherit_all": false,
         "inherit": [ "PATH", "USER", "HOME" ],

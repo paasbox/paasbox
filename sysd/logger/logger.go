@@ -39,11 +39,11 @@ type logstashDriver struct {
 var _ Driver = &logstashDriver{}
 
 type AppMessage struct {
-	WorkspaceID string
-	TaskID      string
-	InstanceID  string
-	Fd          string
-	Message     string
+	StackID    string
+	TaskID     string
+	InstanceID string
+	Fd         string
+	Message    string
 }
 
 type PBMessage struct {
@@ -162,10 +162,10 @@ func (l *logstashDriver) Stop() error {
 func (l *logstashDriver) sendAppLine(m AppMessage) error {
 	data := map[string]interface{}{
 		"paasbox": map[string]interface{}{
-			"workspace_id": m.WorkspaceID,
-			"task_id":      m.TaskID,
-			"instance_id":  m.InstanceID,
-			"Fd":           m.Fd,
+			"stack_id":    m.StackID,
+			"task_id":     m.TaskID,
+			"instance_id": m.InstanceID,
+			"Fd":          m.Fd,
 		},
 	}
 

@@ -1,15 +1,15 @@
 import { createStore, combineReducers } from 'redux';
 import { routerReducer } from 'react-router-redux'
 import {
-    UPDATE_WORKSPACES,
-    UPDATE_ACTIVE_WORKSPACE,
-    UPDATE_ACTIVE_WORKSPACE_TASKS,
+    UPDATE_STACKS,
+    UPDATE_ACTIVE_STACK,
+    UPDATE_ACTIVE_STACK_TASKS,
     UPDATE_ACTIVE_TASK
 } from './actions';
 
 const initialState = {
-    workspaces: [],
-    activeWorkspace: {},
+    stacks: [],
+    activeStack: {},
     activeTask: {}
 };
 
@@ -18,16 +18,16 @@ function state(state = initialState, action) {
     const updatedState = JSON.parse(JSON.stringify(state));
 
     switch (action.type) {
-        case ('UPDATE_WORKSPACES'): {
-            updatedState.workspaces = action.workspaces;
+        case ('UPDATE_STACKS'): {
+            updatedState.stacks = action.stacks;
             break;
         }
-        case ('UPDATE_ACTIVE_WORKSPACE'): {
-            updatedState.activeWorkspace = action.activeWorkspace;
+        case ('UPDATE_ACTIVE_STACK'): {
+            updatedState.activeStack = action.activeStack;
             break;
         }
-        case ('UPDATE_ACTIVE_WORKSPACE_TASKS'): {
-            updatedState.activeWorkspace.tasks = action.tasks;
+        case ('UPDATE_ACTIVE_STACK_TASKS'): {
+            updatedState.activeStack.tasks = action.tasks;
             break;
         }
         case ('UPDATE_ACTIVE_TASK'): {

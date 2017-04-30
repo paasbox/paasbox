@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import get from './shared/get';
-import { updateWorkspaces, updateActiveWorkspace } from './shared/actions';
+import { updateStacks, updateActiveStack } from './shared/actions';
 
 import Sidebar from './components/sidebar/Sidebar.jsx'
 
@@ -11,42 +11,42 @@ class App extends Component {
         super(props);
 
         this.state = {
-            isFetchingWorkspaces: false
+            isFetchingStacks: false
         }
     }
 
     componentWillMount() {
-        this.setState({isFetchingWorkspaces: true});
+        this.setState({isFetchingStacks: true});
 
-        get.workspaces().then(response => {
-            this.setState({isFetchingWorkspaces: false});
-            this.props.dispatch(updateWorkspaces(response));
+        get.stacks().then(response => {
+            this.setState({isFetchingStacks: false});
+            this.props.dispatch(updateStacks(response));
         });
     }
 
-    findActiveWorkspace(workspaces, activeWorkspace) {
-        return workspaces.find(workspace => {
-            return workspace.id === activeWorkspace;
+    findActiveStack(stacks, activeStack) {
+        return stacks.find(stack => {
+            return stack.id === activeStack;
         });
     }
 
     shouldComponentUpdate(nextProps) {
-        // Getting workspaces, don't render
-        if (this.state.isFetchingWorkspaces) {
+        // Getting stacks, don't render
+        if (this.state.isFetchingStacks) {
             return false;
         }
 
-        // First time rendering a workspace, must set 'activeWorkspace' property in state
-        if (!nextProps.activeWorkspace.hasOwnProperty('id') && nextProps.params.workspace) {
-            const activeWorkspace = this.findActiveWorkspace(nextProps.workspaces, nextProps.params.workspace);
-            nextProps.dispatch(updateActiveWorkspace(activeWorkspace));
+        // First time rendering a stack, must set 'activeStack' property in state
+        if (!nextProps.activeStack.hasOwnProperty('id') && nextProps.params.stack) {
+            const activeStack = this.findActiveStack(nextProps.stacks, nextProps.params.stack);
+            nextProps.dispatch(updateActiveStack(activeStack));
             return false;
         }
 
-        // Active workspace may have been set before but is changing, update state
-        if (nextProps.params.workspace && (nextProps.params.workspace !== this.props.params.workspace)) {
-            const activeWorkspace = this.findActiveWorkspace(nextProps.workspaces, nextProps.params.workspace);
-            nextProps.dispatch(updateActiveWorkspace(activeWorkspace));
+        // Active stack may have been set before but is changing, update state
+        if (nextProps.params.stack && (nextProps.params.stack !== this.props.params.stack)) {
+            const activeStack = this.findActiveStack(nextProps.stacks, nextProps.params.stack);
+            nextProps.dispatch(updateActiveStack(activeStack));
             return false;
         }
 
@@ -55,8 +55,8 @@ class App extends Component {
 
     render() {
         return (
-            this.state.isFetchingWorkspaces ?
-                <p>Fetching workspaces...</p>
+            this.state.isFetchingStacks ?
+                <p>Fetching stacks...</p>
                 :
                 <div>
                     <Sidebar />
@@ -68,8 +68,8 @@ class App extends Component {
 
 function mapStateToProps(state) {
     return {
-        workspaces: state.state.workspaces,
-        activeWorkspace: state.state.activeWorkspace
+        stacks: state.state.stacks,
+        activeStack: state.state.activeStack
     }
 }
 

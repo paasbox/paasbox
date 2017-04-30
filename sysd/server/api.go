@@ -13,20 +13,20 @@ import (
 	"github.com/ian-kent/service.go/log"
 )
 
-type workspacesOutput struct {
-	Workspaces []workspacesOutputWorkspace `json:"workspaces"`
+type stacksOutput struct {
+	Stacks []stacksOutputStack `json:"stacks"`
 }
 
-type workspacesOutputWorkspace struct {
-	ID           string       `json:"id"`
-	Name         string       `json:"name"`
-	Env          workspaceEnv `json:"env"`
-	WorkspaceURL string       `json:"workspace_url"`
-	TasksURL     string       `json:"tasks_url"`
-	Started      bool         `json:"is_started"`
+type stacksOutputStack struct {
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Env      stackEnv `json:"env"`
+	StackURL string   `json:"stack_url"`
+	TasksURL string   `json:"tasks_url"`
+	Started  bool     `json:"is_started"`
 }
 
-type workspaceEnv struct {
+type stackEnv struct {
 	InheritAll bool     `json:"inherit_all"`
 	Inherit    []string `json:"inherit"`
 	Remove     []string `json:"remove"`
@@ -55,7 +55,7 @@ type tasksOutputTask struct {
 	Started      bool                    `json:"is_started"`
 
 	TaskURL      string `json:"task_url"`
-	WorkspaceURL string `json:"workspace_url"`
+	StackURL     string `json:"stack_url"`
 	InstancesURL string `json:"instances_url"`
 
 	CurrentInstances []tasksOutputTaskInstances `json:"current_instances,omitempty"`
@@ -104,9 +104,9 @@ type instancesOutputInstance struct {
 	Pwd     string   `json:"pwd"`
 	Ports   []int    `json:"ports"`
 
-	InstanceURL  string `json:"instance_url"`
-	TaskURL      string `json:"task_url"`
-	WorkspaceURL string `json:"workspace_url"`
+	InstanceURL string `json:"instance_url"`
+	TaskURL     string `json:"task_url"`
+	StackURL    string `json:"stack_url"`
 }
 
 func (s *srv) loadBalancer(w http.ResponseWriter, req *http.Request) {
@@ -135,20 +135,20 @@ func (s *srv) loadBalancerLog(w http.ResponseWriter, req *http.Request) {
 	w.Write(b)
 }
 
-func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
-	o := workspacesOutput{
-		Workspaces: make([]workspacesOutputWorkspace, 0),
+func (s *srv) stacks(w http.ResponseWriter, req *http.Request) {
+	o := stacksOutput{
+		Stacks: make([]stacksOutputStack, 0),
 	}
 
-	workspaces := s.sysd.Workspaces()
-	for _, ws := range workspaces {
-		o.Workspaces = append(o.Workspaces, workspacesOutputWorkspace{
-			ID:           ws.ID(),
-			Name:         ws.Name(),
-			Env:          workspaceEnv(ws.Env()),
-			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
-			TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
-			Started:      ws.Started(),
+	stacks := s.sysd.Stacks()
+	for _, ws := range stacks {
+		o.Stacks = append(o.Stacks, stacksOutputStack{
+			ID:       ws.ID(),
+			Name:     ws.Name(),
+			Env:      stackEnv(ws.Env()),
+			StackURL: fmt.Sprintf("/stacks/%s", ws.ID()),
+			TasksURL: fmt.Sprintf("/stacks/%s/tasks", ws.ID()),
+			Started:  ws.Started(),
 		})
 	}
 
@@ -162,22 +162,22 @@ func (s *srv) workspaces(w http.ResponseWriter, req *http.Request) {
 	w.Write(b)
 }
 
-func (s *srv) workspace(w http.ResponseWriter, req *http.Request) {
-	id := req.URL.Query().Get(":workspace_id")
-	ws, ok := s.sysd.Workspace(id)
+func (s *srv) stack(w http.ResponseWriter, req *http.Request) {
+	id := req.URL.Query().Get(":stack_id")
+	ws, ok := s.sysd.Stack(id)
 
 	if !ok {
 		w.WriteHeader(404)
 		return
 	}
 
-	o := workspacesOutputWorkspace{
-		ID:           ws.ID(),
-		Name:         ws.Name(),
-		Env:          workspaceEnv(ws.Env()),
-		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
-		TasksURL:     fmt.Sprintf("/workspaces/%s/tasks", ws.ID()),
-		Started:      ws.Started(),
+	o := stacksOutputStack{
+		ID:       ws.ID(),
+		Name:     ws.Name(),
+		Env:      stackEnv(ws.Env()),
+		StackURL: fmt.Sprintf("/stacks/%s", ws.ID()),
+		TasksURL: fmt.Sprintf("/stacks/%s/tasks", ws.ID()),
+		Started:  ws.Started(),
 	}
 
 	b, err := json.Marshal(o)
@@ -191,8 +191,8 @@ func (s *srv) workspace(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
-	id := req.URL.Query().Get(":workspace_id")
-	ws, ok := s.sysd.Workspace(id)
+	id := req.URL.Query().Get(":stack_id")
+	ws, ok := s.sysd.Stack(id)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -208,7 +208,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 		for _, inst := range t.CurrentInstances() {
 			instances = append(instances, tasksOutputTaskInstances{
 				ID:  inst.ID(),
-				URL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), inst.ID()),
+				URL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), inst.ID()),
 			})
 		}
 
@@ -250,9 +250,9 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			Healthchecks: hcOutput,
 			Started:      t.Started(),
 
-			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
-			InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
-			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
+			TaskURL:      fmt.Sprintf("/stacks/%s/tasks/%s", ws.ID(), t.ID()),
+			InstancesURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances", ws.ID(), t.ID()),
+			StackURL:     fmt.Sprintf("/stacks/%s", ws.ID()),
 
 			CurrentInstances: instances,
 		})
@@ -269,10 +269,10 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) task(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -290,7 +290,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 	for _, inst := range t.CurrentInstances() {
 		instances = append(instances, tasksOutputTaskInstances{
 			ID:  inst.ID(),
-			URL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), inst.ID()),
+			URL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s", ws.ID(), t.ID(), inst.ID()),
 		})
 	}
 
@@ -332,9 +332,9 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		Healthchecks: hcOutput,
 		Started:      t.Started(),
 
-		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), t.ID()),
-		InstancesURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances", ws.ID(), t.ID()),
-		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
+		TaskURL:      fmt.Sprintf("/stacks/%s/tasks/%s", ws.ID(), t.ID()),
+		InstancesURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances", ws.ID(), t.ID()),
+		StackURL:     fmt.Sprintf("/stacks/%s", ws.ID()),
 
 		CurrentInstances: instances,
 	}
@@ -354,10 +354,10 @@ type updateTaskModel struct {
 }
 
 func (s *srv) updateTask(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -406,10 +406,10 @@ func (s *srv) updateTask(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) startTask(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -443,10 +443,10 @@ func (s *srv) startTask(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(201)
 }
 
-func (s *srv) startWorkspace(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+func (s *srv) startStack(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":stack_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 
 	if !ok {
 		w.WriteHeader(404)
@@ -469,7 +469,7 @@ func (s *srv) startWorkspace(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 
 	order := req.URL.Query().Get("order")
@@ -478,7 +478,7 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 		order = "desc"
 	}
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -530,10 +530,10 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if nextStart != start && nextStart <= task.ExecCount() {
-		o.NextPageURL = fmt.Sprintf("/workspaces/%s/tasks/%s/instances?start=%d&count=%d", wsID, taskID, nextStart, count)
+		o.NextPageURL = fmt.Sprintf("/stacks/%s/tasks/%s/instances?start=%d&count=%d", wsID, taskID, nextStart, count)
 	}
 	if prevStart != start {
-		o.PreviousPageURL = fmt.Sprintf("/workspaces/%s/tasks/%s/instances?start=%d&count=%d", wsID, taskID, prevStart, count)
+		o.PreviousPageURL = fmt.Sprintf("/stacks/%s/tasks/%s/instances?start=%d&count=%d", wsID, taskID, prevStart, count)
 	}
 
 	desc := true
@@ -547,9 +547,9 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 			ID: i.ID(),
 
 			Stdout:    i.Stdout(),
-			StdoutURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s/stdout", ws.ID(), task.ID(), i.ID()),
+			StdoutURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s/stdout", ws.ID(), task.ID(), i.ID()),
 			Stderr:    i.Stderr(),
-			StderrURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s/stderr", ws.ID(), task.ID(), i.ID()),
+			StderrURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s/stderr", ws.ID(), task.ID(), i.ID()),
 			Pid:       i.Pid(),
 
 			Driver:  i.Driver(),
@@ -560,9 +560,9 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 			Running: i.Running(),
 			Ports:   i.Ports(),
 
-			WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
-			TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), task.ID()),
-			InstanceURL:  fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), task.ID(), i.ID()),
+			StackURL:    fmt.Sprintf("/stacks/%s", ws.ID()),
+			TaskURL:     fmt.Sprintf("/stacks/%s/tasks/%s", ws.ID(), task.ID()),
+			InstanceURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s", ws.ID(), task.ID(), i.ID()),
 		})
 	}
 
@@ -577,11 +577,11 @@ func (s *srv) instances(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 	instanceID := req.URL.Query().Get(":instance_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -608,9 +608,9 @@ func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
 		ID: i.ID(),
 
 		Stdout:    i.Stdout(),
-		StdoutURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s/stdout", ws.ID(), task.ID(), i.ID()),
+		StdoutURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s/stdout", ws.ID(), task.ID(), i.ID()),
 		Stderr:    i.Stderr(),
-		StderrURL: fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s/stderr", ws.ID(), task.ID(), i.ID()),
+		StderrURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s/stderr", ws.ID(), task.ID(), i.ID()),
 		Pid:       i.Pid(),
 
 		Driver:  i.Driver(),
@@ -621,9 +621,9 @@ func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
 		Running: i.Running(),
 		Ports:   i.Ports(),
 
-		WorkspaceURL: fmt.Sprintf("/workspaces/%s", ws.ID()),
-		TaskURL:      fmt.Sprintf("/workspaces/%s/tasks/%s", ws.ID(), task.ID()),
-		InstanceURL:  fmt.Sprintf("/workspaces/%s/tasks/%s/instances/%s", ws.ID(), task.ID(), i.ID()),
+		StackURL:    fmt.Sprintf("/stacks/%s", ws.ID()),
+		TaskURL:     fmt.Sprintf("/stacks/%s/tasks/%s", ws.ID(), task.ID()),
+		InstanceURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances/%s", ws.ID(), task.ID(), i.ID()),
 	}
 
 	b, err := json.Marshal(o)
@@ -637,11 +637,11 @@ func (s *srv) instance(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) stopInstance(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 	instanceID := req.URL.Query().Get(":instance_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -680,10 +680,10 @@ func (s *srv) stopInstance(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *srv) stopTask(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+	wsID := req.URL.Query().Get(":stack_id")
 	taskID := req.URL.Query().Get(":task_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 	if !ok {
 		w.WriteHeader(404)
 		return
@@ -710,10 +710,10 @@ func (s *srv) stopTask(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(200)
 }
 
-func (s *srv) stopWorkspace(w http.ResponseWriter, req *http.Request) {
-	wsID := req.URL.Query().Get(":workspace_id")
+func (s *srv) stopStack(w http.ResponseWriter, req *http.Request) {
+	wsID := req.URL.Query().Get(":stack_id")
 
-	ws, ok := s.sysd.Workspace(wsID)
+	ws, ok := s.sysd.Stack(wsID)
 	if !ok {
 		w.WriteHeader(404)
 		return

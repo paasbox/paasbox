@@ -1,4 +1,4 @@
-package workspace
+package stack
 
 import (
 	"errors"
@@ -27,8 +27,8 @@ var (
 	errLogPathIsFile        = errors.New("log path is a file, need directory")
 )
 
-// Workspace ...
-type Workspace interface {
+// Stack ...
+type Stack interface {
 	Init() error
 	Start() error
 	Stop() error
@@ -61,7 +61,7 @@ type EnvConfig struct {
 	Set        []string `json:"set"`
 }
 
-type workspace struct {
+type stack struct {
 	id          string
 	name        string
 	taskConfigs []task.Config
@@ -80,9 +80,9 @@ type workspace struct {
 }
 
 // New ...
-func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config Config) (Workspace, error) {
-	log.Debug("creating workspace", log.Data{"id": config.ID, "tasks": config.Tasks})
-	ws := &workspace{
+func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config Config) (Stack, error) {
+	log.Debug("creating stack", log.Data{"id": config.ID, "tasks": config.Tasks})
+	ws := &stack{
 		id:          config.ID,
 		name:        config.Name,
 		taskConfigs: config.Tasks,
@@ -100,7 +100,7 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 		ws.logPath = "./logs"
 	}
 	if len(config.LogPattern) == 0 {
-		ws.logPattern = "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log"
+		ws.logPattern = "$STACK_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log"
 	}
 
 	o, err := os.Stat(ws.logPath)
@@ -155,7 +155,7 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 
 		t2, err := task.NewTask(ws.id, s, ws.logDriver, ws.loadBalancer, t.WithEnv(env), ws.log, func(instanceID, name string) (*os.File, error) {
 			logPattern := ws.logPattern
-			logPattern = strings.Replace(logPattern, "$WORKSPACE_ID$", ws.ID(), -1)
+			logPattern = strings.Replace(logPattern, "$STACK_ID$", ws.ID(), -1)
 			logPattern = strings.Replace(logPattern, "$TASK_ID$", taskID, -1)
 			logPattern = strings.Replace(logPattern, "$INSTANCE_ID$", instanceID, -1)
 			logPattern = strings.Replace(logPattern, "$NAME$", name, -1)
@@ -220,11 +220,11 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 	return ws, nil
 }
 
-func (ws *workspace) ID() string {
+func (ws *stack) ID() string {
 	return ws.id
 }
 
-func (ws *workspace) Tasks() (t []task.Task) {
+func (ws *stack) Tasks() (t []task.Task) {
 	for _, tID := range ws.taskIDs {
 		if task, ok := ws.tasks[tID]; ok {
 			t = append(t, task)
@@ -233,32 +233,32 @@ func (ws *workspace) Tasks() (t []task.Task) {
 	return
 }
 
-func (ws *workspace) Task(id string) (t task.Task, ok bool) {
+func (ws *stack) Task(id string) (t task.Task, ok bool) {
 	t, ok = ws.tasks[id]
 	return
 }
 
-func (ws *workspace) Name() string {
+func (ws *stack) Name() string {
 	return ws.name
 }
 
-func (ws *workspace) Env() EnvConfig {
+func (ws *stack) Env() EnvConfig {
 	return ws.env
 }
 
-func (ws *workspace) LogPath() string {
+func (ws *stack) LogPath() string {
 	return ws.logPath
 }
 
-func (ws *workspace) log(event string, data log.Data) {
+func (ws *stack) log(event string, data log.Data) {
 	if data == nil {
 		data = log.Data{}
 	}
-	data["workspace_id"] = ws.id
+	data["stack_id"] = ws.id
 	log.Debug(event, data)
 }
 
-func (ws *workspace) error(err error, reason error, data log.Data) {
+func (ws *stack) error(err error, reason error, data log.Data) {
 	if data == nil {
 		data = log.Data{}
 	}
@@ -272,8 +272,8 @@ type initError struct {
 	errs []error
 }
 
-func (ws *workspace) Init() (err error) {
-	ws.log("initialising workspace", nil)
+func (ws *stack) Init() (err error) {
+	ws.log("initialising stack", nil)
 
 	var wg sync.WaitGroup
 	errChan := make(chan error)
@@ -301,17 +301,17 @@ func (ws *workspace) Init() (err error) {
 	close(errChan)
 
 	if len(errs) > 0 {
-		err = initError{errors.New("workspace initialisation failed"), errs}
+		err = initError{errors.New("stack initialisation failed"), errs}
 		return
 	}
 
-	ws.log("workspace initialisation complete", nil)
+	ws.log("stack initialisation complete", nil)
 
 	return
 }
 
-func (ws *workspace) Start() error {
-	ws.log("starting workspace", nil)
+func (ws *stack) Start() error {
+	ws.log("starting stack", nil)
 	ws.stopped = false
 
 	for _, t := range ws.taskConfigs {
@@ -335,8 +335,8 @@ func (ws *workspace) Start() error {
 	return nil
 }
 
-func (ws *workspace) Shutdown() error {
-	ws.log("shutting down workspace, stopping tasks", nil)
+func (ws *stack) Shutdown() error {
+	ws.log("shutting down stack, stopping tasks", nil)
 	for _, t := range ws.taskConfigs {
 		if task, ok := ws.tasks[t.ID]; ok {
 			ws.log("stopping task", log.Data{"task_id": t.ID})
@@ -349,9 +349,9 @@ func (ws *workspace) Shutdown() error {
 	return nil
 }
 
-func (ws *workspace) Stop() error {
+func (ws *stack) Stop() error {
 	ws.stopped = true
-	ws.log("stopping workspace, stopping tasks", nil)
+	ws.log("stopping stack, stopping tasks", nil)
 	for _, t := range ws.taskConfigs {
 		if task, ok := ws.tasks[t.ID]; ok && !task.Persist() {
 			ws.log("task doesn't persist, stopping task", log.Data{"task_id": t.ID})
@@ -364,6 +364,6 @@ func (ws *workspace) Stop() error {
 	return nil
 }
 
-func (ws *workspace) Started() bool {
+func (ws *stack) Started() bool {
 	return !ws.stopped
 }

@@ -2,15 +2,15 @@ import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { browserHistory } from 'react-router'
 
-class RedirectToWorkspace extends Component {
+class RedirectToStack extends Component {
 
     constructor(props) {
         super(props);
     }
 
     componentWillMount() {
-        const workspaces = this.props.workspaces;
-        browserHistory.push(`/${workspaces[0].id}`)
+        const stacks = this.props.stacks;
+        browserHistory.push(`/${stacks[0].id}`)
 
     }
 
@@ -21,8 +21,8 @@ class RedirectToWorkspace extends Component {
 
 function mapStateToProps(state) {
     return {
-        workspaces: state.state.workspaces
+        stacks: state.state.stacks
     }
 }
 
-export default connect(mapStateToProps)(RedirectToWorkspace);
+export default connect(mapStateToProps)(RedirectToStack);

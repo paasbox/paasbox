@@ -13,7 +13,7 @@ import (
 )
 
 type State interface {
-	Load(workspaceID string) (state.Store, error)
+	Load(stackID string) (state.Store, error)
 	Close()
 }
 
@@ -57,16 +57,16 @@ func getStateDir() string {
 	return stateDir
 }
 
-func (s *stateLoader) Load(workspaceID string) (state.Store, error) {
-	workspaceID = strings.TrimPrefix(workspaceID, "@")
+func (s *stateLoader) Load(stackID string) (state.Store, error) {
+	stackID = strings.TrimPrefix(stackID, "@")
 
-	stateFile := filepath.Join(s.stateDir, fmt.Sprintf("%s.db", workspaceID))
+	stateFile := filepath.Join(s.stateDir, fmt.Sprintf("%s.db", stackID))
 	dir := filepath.Dir(stateFile)
 	if _, err := os.Stat(dir); err != nil {
 		err = os.MkdirAll(dir, os.FileMode(0755))
 		if err != nil {
 			log.Error(errOpenBoltDBFailed, log.Data{"reason": err})
-			log.Debug("error creating state directory for workspace", log.Data{"dir": dir})
+			log.Debug("error creating state directory for stack", log.Data{"dir": dir})
 			os.Exit(4)
 		}
 	}
@@ -80,9 +80,9 @@ func (s *stateLoader) Load(workspaceID string) (state.Store, error) {
 
 	s.storage = append(s.storage, boltDB)
 
-	state, err := boltDB.Wrap(workspaceID)
+	state, err := boltDB.Wrap(stackID)
 	if err != nil {
-		log.Error(errOpenBoltWorkspaceFailed, log.Data{"reason": err, "workspace_id": workspaceID})
+		log.Error(errOpenBoltStackFailed, log.Data{"reason": err, "stack_id": stackID})
 		os.Exit(6)
 	}
 

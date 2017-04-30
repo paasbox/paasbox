@@ -1,19 +1,19 @@
 
 export default class get {
 
-    static workspaces() {
+    static stacks() {
         return new Promise((resolve, reject) => {
-            getRequest('/api/workspaces').then(response => {
-                resolve(response.workspaces);
+            getRequest('/api/stacks').then(response => {
+                resolve(response.stacks);
             }).catch(error => {
-                console.log(`Fetching workspaces returned \n` + error.status ` ` + error.statusText);
+                console.log(`Fetching stacks returned \n` + error.status ` ` + error.statusText);
             });
         });
     }
 
-    static tasks(workspace) {
+    static tasks(stack) {
         return new Promise((resolve, reject) => {
-            getRequest(`/api/workspaces/${workspace}/tasks`).then(response => {
+            getRequest(`/api/stacks/${stack}/tasks`).then(response => {
                 resolve(response.tasks);
             }).catch(error => {
                 console.log(`Fetching tasks returned \n` + error.status ` ` + error.statusText);
@@ -21,7 +21,7 @@ export default class get {
         });
     }
 
-    static loadBalancer(workspace) {
+    static loadBalancer(stack) {
         return new Promise((resolve, reject) => {
             getRequest(`/api/loadbalancer`).then(response => {
                 resolve(response);

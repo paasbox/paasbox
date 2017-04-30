@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import Drawer from 'material-ui/Drawer';
 import MenuItem from 'material-ui/MenuItem';
 import RaisedButton from 'material-ui/RaisedButton';
-import Workspaces from './Workspaces.jsx';
+import Stacks from './Stacks.jsx';
 
 class Sidebar extends Component {
 
@@ -20,7 +20,7 @@ class Sidebar extends Component {
                 <div className="logo">
                     <img src="/images/logo.jpg" alt="Paasbox logo"/>
                 </div>
-                <Workspaces workspaces={this.props.workspaces} />
+                <Stacks stacks={this.props.stacks} />
             </Drawer>
         );
     }
@@ -28,7 +28,7 @@ class Sidebar extends Component {
 
 function mapStateToProps(state) {
     return {
-        workspaces: state.state.workspaces
+        stacks: state.state.stacks
     }
 }
 

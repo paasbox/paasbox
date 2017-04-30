@@ -5,40 +5,39 @@ paasbox
 
 ### Getting started
 
-Start paasbox with the example workspace:
+Start paasbox with the example stack:
 
 - `go get github.com/paasbox/paasbox/cmd/pb`
-- `pb https://raw.githubusercontent.com/paasbox/paasbox/master/example/workspace.json`
+- `pb https://raw.githubusercontent.com/paasbox/paasbox/master/example/stack.json`
 
 ### Todo
 
-- rethink workspace IDs
-  - test for invalid IDs? i.e. compare expected against value in workspace?
-    - might not be relevant if workspace is local file
-  - store workspaces locally, e.g. in `~/.paasbox/workspaces`?
+- rethink stack IDs
+  - test for invalid IDs? i.e. compare expected against value in stack?
+    - might not be relevant if stack is local file
+  - store stacks locally, e.g. in `~/.paasbox/stacks`?
   - how/if runtime updates are persisted (e.g. for http)
-  - is a workspace a 'stack'?
   - versioning? (works with @, but not boltdb)
-  - workspaces.paasbox.io? or stacks.paasbox.io?
-- enabled flag for workspaces/tasks in config?
+  - stacks.paasbox.io? or is SCM URL enough?
+- enabled flag for stacks/tasks in config?
 - handle log/instance retention
 - auto-tail latest/all instances from task endpoint
 - store state in remote db/s3/api(?)
 - support HTTP-specific load balancer and Host headers?
 - $ref to external JSON files?
-- native SCM support? (e.g. git info in task api output?)
+- custom UI info, e.g. git info in task api output?
 - exponential back-off on restarts after failure?
 
 ### Notes
 
 Stuff to remember when writing documentation:
 
-#### Loading remote workspaces
+#### Loading remote stacks
 
-- @elk => github.com/paasbox/workspaces/elk/latest
-- @elk:5.2.2 => github.com/paasbox/workspaces/elk/5.2.2
-- @github.com/paasbox/workspaces/elk
-- @github.com/paasbox/workspaces/elk:5.2.2 (branch/tag switch)
+- @elk => github.com/paasbox/stacks/elk/latest
+- @elk:5.2.2 => github.com/paasbox/stacks/elk/5.2.2
+- @github.com/paasbox/stacks/elk
+- @github.com/paasbox/stacks/elk:5.2.2 (branch/tag switch)
 
 #### Drivers
 

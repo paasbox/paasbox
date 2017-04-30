@@ -72,9 +72,9 @@ type InstanceConfig struct {
 var _ Instance = &instance{}
 
 type instance struct {
-	workspaceID string
-	taskID      string
-	instanceID  string
+	stackID    string
+	taskID     string
+	instanceID string
 
 	doneCh      chan struct{}
 	logger      func(event string, data log.Data)
@@ -107,7 +107,7 @@ type instance struct {
 }
 
 // NewInstance ...
-func NewInstance(logDriver logger.Driver, workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig) Instance {
+func NewInstance(logDriver logger.Driver, stackID, taskID, instanceID string, store state.Store, config InstanceConfig) Instance {
 	e := append(config.Env, fmt.Sprintf("PAASBOX_INSTANCEID=%s", instanceID))
 	if len(config.Ports) > 0 {
 		e = append(e, fmt.Sprintf("PORT=%d", config.Ports[0]))
@@ -127,7 +127,7 @@ func NewInstance(logDriver logger.Driver, workspaceID, taskID, instanceID string
 	}
 
 	i := &instance{
-		workspaceID:    workspaceID,
+		stackID:        stackID,
 		taskID:         taskID,
 		doneCh:         config.DoneCh,
 		logger:         config.Logger,
@@ -194,8 +194,8 @@ func NewInstance(logDriver logger.Driver, workspaceID, taskID, instanceID string
 }
 
 // RecoveredInstance ...
-func RecoveredInstance(logDriver logger.Driver, workspaceID, taskID, instanceID string, store state.Store, config InstanceConfig, proc *os.Process) Instance {
-	i := NewInstance(logDriver, workspaceID, taskID, instanceID, store, config).(*instance)
+func RecoveredInstance(logDriver logger.Driver, stackID, taskID, instanceID string, store state.Store, config InstanceConfig, proc *os.Process) Instance {
+	i := NewInstance(logDriver, stackID, taskID, instanceID, store, config).(*instance)
 	i.process = proc
 	i.pid = proc.Pid
 	i.recovered = true
@@ -302,7 +302,7 @@ func (i *instance) Stop() error {
 
 	switch i.driver {
 	case "docker":
-		cmd := exec.Command(config.DockerPath, "rm", "-f", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.workspaceID, "@", "_", -1), i.taskID, i.instanceID))
+		cmd := exec.Command(config.DockerPath, "rm", "-f", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.stackID, "@", "_", -1), i.taskID, i.instanceID))
 		cmd.Env = os.Environ()
 		if err := cmd.Start(); err != nil {
 			i.error(errors.New("error starting docker stop"), err, nil)
@@ -451,7 +451,7 @@ func (i *instance) startDocker() error {
 	}
 
 	i.log("docker run", log.Data{"image": i.image})
-	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.workspaceID, "@", "_", -1), i.taskID, i.instanceID)}
+	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.stackID, "@", "_", -1), i.taskID, i.instanceID)}
 	if len(i.network) > 0 {
 		args = append(args, "--net", i.network, "--network-alias", i.taskID)
 	}
@@ -626,7 +626,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stdout", nil)
 		for l := range stdoutTail.Lines {
 			if l != nil {
-				i.logDriver.SendAppMessage(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stdout", l.Text})
+				i.logDriver.SendAppMessage(logger.AppMessage{i.stackID, i.taskID, i.instanceID, "stdout", l.Text})
 			}
 		}
 		i.log("finished tailing stdout", nil)
@@ -636,7 +636,7 @@ func (i *instance) tailLog() error {
 		i.log("tailing stderr", nil)
 		for l := range stderrTail.Lines {
 			if l != nil {
-				i.logDriver.SendAppMessage(logger.AppMessage{i.workspaceID, i.taskID, i.instanceID, "stderr", l.Text})
+				i.logDriver.SendAppMessage(logger.AppMessage{i.stackID, i.taskID, i.instanceID, "stderr", l.Text})
 			}
 		}
 		i.log("finished tailing stderr", nil)

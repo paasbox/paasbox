@@ -20,8 +20,8 @@ import (
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/server"
+	"github.com/paasbox/paasbox/sysd/stack"
 	"github.com/paasbox/paasbox/sysd/util/lockwarn"
-	"github.com/paasbox/paasbox/sysd/workspace"
 )
 
 // Sysd ...
@@ -32,10 +32,10 @@ type Sysd interface {
 }
 
 type sysd struct {
-	workspaceConfigs []workspace.Config
-	workspaces       map[string]workspace.Workspace
-	workspaceIDs     []string
-	exitCh           chan struct{}
+	stackConfigs []stack.Config
+	stacks       map[string]stack.Stack
+	stackIDs     []string
+	exitCh       chan struct{}
 
 	stateLoader  State
 	server       server.Server
@@ -46,8 +46,8 @@ type sysd struct {
 var _ Sysd = &sysd{}
 
 var (
-	errOpenBoltDBFailed        = errors.New("error opening bolt database")
-	errOpenBoltWorkspaceFailed = errors.New("error opening bolt workspace")
+	errOpenBoltDBFailed    = errors.New("error opening bolt database")
+	errOpenBoltStackFailed = errors.New("error opening bolt stack")
 )
 
 var cli = &http.Client{Timeout: time.Second * 5}
@@ -71,21 +71,21 @@ func New(exitCh chan struct{}) Sysd {
 	}
 
 	s := &sysd{
-		workspaceConfigs: []workspace.Config{},
-		workspaces:       make(map[string]workspace.Workspace),
-		exitCh:           exitCh,
-		stateLoader:      NewState(),
-		loadBalancer:     lb,
-		logDriver:        logDriver,
+		stackConfigs: []stack.Config{},
+		stacks:       make(map[string]stack.Stack),
+		exitCh:       exitCh,
+		stateLoader:  NewState(),
+		loadBalancer: lb,
+		logDriver:    logDriver,
 	}
 	srv := server.New(s)
 	s.server = srv
 
-	workspaceFiles := os.Args[1:]
+	stackFiles := os.Args[1:]
 	var loadFiles []string
 	var atFiles []string
 
-	for _, f := range workspaceFiles {
+	for _, f := range stackFiles {
 		if strings.HasPrefix(f, "@") {
 			atFiles = append(atFiles, strings.TrimPrefix(f, "@"))
 			continue
@@ -94,13 +94,13 @@ func New(exitCh chan struct{}) Sysd {
 	}
 
 	if len(loadFiles) == 0 && len(atFiles) == 0 {
-		loadFiles = append(loadFiles, "workspace.json")
+		loadFiles = append(loadFiles, "stack.json")
 	}
 
-	// @elk => github.com/paasbox/workspaces/elk/latest
-	// @elk:5.2.2 => github.com/paasbox/workspaces/elk/5.2.2
-	// @github.com/paasbox/workspaces/elk
-	// @github.com/paasbox/workspaces/elk:5.2.2 (branch/tag switch)
+	// @elk => github.com/paasbox/stacks/elk/latest
+	// @elk:5.2.2 => github.com/paasbox/stacks/elk/5.2.2
+	// @github.com/paasbox/stacks/elk
+	// @github.com/paasbox/stacks/elk:5.2.2 (branch/tag switch)
 
 	for _, internalFile := range atFiles {
 		path, err := getAtFilePath(internalFile)
@@ -118,40 +118,40 @@ func New(exitCh chan struct{}) Sysd {
 		// 	os.Exit(1)
 		// }
 
-		// err = s.loadWorkspaces(b)
+		// err = s.loadStacks(b)
 		// if err != nil {
-		// 	fmt.Printf("error loading internal workspace %s: %s\n", internalFile, err)
+		// 	fmt.Printf("error loading internal stack %s: %s\n", internalFile, err)
 		// 	os.Exit(1)
 		// }
 	}
 
-	for _, workspaceFile := range loadFiles {
+	for _, stackFile := range loadFiles {
 		var b []byte
 
-		if strings.HasPrefix(strings.ToLower(workspaceFile), "http://") ||
-			strings.HasPrefix(strings.ToLower(workspaceFile), "https://") {
-			res, e := cli.Get(workspaceFile)
+		if strings.HasPrefix(strings.ToLower(stackFile), "http://") ||
+			strings.HasPrefix(strings.ToLower(stackFile), "https://") {
+			res, e := cli.Get(stackFile)
 			if e != nil {
-				fmt.Printf("error fetching file %s: %s\n", workspaceFile, e)
+				fmt.Printf("error fetching file %s: %s\n", stackFile, e)
 				os.Exit(1)
 			}
 			b, err = ioutil.ReadAll(res.Body)
 			res.Body.Close()
 			if err != nil {
-				fmt.Printf("error reading response body %s: %s\n", workspaceFile, err)
+				fmt.Printf("error reading response body %s: %s\n", stackFile, err)
 				os.Exit(1)
 			}
 		} else {
-			b, err = ioutil.ReadFile(workspaceFile)
+			b, err = ioutil.ReadFile(stackFile)
 			if err != nil {
-				fmt.Printf("error reading file %s: %s\n", workspaceFile, err)
+				fmt.Printf("error reading file %s: %s\n", stackFile, err)
 				os.Exit(1)
 			}
 		}
 
-		err = s.loadWorkspaces(b)
+		err = s.loadStacks(b)
 		if err != nil {
-			fmt.Printf("error loading workspace %s: %s\n", workspaceFile, err)
+			fmt.Printf("error loading stack %s: %s\n", stackFile, err)
 			os.Exit(1)
 		}
 	}
@@ -159,28 +159,28 @@ func New(exitCh chan struct{}) Sysd {
 	var wg sync.WaitGroup
 	var initErrors bool
 
-	for _, ws := range s.workspaces {
-		s.workspaceIDs = append(s.workspaceIDs, ws.ID())
+	for _, ws := range s.stacks {
+		s.stackIDs = append(s.stackIDs, ws.ID())
 		wg.Add(1)
-		go func(ws workspace.Workspace) {
+		go func(ws stack.Stack) {
 			defer wg.Done()
 
 			err := ws.Init()
 			if err != nil {
-				fmt.Printf("error initialising workspace %s: %s\n", ws.ID(), err)
+				fmt.Printf("error initialising stack %s: %s\n", ws.ID(), err)
 				initErrors = true
 			}
 		}(ws)
 	}
 
-	sort.Strings(s.workspaceIDs)
+	sort.Strings(s.stackIDs)
 
 	c := lockwarn.Notify()
 	wg.Wait()
 	close(c)
 
 	if initErrors {
-		fmt.Println("workspace initialisation failed")
+		fmt.Println("stack initialisation failed")
 		os.Exit(1)
 	}
 
@@ -208,7 +208,7 @@ func getAtFilePath(internalFile string) (string, error) {
 		default:
 		}
 	} else {
-		path = fmt.Sprintf("https://raw.githubusercontent.com/paasbox/workspaces/master/%s/%s.json", parts[0], version)
+		path = fmt.Sprintf("https://raw.githubusercontent.com/paasbox/stacks/master/%s/%s.json", parts[0], version)
 	}
 
 	return path, nil
@@ -230,11 +230,11 @@ func (s *sysd) Start() error {
 		s.logDriver.Start()
 	}
 
-	log.Debug("starting workspaces", nil)
-	for _, ws := range s.workspaceConfigs {
-		err := s.workspaces[ws.ID].Start()
+	log.Debug("starting stacks", nil)
+	for _, ws := range s.stackConfigs {
+		err := s.stacks[ws.ID].Start()
 		if err != nil {
-			log.Error(err, log.Data{"workspace_id": ws.ID})
+			log.Error(err, log.Data{"stack_id": ws.ID})
 		}
 	}
 
@@ -263,7 +263,7 @@ func (s *sysd) Start() error {
 
 func (s *sysd) stop(stopTasks bool) {
 	log.Debug("stopping sysd", nil)
-	for _, ws := range s.workspaces {
+	for _, ws := range s.stacks {
 		err := ws.Stop()
 		if err != nil {
 			log.Error(err, nil)
@@ -281,17 +281,17 @@ func (s *sysd) stop(stopTasks bool) {
 	log.Debug("sysd stopped", nil)
 }
 
-func (s *sysd) Workspaces() (ws []workspace.Workspace) {
-	for _, v := range s.workspaceIDs {
-		if w, ok := s.workspaces[v]; ok {
+func (s *sysd) Stacks() (ws []stack.Stack) {
+	for _, v := range s.stackIDs {
+		if w, ok := s.stacks[v]; ok {
 			ws = append(ws, w)
 		}
 	}
 	return
 }
 
-func (s *sysd) Workspace(id string) (ws workspace.Workspace, ok bool) {
-	ws, ok = s.workspaces[id]
+func (s *sysd) Stack(id string) (ws stack.Stack, ok bool) {
+	ws, ok = s.stacks[id]
 	return
 }
 
@@ -303,35 +303,35 @@ func (s *sysd) LogDriver() logger.Driver {
 	return s.logDriver
 }
 
-func (s *sysd) loadWorkspaces(b []byte) error {
+func (s *sysd) loadStacks(b []byte) error {
 	var m map[string]interface{}
 	err := json.Unmarshal(b, &m)
 	if err != nil {
 		return err
 	}
 
-	if _, ok := m["workspaces"]; ok {
-		if wsDefs, ok := m["workspaces"].([]interface{}); ok {
+	if _, ok := m["stacks"]; ok {
+		if wsDefs, ok := m["stacks"].([]interface{}); ok {
 			for _, wsDef := range wsDefs {
 				b2, err := json.Marshal(&wsDef)
 				if err != nil {
 					return err
 				}
-				err = s.loadWorkspace(b2)
+				err = s.loadStack(b2)
 				if err != nil {
 					return err
 				}
 			}
 		}
 	} else {
-		return s.loadWorkspace(b)
+		return s.loadStack(b)
 	}
 	return nil
 
 }
 
-func (s *sysd) loadWorkspace(b []byte) error {
-	var conf workspace.Config
+func (s *sysd) loadStack(b []byte) error {
+	var conf stack.Config
 	err := json.Unmarshal(b, &conf)
 	if err != nil {
 		return err
@@ -342,16 +342,16 @@ func (s *sysd) loadWorkspace(b []byte) error {
 		return err
 	}
 
-	ws, err := workspace.New(s.logDriver, state, s.loadBalancer, conf)
+	ws, err := stack.New(s.logDriver, state, s.loadBalancer, conf)
 	if err != nil {
 		return err
 	}
 
-	s.workspaces[conf.ID] = ws
-	s.workspaceConfigs = append(s.workspaceConfigs, conf)
+	s.stacks[conf.ID] = ws
+	s.stackConfigs = append(s.stackConfigs, conf)
 	return nil
 }
 
 func loadInternal(f string) ([]byte, error) {
-	return assets.Asset("workspaces/" + f + ".json")
+	return assets.Asset("stacks/" + f + ".json")
 }
