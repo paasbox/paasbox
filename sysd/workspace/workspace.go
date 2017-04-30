@@ -17,6 +17,7 @@ import (
 	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/task"
 	pbEnv "github.com/paasbox/paasbox/sysd/util/env"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 )
 
 var (
@@ -189,7 +190,9 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 			log.Error(errors.New("error starting docker network inspect"), log.Data{"reason": err})
 			return nil, err
 		}
+		c := lockwarn.Notify()
 		if err := cmd.Wait(); err != nil {
+			close(c)
 			log.Error(errors.New("error starting docker network inspect"), log.Data{"reason": err})
 			log.Debug("docker network not found, creating", log.Data{"network": net})
 
@@ -199,7 +202,9 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 				log.Error(errors.New("error starting docker network create"), log.Data{"reason": err})
 				return nil, err
 			}
+			c := lockwarn.Notify()
 			if err = cmd.Wait(); err != nil {
+				close(c)
 				log.Error(errors.New("error starting docker network create"), log.Data{"reason": err})
 				return nil, err
 			}

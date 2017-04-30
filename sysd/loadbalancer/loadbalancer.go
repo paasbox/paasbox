@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/sysd/logger"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 )
 
 // LB is a load balancer
@@ -119,7 +120,9 @@ func (lb *lb) Stats() LBStats {
 }
 
 func (lb *lb) Log() (output []string) {
+	c := lockwarn.Notify()
 	lb.logger.RWMutex.RLock()
+	close(c)
 	defer lb.logger.RWMutex.RUnlock()
 
 	for i := lb.logger.Pos; i < lb.logger.Limit; i++ {
@@ -209,7 +212,9 @@ func (li *lbListener) start() {
 		li.logger.Message(connID, "connection accepted", log.Data{"remote_addr": lconn.RemoteAddr(), "local_addr": lconn.LocalAddr()})
 		li.statChan <- listenerStat{statConn, 1}
 
+		c := lockwarn.Notify()
 		li.mutex.RLock()
+		close(c)
 		instances := li.Instances()
 		num := len(instances)
 		if num < 1 {
@@ -260,14 +265,18 @@ func (li *lbListener) start() {
 				li.logger.Message(connID, "rconn->lconn pipe closed", log.Data{"error": readErr})
 			}()
 
+			c := lockwarn.Notify()
 			wg.Wait()
+			close(c)
 			li.logger.Message(connID, "wait completed", nil)
 		}()
 	}
 }
 
 func (li *lbListener) AddInstances(addr ...string) {
+	c := lockwarn.Notify()
 	li.mutex.Lock()
+	close(c)
 	defer li.mutex.Unlock()
 	for _, a := range addr {
 		li.instances[a] = struct{}{}
@@ -275,7 +284,9 @@ func (li *lbListener) AddInstances(addr ...string) {
 }
 
 func (li *lbListener) RemoveInstance(addr ...string) {
+	c := lockwarn.Notify()
 	li.mutex.Lock()
+	close(c)
 	defer li.mutex.Unlock()
 	for _, a := range addr {
 		delete(li.instances, a)

@@ -14,6 +14,7 @@ import (
 	"github.com/ian-kent/service.go/log"
 	"github.com/justinas/alice"
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 	"github.com/paasbox/paasbox/sysd/workspace"
 )
 
@@ -66,7 +67,9 @@ func (t *tailMap) Stop() {
 }
 
 func (t *tailMap) done(file string, tf *tail.Tail) {
+	c := lockwarn.Notify()
 	t.mtx.Lock()
+	close(c)
 	defer t.mtx.Unlock()
 
 	if _, ok := t.fileCount[file]; !ok {
@@ -95,7 +98,9 @@ func (t *tailMap) done(file string, tf *tail.Tail) {
 }
 
 func (t *tailMap) get(file string, offset int64, whence int) (*tail.Tail, error) {
+	c := lockwarn.Notify()
 	t.mtx.Lock()
+	close(c)
 	defer t.mtx.Unlock()
 
 	if _, ok := t.fileCount[file]; !ok {

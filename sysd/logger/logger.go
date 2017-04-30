@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/ian-kent/service.go/log"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 )
 
 var cli = &http.Client{
@@ -152,7 +153,9 @@ func (l *logstashDriver) Start() error {
 func (l *logstashDriver) Stop() error {
 	close(l.appMessages)
 	close(l.pbMessages)
+	c := lockwarn.Notify()
 	l.wg.Wait()
+	close(c)
 	return nil
 }
 

@@ -20,6 +20,7 @@ import (
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/server"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 	"github.com/paasbox/paasbox/sysd/workspace"
 )
 
@@ -174,7 +175,9 @@ func New(exitCh chan struct{}) Sysd {
 
 	sort.Strings(s.workspaceIDs)
 
+	c := lockwarn.Notify()
 	wg.Wait()
+	close(c)
 
 	if initErrors {
 		fmt.Println("workspace initialisation failed")

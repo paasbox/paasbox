@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ian-kent/service.go/log"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 )
 
 var _ InstanceHealth = &taskInstanceTracker{}
@@ -112,14 +113,18 @@ func (t *taskHealthcheck) Start() {
 			case <-ticker.C:
 				for _, i := range t.task.instances {
 					if _, ok := t.tracker[i.instance]; !ok {
+						c := lockwarn.Notify()
 						mtx.Lock()
+						close(c)
 						if _, ok := t.tracker[i.instance]; !ok {
 							t.tracker[i.instance] = &taskInstanceTracker{i.instance, 0, true}
 						}
 						mtx.Unlock()
 					}
 					go func(i taskInstance) {
+						c := lockwarn.Notify()
 						mtx.Lock()
+						close(c)
 						defer mtx.Unlock()
 						track := t.tracker[i.instance]
 

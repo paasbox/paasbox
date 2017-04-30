@@ -7,6 +7,7 @@ import (
 
 	"github.com/ian-kent/service.go/log"
 	"github.com/paasbox/paasbox/sysd/logger"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 )
 
 type lbLogger struct {
@@ -28,7 +29,9 @@ type lbLoggerMessage struct {
 func (l *lbLogger) Message(connID, message string, data log.Data) {
 	m := &lbLoggerMessage{Date: time.Now(), ConnID: connID, Message: message, Data: data}
 
+	c := lockwarn.Notify()
 	l.RWMutex.Lock()
+	close(c)
 	defer l.RWMutex.Unlock()
 
 	l.Pos++

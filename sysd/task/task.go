@@ -16,6 +16,7 @@ import (
 	"github.com/paasbox/paasbox/sysd/loadbalancer"
 	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/util/env"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 )
 
 var (
@@ -445,7 +446,9 @@ func (t *task) SetEnv(e []string) error {
 }
 
 func (t *task) RestartInstances() {
+	c := lockwarn.Notify()
 	t.execMutex.Lock()
+	close(c)
 	defer t.execMutex.Unlock()
 
 	var instances []taskInstance
@@ -542,7 +545,9 @@ func (t *task) Start() error {
 	// if len(t.instances) > 0 {
 	// 	return errAlreadyStarted
 	// }
+	c := lockwarn.Notify()
 	t.execMutex.Lock()
+	close(c)
 	defer t.execMutex.Unlock()
 
 	need := t.targetInstances - len(t.instances)
@@ -684,7 +689,9 @@ func (t *task) Stop() error {
 	t.stopped = true
 	for _, i := range t.instances {
 		// TODO handle errors
+		c := lockwarn.Notify()
 		err := i.instance.Stop()
+		close(c)
 		if err != nil {
 			t.error(errors.New("error stopping process"), err, nil)
 		}
@@ -723,7 +730,9 @@ func (t *task) getProcess(pid int) (*os.Process, error) {
 
 func (t *task) signal(proc *os.Process, code int) (*os.Process, error) {
 	t.log("signalling process", log.Data{"code": code, "pid": proc.Pid})
+	c := lockwarn.Notify()
 	err := proc.Signal(syscall.Signal(code))
+	close(c)
 	if err != nil {
 		t.error(errProcessSignalError, err, log.Data{"code": code, "proc_pid": proc.Pid})
 		return proc, err

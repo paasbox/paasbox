@@ -18,6 +18,7 @@ import (
 	"github.com/paasbox/paasbox/state"
 	"github.com/paasbox/paasbox/sysd/logger"
 	"github.com/paasbox/paasbox/sysd/util/env"
+	"github.com/paasbox/paasbox/sysd/util/lockwarn"
 )
 
 var errWaitingForProcess = errors.New("error waiting for process")
@@ -307,7 +308,9 @@ func (i *instance) Stop() error {
 			i.error(errors.New("error starting docker stop"), err, nil)
 			return err
 		}
+		c := lockwarn.Notify()
 		if err := cmd.Wait(); err != nil {
+			close(c)
 			i.error(errors.New("error waiting for docker stop"), err, nil)
 			return err
 		}
@@ -440,7 +443,9 @@ func (i *instance) startDocker() error {
 		i.error(errors.New("error starting docker pull"), err, nil)
 		return err
 	}
+	c := lockwarn.Notify()
 	if err := cmd.Wait(); err != nil {
+		close(c)
 		i.error(errors.New("error waiting for docker pull"), err, nil)
 		return err
 	}
@@ -609,7 +614,9 @@ func (i *instance) tailLog() error {
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
+		c := lockwarn.Notify()
 		<-i.doneCh
+		close(c)
 		i.log("done, cancelling tail", nil)
 		stdoutTail.StopAtEOF()
 		stderrTail.StopAtEOF()
@@ -634,7 +641,9 @@ func (i *instance) tailLog() error {
 		}
 		i.log("finished tailing stderr", nil)
 	}()
+	c := lockwarn.Notify()
 	wg.Wait()
+	close(c)
 	i.log("finished tailing log files", nil)
 	return nil
 }
