@@ -18,6 +18,7 @@ import (
 	"github.com/paasbox/paasbox/sysd/task"
 	pbEnv "github.com/paasbox/paasbox/sysd/util/env"
 	"github.com/paasbox/paasbox/sysd/util/lockwarn"
+	"github.com/paasbox/paasbox/sysd/util/statedir"
 )
 
 var (
@@ -51,6 +52,7 @@ type Config struct {
 	LogPath    string        `json:"log_path"`
 	LogPattern string        `json:"log_pattern"`
 	Env        EnvConfig     `json:"env"`
+	Disabled   bool          `json:"disabled"`
 }
 
 // EnvConfig ...
@@ -68,6 +70,7 @@ type stack struct {
 	env         EnvConfig
 	logPath     string
 	logPattern  string
+	enabled     bool
 
 	tasks        map[string]task.Task
 	taskIDs      []string
@@ -81,7 +84,7 @@ type stack struct {
 
 // New ...
 func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config Config) (Stack, error) {
-	log.Debug("creating stack", log.Data{"id": config.ID, "tasks": config.Tasks})
+	log.Debug("creating stack", log.Data{"id": config.ID, "tasks": config.Tasks, "disabled": config.Disabled})
 	ws := &stack{
 		id:          config.ID,
 		name:        config.Name,
@@ -90,6 +93,8 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 		tasks:       make(map[string]task.Task),
 		logPath:     config.LogPath,
 		logPattern:  config.LogPattern,
+		enabled:     !config.Disabled,
+		stopped:     true,
 
 		loadBalancer:   lb,
 		dockerNetworks: make(map[string]struct{}),
@@ -97,7 +102,7 @@ func New(logDriver logger.Driver, store state.Store, lb loadbalancer.LB, config 
 	}
 
 	if len(config.LogPath) == 0 {
-		ws.logPath = "./logs"
+		ws.logPath = filepath.Join(statedir.Get(), "logs")
 	}
 	if len(config.LogPattern) == 0 {
 		ws.logPattern = "$STACK_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log"
@@ -311,6 +316,10 @@ func (ws *stack) Init() (err error) {
 }
 
 func (ws *stack) Start() error {
+	if !ws.enabled {
+		return errors.New("stack is disabled")
+	}
+
 	ws.log("starting stack", nil)
 	ws.stopped = false
 

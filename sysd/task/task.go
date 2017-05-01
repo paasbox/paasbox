@@ -158,7 +158,7 @@ func NewTask(stackID string, store state.Store, logDriver logger.Driver, lb load
 		loadBalancer:    lb,
 		lbListeners:     make(map[int]loadbalancer.Listener),
 		logger:          logger,
-		stopped:         false,
+		stopped:         true,
 		execMutex:       new(sync.Mutex),
 		fileCreator: func(instanceID string, name string) (*os.File, error) {
 			return fileCreator(instanceID, name)

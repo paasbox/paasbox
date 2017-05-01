@@ -2,6 +2,7 @@
   "id": "example-stack",
   "name": "Example stack",
   "log_path": "./logs",
+  "disabled": false,
   "log_pattern": "$STACK_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
   "env": {
     "inherit_all": false,

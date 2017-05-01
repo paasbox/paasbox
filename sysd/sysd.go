@@ -24,6 +24,7 @@ import (
 	"github.com/paasbox/paasbox/sysd/server"
 	"github.com/paasbox/paasbox/sysd/stack"
 	"github.com/paasbox/paasbox/sysd/util/lockwarn"
+	"github.com/paasbox/paasbox/sysd/util/statedir"
 )
 
 // Sysd ...
@@ -111,7 +112,6 @@ func New(exitCh chan struct{}) Sysd {
 			os.Exit(1)
 		}
 
-		fmt.Println("PATH: ", path)
 		loadFiles = append(loadFiles, path)
 
 		// b, e := loadInternal(internalFile)
@@ -141,7 +141,7 @@ func New(exitCh chan struct{}) Sysd {
 			cachePath := u.Host + "/" + u.Path
 			cachePath = strings.Replace(cachePath, "/", "_", -1)
 			remote = cachePath
-			cachePath = filepath.Join(getStateDir(), "stacks/"+cachePath)
+			cachePath = filepath.Join(statedir.Get(), "stacks/"+cachePath)
 			var loaded bool
 			if _, err := os.Stat(cachePath); err == nil {
 				b, err = ioutil.ReadFile(cachePath)
@@ -267,6 +267,9 @@ func (s *sysd) Start() error {
 
 	log.Debug("starting stacks", nil)
 	for _, ws := range s.stackConfigs {
+		if ws.Disabled {
+			continue
+		}
 		err := s.stacks[ws.ID].Start()
 		if err != nil {
 			log.Error(err, log.Data{"stack_id": ws.ID})

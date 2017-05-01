@@ -13,13 +13,9 @@ Start paasbox with the example stack:
 
 ### Todo
 
-- stack IDs
-  - test for invalid IDs? i.e. compare expected against value in stack?
-    - might not be relevant if stack is local file
+- stacks
   - how/if runtime updates are persisted (e.g. for http)
   - versioning? (works with @, but not boltdb)
-  - stacks.paasbox.io? or is SCM URL enough?
-- enabled flag for stacks/tasks in config?
 - handle log/instance retention
 - auto-tail latest/all instances from task endpoint
 - store state in remote db/s3/api(?)
