@@ -67,15 +67,15 @@ func (t *tailMap) Stop() {
 }
 
 func (t *tailMap) done(file string, tf *tail.Tail) {
-	c := lockwarn.Notify()
-	t.mtx.Lock()
-	close(c)
-	defer t.mtx.Unlock()
-
 	if _, ok := t.fileCount[file]; !ok {
 		log.Debug("file not found in fileCount", log.Data{"file": file})
 		return
 	}
+
+	c := lockwarn.Notify()
+	t.mtx.Lock()
+	close(c)
+	defer t.mtx.Unlock()
 
 	t.fileCount[file]--
 

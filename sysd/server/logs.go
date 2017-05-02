@@ -159,13 +159,13 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		}
 
 		t, err = s.tailMap.get(logFile, offset, wh)
+		defer s.tailMap.done(logFile, t)
+
 		if err != nil {
 			w.WriteHeader(500)
 			log.ErrorR(req, err, nil)
 			return
 		}
-
-		defer s.tailMap.done(logFile, t)
 
 		var flusher http.Flusher
 		if f, ok := w.(http.Flusher); ok {
