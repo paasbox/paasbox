@@ -314,6 +314,7 @@ func (i *instance) Stop() error {
 			i.error(errors.New("error waiting for docker stop"), err, nil)
 			return err
 		}
+		close(c)
 	}
 
 	err := syscall.Kill(-i.process.Pid, syscall.SIGKILL)
@@ -449,6 +450,7 @@ func (i *instance) startDocker() error {
 		i.error(errors.New("error waiting for docker pull"), err, nil)
 		return err
 	}
+	close(c)
 
 	i.log("docker run", log.Data{"image": i.image})
 	args := []string{"run", "--rm", "-t", "--name", fmt.Sprintf("paasbox-%s-%s-%s", strings.Replace(i.stackID, "@", "_", -1), i.taskID, i.instanceID)}
