@@ -8,7 +8,7 @@ build: generate version
 	go build -o ./build/pb -tags 'production' ./cmd/pb
 
 install:
-	go install ./build/pb -tags 'production' ./cmd/pb
+	go install -tags 'production' ./cmd/pb
 
 test: generate
 	go test -tags 'debug' ./...
