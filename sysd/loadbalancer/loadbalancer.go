@@ -265,9 +265,7 @@ func (li *lbListener) start() {
 				li.logger.Message(connID, "rconn->lconn pipe closed", log.Data{"error": readErr})
 			}()
 
-			c := lockwarn.Notify()
 			wg.Wait()
-			close(c)
 			li.logger.Message(connID, "wait completed", nil)
 		}()
 	}
