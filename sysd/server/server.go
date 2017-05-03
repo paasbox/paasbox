@@ -178,7 +178,7 @@ func (s *srv) Start(bindAddr string) error {
 
 	m := []alice.Constructor{
 		requestID.Handler(16),
-		//log.Handler,
+		log.Handler,
 		//timeout.DefaultHandler,
 	}
 	a := alice.New(m...).Then(p)
