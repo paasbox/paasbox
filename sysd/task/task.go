@@ -40,6 +40,8 @@ type Task interface {
 	Instance(id string) (Instance, error)
 	Instances(start, count uint, desc bool) []Instance
 	Healthchecks() []Healthcheck
+	SetDevMode(bool) error
+	DevMode() bool
 
 	ID() string
 	Name() string
@@ -93,24 +95,25 @@ func (c Config) WithEnv(env []string) Config {
 }
 
 type task struct {
-	stackID         string
-	taskID          string
-	name            string
-	service         bool
-	persist         bool
-	driver          string
-	command         string
-	args            []string
-	env             []string
-	ports           []int
-	portMap         []int
-	pwd             string
-	targetInstances int
-	image           string
-	network         string
-	volumes         []string
-	logger          func(event string, data log.Data)
-	logDriver       logger.Driver
+	stackID                 string
+	taskID                  string
+	name                    string
+	service                 bool
+	persist                 bool
+	driver                  string
+	command                 string
+	args                    []string
+	env                     []string
+	ports                   []int
+	portMap                 []int
+	pwd                     string
+	targetInstances         int
+	originalTargetInstances int
+	image                   string
+	network                 string
+	volumes                 []string
+	logger                  func(event string, data log.Data)
+	logDriver               logger.Driver
 
 	store         state.Store
 	instanceStore state.Store
@@ -123,6 +126,7 @@ type task struct {
 	execCount     int
 	execMutex     *sync.Mutex
 	init          []taskInit
+	devMode       bool
 }
 
 type taskInstance struct {
@@ -138,28 +142,29 @@ func NewTask(stackID string, store state.Store, logDriver logger.Driver, lb load
 	e := append(config.Env, fmt.Sprintf("PAASBOX_TASKID=%s", config.ID))
 	var t *task
 	t = &task{
-		stackID:         stackID,
-		taskID:          config.ID,
-		name:            config.Name,
-		service:         config.Service,
-		persist:         config.Persist,
-		driver:          config.Driver,
-		command:         config.Command,
-		args:            config.Args,
-		image:           config.Image,
-		volumes:         config.Volumes,
-		network:         config.Network,
-		env:             e,
-		pwd:             config.Pwd,
-		ports:           config.Ports,
-		portMap:         config.PortMap,
-		targetInstances: config.Instances,
-		logDriver:       logDriver,
-		loadBalancer:    lb,
-		lbListeners:     make(map[int]loadbalancer.Listener),
-		logger:          logger,
-		stopped:         true,
-		execMutex:       new(sync.Mutex),
+		stackID:                 stackID,
+		taskID:                  config.ID,
+		name:                    config.Name,
+		service:                 config.Service,
+		persist:                 config.Persist,
+		driver:                  config.Driver,
+		command:                 config.Command,
+		args:                    config.Args,
+		image:                   config.Image,
+		volumes:                 config.Volumes,
+		network:                 config.Network,
+		env:                     e,
+		pwd:                     config.Pwd,
+		ports:                   config.Ports,
+		portMap:                 config.PortMap,
+		targetInstances:         config.Instances,
+		originalTargetInstances: config.Instances,
+		logDriver:               logDriver,
+		loadBalancer:            lb,
+		lbListeners:             make(map[int]loadbalancer.Listener),
+		logger:                  logger,
+		stopped:                 true,
+		execMutex:               new(sync.Mutex),
 		fileCreator: func(instanceID string, name string) (*os.File, error) {
 			return fileCreator(instanceID, name)
 		},
@@ -209,6 +214,7 @@ func NewTask(stackID string, store state.Store, logDriver logger.Driver, lb load
 		// FIXME this works for now if `instances` isn't set, but means
 		// setting `instances` to 0 won't prevent the service starting
 		t.targetInstances = 1
+		t.originalTargetInstances = 1
 	}
 
 	instanceStore, err := store.Wrap("instances")
@@ -246,6 +252,12 @@ func (t *task) CurrentInstances() (inst []Instance) {
 }
 
 func (t *task) Instance(id string) (Instance, error) {
+	if t.devMode && id == "dev" {
+		if i, ok := t.instances["dev"]; ok {
+			return i.instance, nil
+		}
+		return nil, errors.New("error fetching dev instance")
+	}
 	return t.getArchivedInstance(id)
 }
 
@@ -541,6 +553,52 @@ func (t *task) Init() error {
 	return nil
 }
 
+func (t *task) DevMode() bool {
+	return t.devMode
+}
+
+func (t *task) SetDevMode(enabled bool) error {
+	c := lockwarn.Notify()
+	t.execMutex.Lock()
+	close(c)
+	defer t.execMutex.Unlock()
+
+	t.devMode = enabled
+
+	if enabled {
+		t.targetInstances = 0
+
+		for _, i := range t.instances {
+			// FIXME handle errors
+			i.instance.Stop()
+		}
+
+		inst := NewDevInstance(t.getInstancePorts())
+		doneCh := make(chan struct{})
+		t.instances["dev"] = taskInstance{doneCh, inst}
+
+		// TODO handle waitLoop errors properly
+		go func() {
+			err := t.waitLoop(inst, doneCh)
+			if err != nil {
+				log.Error(err, nil)
+			}
+		}()
+
+		var instanceIDs []string
+		for _, i := range t.instances {
+			instanceIDs = append(instanceIDs, i.instance.ID())
+		}
+		return t.store.SetArray("instanceIDs", instanceIDs)
+	}
+
+	close(t.instances["dev"].doneCh)
+	t.log("setting target instances", log.Data{"target": t.originalTargetInstances})
+	t.targetInstances = t.originalTargetInstances
+	go t.Start()
+	return nil
+}
+
 func (t *task) Start() error {
 	// if len(t.instances) > 0 {
 	// 	return errAlreadyStarted
@@ -551,7 +609,7 @@ func (t *task) Start() error {
 	defer t.execMutex.Unlock()
 
 	need := t.targetInstances - len(t.instances)
-	log.Debug("creating target instances", log.Data{"target": t.targetInstances, "current": len(t.instances), "need": need})
+	t.log("creating target instances", log.Data{"target": t.targetInstances, "current": len(t.instances), "need": need})
 	for i := 0; i < need; i++ {
 		var instanceID string
 		t.execCount++

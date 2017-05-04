@@ -110,7 +110,7 @@ func TestNewTask(t *testing.T) {
 		So(t2.instances, ShouldBeEmpty)
 		So(t2.execCount, ShouldEqual, 0)
 		So(t2.service, ShouldEqual, true)
-		So(t2.stopped, ShouldEqual, false)
+		So(t2.stopped, ShouldEqual, true)
 
 		err = t2.Start()
 		So(err, ShouldBeNil)

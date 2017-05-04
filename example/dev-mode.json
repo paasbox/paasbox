@@ -1,0 +1,32 @@
+{
+  "stacks": [
+    {
+      "id": "dev-mode-test",
+      "name": "Dev mode test",
+      "log_path": "./logs",
+      "log_pattern": "$STACK_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+      "env": {
+        "inherit_all": false,
+        "inherit": [ "PATH", "USER", "HOME" ],
+        "remove": [],
+        "set": [ "FOO=1" ]
+      },
+      "tasks": [
+        {
+          "id": "sleep",
+          "name": "Sleep for 60 seconds",
+          "service": true,
+          "persist": false,
+          "driver": "exec",
+          "command": "/bin/sleep",
+          "args": [ "$DURATION" ],
+          "ports": [ 12345 ],
+          "env": [
+            "BAR=1",
+            "DURATION=10"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -53,6 +53,7 @@ type tasksOutputTask struct {
 	Instances    int                     `json:"instances"`
 	Healthchecks []taskOutputHealthcheck `json:"healthchecks"`
 	Started      bool                    `json:"is_started"`
+	DevMode      bool                    `json:"dev_mode"`
 
 	TaskURL      string `json:"task_url"`
 	StackURL     string `json:"stack_url"`
@@ -249,6 +250,7 @@ func (s *srv) tasks(w http.ResponseWriter, req *http.Request) {
 			Network:      t.Network(),
 			Healthchecks: hcOutput,
 			Started:      t.Started(),
+			DevMode:      t.DevMode(),
 
 			TaskURL:      fmt.Sprintf("/stacks/%s/tasks/%s", ws.ID(), t.ID()),
 			InstancesURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances", ws.ID(), t.ID()),
@@ -331,6 +333,7 @@ func (s *srv) task(w http.ResponseWriter, req *http.Request) {
 		Network:      t.Network(),
 		Healthchecks: hcOutput,
 		Started:      t.Started(),
+		DevMode:      t.DevMode(),
 
 		TaskURL:      fmt.Sprintf("/stacks/%s/tasks/%s", ws.ID(), t.ID()),
 		InstancesURL: fmt.Sprintf("/stacks/%s/tasks/%s/instances", ws.ID(), t.ID()),
@@ -379,6 +382,15 @@ func (s *srv) updateTask(w http.ResponseWriter, req *http.Request) {
 
 	req.Body.Close()
 
+	// FIXME probably better way than unmarshaling the json twice
+
+	var jsonVal map[string]interface{}
+	err = json.Unmarshal(b, &jsonVal)
+	if err != nil {
+		w.WriteHeader(400)
+		return
+	}
+
 	var m updateTaskModel
 	err = json.Unmarshal(b, &m)
 	if err != nil {
@@ -394,6 +406,22 @@ func (s *srv) updateTask(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(err.Error()))
+			return
+		}
+	}
+
+	if dm, ok := jsonVal["dev_mode"]; ok {
+		if dm2, ok := dm.(bool); ok {
+			updatedSomething = true
+			err = t.SetDevMode(dm2)
+			if err != nil {
+				w.WriteHeader(500)
+				w.Write([]byte(err.Error()))
+				return
+			}
+		} else {
+			w.WriteHeader(400)
+			w.Write([]byte(`dev_mode must be a boolean`))
 			return
 		}
 	}
