@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { browserHistory } from 'react-router';
 import get from '../../shared/get';
 import post from '../../shared/post';
+import put from '../../shared/put';
 import { updateActiveStackTasks, updateActiveTask } from '../../shared/actions';
 import TasksList from './TasksList.jsx';
 
@@ -16,6 +17,7 @@ class TasksController extends Component {
 
         this.handleLogClick = this.handleLogClick.bind(this);
         this.handleStartStopClick = this.handleStartStopClick.bind(this);
+        this.handleDevModeClick = this.handleDevModeClick.bind(this);
     }
 
     componentWillMount() {
@@ -68,6 +70,15 @@ class TasksController extends Component {
         });
     }
 
+    handleDevModeClick(itemProps) {
+        const apiURL = `/api${itemProps.task.task_url}`;
+        put(apiURL, { "dev_mode": !itemProps.task.dev_mode }).then(() => {
+            console.debug(`Successful dev mode change of ${itemProps.task.name}`);
+        }).catch(error => {
+            console.debug(`Error during dev mode change of ${itemProps.task.name}: \n${error}`);
+        });
+    }
+
     fetchTasks(stack) {
         this.setState({isFetchingTasks: true});
 
@@ -106,6 +117,7 @@ class TasksController extends Component {
                     activeTask={this.props.activeTask} 
                     handleLogClick={this.handleLogClick} 
                     handleStartStopClick={this.handleStartStopClick} 
+                    handleDevModeClick={this.handleDevModeClick}
                     handleOpenClick={this.handleOpenClick}/>
 
         )

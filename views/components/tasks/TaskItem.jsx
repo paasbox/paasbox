@@ -8,11 +8,13 @@ export default class TaskItem extends Component {
         super(props);
 
         this.state = {
-            hasStarted: this.props.task.is_started
+            hasStarted: this.props.task.is_started,
+            devMode: this.props.task.dev_mode
         }
 
         this.bindLogClick = this.bindLogClick.bind(this);
         this.bindStartStopClick = this.bindStartStopClick.bind(this);
+        this.bindDevModeClick = this.bindDevModeClick.bind(this);
         this.bindOpenClick = this.bindOpenClick.bind(this);
     }
 
@@ -31,19 +33,27 @@ export default class TaskItem extends Component {
         this.props.handleStartStopClick(callbackData);
     }
 
+    bindDevModeClick() {
+        this.setState({devMode: !this.state.devMode});
+        let callbackData = this.props;
+        this.props.task.dev_mode = this.state.devMode;
+        this.props.handleDevModeClick(callbackData);
+    }
+
     render() {
         const props = this.props;
         return (
             <li>
                 <Card>
                     <CardHeader
-                        title={`${props.task.name} ${this.state.hasStarted ? "" : "(not running)"}`}
+                        title={`${props.task.name} ${this.state.hasStarted ? "" : "(not running)"} ${this.state.devMode ? "(dev mode)" : ""}`}
                         subtitle={ props.task.ports && props.task.ports.length ? <div>Port: {props.task.ports[0]}</div> : <div>No port provided</div>}
                         actAsExpander={false}
                         showExpandableButton={false}/>
                     <CardActions>
                         <FlatButton label="Logs" onClick={this.bindLogClick} />
                         <FlatButton label={ this.state.hasStarted ? "Stop" : "Start" } onClick={this.bindStartStopClick} />
+                        <FlatButton label={ this.state.devMode ? "Stop dev mode" : "Start dev mode" } onClick={this.bindDevModeClick} />
                     </CardActions>
                     {
                         props.activeTask && props.activeTask.id === props.task.id ?
