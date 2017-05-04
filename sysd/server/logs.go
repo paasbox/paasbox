@@ -176,7 +176,7 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 			log.DebugR(req, "upgrading connection to websocket", nil)
 			conn, err := upgrader.Upgrade(w, req, nil)
 			if err != nil {
-				w.WriteHeader(400)
+				// dont WriteHeader here, upgrader.Upgrade does it for us including on error
 				log.ErrorR(req, err, nil)
 				return
 			}
