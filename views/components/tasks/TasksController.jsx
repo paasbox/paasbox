@@ -22,7 +22,7 @@ class TasksController extends Component {
 
     componentWillMount() {
         const stack = this.props.params.stack;
-        this.fetchTasks(stack).then(() => {
+        this.fetchTasks(stack, this.props).then(() => {
             if (!this.props.params.task) {
                 return;
             }
@@ -39,24 +39,52 @@ class TasksController extends Component {
     }
 
     componentWillReceiveProps(nextProps) {
+
+        // No active task but still on same stack - hide any logs
+        if (!nextProps.params.task && this.props.params.task) {
+            const tasks = nextProps.activeStack.tasks.map(task => {
+                if (task.show_logs) {
+                    task.show_logs = false;
+                }
+                return task;
+            });
+            const activeTask = {};
+            this.props.dispatch(updateActiveTask(activeTask));
+            this.props.dispatch(updateActiveStackTasks(tasks));
+        }
+
         // New active stack, update state
         if (nextProps.routeParams.stack !== this.props.activeStack.id) {
-            this.fetchTasks(nextProps.routeParams.stack);
+            this.fetchTasks(nextProps.routeParams.stack, nextProps);
             return;
         }
 
         // New active task, update state
         if (nextProps.routeParams.task && (nextProps.routeParams.task !== this.props.activeTask.id)) {
-            const activeTask = nextProps.activeStack.tasks.find(task => {
-                return task.id === nextProps.params.task;
+            const tasks = nextProps.activeStack.tasks.map(task => {
+                if (task.show_logs) {
+                    task.show_logs = false;
+                }
+                return task;
             });
-
+            const activeTask = nextProps.activeStack.tasks.find(task => {
+                if (task.id === nextProps.params.task) {
+                    task.show_logs = task.id === nextProps.params.task;
+                    return true;
+                }
+                return false;
+            });
+            this.props.dispatch(updateActiveStackTasks(tasks));
             this.props.dispatch(updateActiveTask(activeTask));
         }
 
     }
 
     handleLogClick(itemProps) {
+        if (itemProps.task.show_logs) {
+            browserHistory.push(`/${itemProps.activeStackID}`);    
+            return;
+        }
         browserHistory.push(`/${itemProps.activeStackID}/${itemProps.task.id}/logs`);
     }
 
@@ -79,7 +107,7 @@ class TasksController extends Component {
         });
     }
 
-    fetchTasks(stack) {
+    fetchTasks(stack, props) {
         this.setState({isFetchingTasks: true});
 
         const fetches = [
@@ -94,11 +122,14 @@ class TasksController extends Component {
         return Promise.all(fetches).then(responses => {
             const tasksWithoutHealth = responses[0];
             const portStatuses = responses[1].listeners;
+            const activeTask = props.activeTask;
+            const hasLogsPath = props.route.path.split('/')[3];
             const tasks = tasksWithoutHealth.map(task => {
                 if(task.ports) {
                     const health = portStatuses[task.ports[0]].healthy_instances > 0;
                     task.is_healthy = health;
                 }
+                task.show_logs = task.id === props.params.task;
                 return task;
             });
 
@@ -118,7 +149,8 @@ class TasksController extends Component {
                     handleLogClick={this.handleLogClick} 
                     handleStartStopClick={this.handleStartStopClick} 
                     handleDevModeClick={this.handleDevModeClick}
-                    handleOpenClick={this.handleOpenClick}/>
+                    handleOpenClick={this.handleOpenClick}
+                />
 
         )
     }

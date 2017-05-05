@@ -16,7 +16,8 @@ export default class TasksList extends Component {
                                 activeTask={this.props.activeTask} 
                                 handleLogClick={this.props.handleLogClick}
                                 handleDevModeClick={this.props.handleDevModeClick}
-                                handleStartStopClick={this.props.handleStartStopClick} />
+                                handleStartStopClick={this.props.handleStartStopClick} 
+                            />
                         );
                     })}
                 </ul>

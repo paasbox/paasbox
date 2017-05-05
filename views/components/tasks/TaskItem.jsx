@@ -41,6 +41,9 @@ export default class TaskItem extends Component {
     }
 
     render() {
+        // console.log(this.props.task.id);
+        // console.log(this.props.task.show_logs);
+        // console.log('-------');
         const props = this.props;
         return (
             <li>
@@ -51,16 +54,11 @@ export default class TaskItem extends Component {
                         actAsExpander={false}
                         showExpandableButton={false}/>
                     <CardActions>
-                        <FlatButton label="Logs" onClick={this.bindLogClick} />
-                        <FlatButton label={ this.state.hasStarted ? "Stop" : "Start" } onClick={this.bindStartStopClick} />
+                        <FlatButton label={ props.task.show_logs ? "Hide logs" : "Show logs" } onClick={this.bindLogClick} />
+                        <FlatButton label={ this.state.hasStarted ? "Stop app" : "Start app" } onClick={this.bindStartStopClick} />
                         <FlatButton label={ this.state.devMode ? "Stop dev mode" : "Start dev mode" } onClick={this.bindDevModeClick} />
                     </CardActions>
-                    {
-                        props.activeTask && props.activeTask.id === props.task.id ?
-                            <Logs websocketURL={`ws://${window.location.host}/api${this.props.task.current_instances[0].url}/stdout.ws?tail=y`} />
-                            :
-                            ""
-                    }
+                    { props.task.show_logs && <Logs websocketURL={`ws://${window.location.host}/api${this.props.task.current_instances[0].url}/stdout.ws?tail=y`} />}
                 </Card>
             </li>
         )
