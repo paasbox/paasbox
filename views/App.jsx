@@ -59,7 +59,7 @@ class App extends Component {
                 <p>Fetching stacks...</p>
                 :
                 <div>
-                    <Sidebar />
+                    <Sidebar activeStack={this.props.params.stack} />
                     {this.props.children}
                 </div>
         )

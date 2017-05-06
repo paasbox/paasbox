@@ -14,13 +14,21 @@ class Sidebar extends Component {
 
     handleToggle = () => this.setState({open: !this.state.open});
 
+    shouldComponentUpdate(nextProps) {
+        if (nextProps.activeStack !== this.props.activeStack) {
+            return false;
+        }
+
+        return true;
+    }
+
     render() {
         return (
             <Drawer open={this.state.open}>
                 <div className="logo">
                     <img src="/images/logo.jpg" alt="Paasbox logo"/>
                 </div>
-                <Stacks stacks={this.props.stacks} />
+                <Stacks {...this.props} />
             </Drawer>
         );
     }

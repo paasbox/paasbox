@@ -41,9 +41,6 @@ export default class TaskItem extends Component {
     }
 
     render() {
-        // console.log(this.props.task.id);
-        // console.log(this.props.task.show_logs);
-        // console.log('-------');
         const props = this.props;
         return (
             <li>
