@@ -5,6 +5,7 @@
   "main": "views/index.js",
   "scripts": {
     "build": "webpack --progress --colors",
+    "build:production": "webpack -p --progress",
     "watch": "webpack --progress --colors --watch"
   },
   "repository": {
