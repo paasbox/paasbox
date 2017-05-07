@@ -152,9 +152,9 @@ func (s *srv) getInstanceLog(logType string, w http.ResponseWriter, req *http.Re
 		if offset > -1 {
 			wh = os.SEEK_SET
 		} else {
-			offset = 1024
+			offset = -1024
 			if stat.Size() < 1024 {
-				offset = stat.Size()
+				offset = -stat.Size()
 			}
 		}
 
