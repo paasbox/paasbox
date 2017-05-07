@@ -113,18 +113,6 @@ func New(exitCh chan struct{}) Sysd {
 		}
 
 		loadFiles = append(loadFiles, path)
-
-		// b, e := loadInternal(internalFile)
-		// if e != nil {
-		// 	fmt.Printf("error reading internal file %s: %s\n", internalFile, err)
-		// 	os.Exit(1)
-		// }
-
-		// err = s.loadStacks(b)
-		// if err != nil {
-		// 	fmt.Printf("error loading internal stack %s: %s\n", internalFile, err)
-		// 	os.Exit(1)
-		// }
 	}
 
 	for _, stackFile := range loadFiles {
@@ -138,10 +126,9 @@ func New(exitCh chan struct{}) Sysd {
 				fmt.Printf("error parsing url %s: %s\n", stackFile, e)
 				os.Exit(1)
 			}
-			cachePath := u.Host + "/" + u.Path
-			cachePath = strings.Replace(cachePath, "/", "_", -1)
-			remote = cachePath
-			cachePath = filepath.Join(statedir.Get(), "stacks/"+cachePath)
+			var cachePath string
+			remote, cachePath = getCachePath(u)
+
 			var loaded bool
 			if _, err := os.Stat(cachePath); err == nil {
 				b, err = ioutil.ReadFile(cachePath)
@@ -153,27 +140,10 @@ func New(exitCh chan struct{}) Sysd {
 				}
 			}
 			if !loaded {
-				res, e := cli.Get(stackFile)
-				if e != nil {
-					fmt.Printf("error fetching file %s: %s\n", stackFile, e)
-					os.Exit(1)
-				}
-				b, err = ioutil.ReadAll(res.Body)
-				res.Body.Close()
+				b, err = updateCachedAtPath(cachePath, stackFile)
 				if err != nil {
-					fmt.Printf("error reading response body %s: %s\n", stackFile, err)
+					fmt.Printf("%s\n", err)
 					os.Exit(1)
-				}
-
-				dirName := filepath.Dir(cachePath)
-				err = os.MkdirAll(dirName, os.FileMode(0755))
-				if err != nil {
-					fmt.Printf("error creating cache directory %s: %s", dirName, err)
-				} else {
-					err = ioutil.WriteFile(cachePath, b, os.FileMode(0755))
-					if err != nil {
-						fmt.Printf("error writing cache file %s: %s", cachePath, err)
-					}
 				}
 			}
 		} else {
@@ -222,16 +192,85 @@ func New(exitCh chan struct{}) Sysd {
 	return s
 }
 
-func getAtFilePath(internalFile string) (string, error) {
-	version := "latest"
-	var path string
+// Update ...
+func Update(exitCh chan struct{}) {
+	stackFiles := os.Args[1:]
+	var atFiles []string
 
-	parts := strings.SplitN(internalFile, ":", 2)
-	if len(parts) > 1 {
-		version = parts[len(parts)-1]
+	for _, f := range stackFiles {
+		if !strings.HasPrefix(f, "@") {
+			fmt.Printf("can only update @files: %s\n", f)
+			os.Exit(1)
+		}
+		atFiles = append(atFiles, strings.TrimPrefix(f, "@"))
 	}
 
-	path = parts[0]
+	if len(atFiles) == 0 {
+		fmt.Printf("no @files specified\n")
+		os.Exit(1)
+	}
+
+	for _, f := range atFiles {
+		path, err := getAtFilePath(f)
+		u, e := url.Parse(path)
+		if e != nil {
+			fmt.Printf("error parsing url %s: %s\n", f, e)
+			os.Exit(1)
+		}
+		_, cachePath := getCachePath(u)
+
+		_, err = updateCachedAtPath(cachePath, path)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("updated @%s\n", f)
+	}
+}
+
+func getCachePath(u *url.URL) (remote string, cachePath string) {
+	cachePath = u.Host + "/" + u.Path
+	cachePath = strings.Replace(cachePath, "/", "_", -1)
+	remote = cachePath
+	cachePath = filepath.Join(statedir.Get(), "stacks/"+cachePath)
+	return
+}
+
+func updateCachedAtPath(cachePath string, remote string) ([]byte, error) {
+	res, e := cli.Get(remote)
+	if e != nil {
+		return nil, fmt.Errorf("error fetching file %s: %s", remote, e)
+	}
+
+	b, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body %s: %s", remote, err)
+	}
+
+	dirName := filepath.Dir(cachePath)
+	err = os.MkdirAll(dirName, os.FileMode(0755))
+	if err != nil {
+		return b, fmt.Errorf("error creating cache directory %s: %s", dirName, err)
+	}
+
+	err = ioutil.WriteFile(cachePath, b, os.FileMode(0755))
+	if err != nil {
+		return b, fmt.Errorf("error writing cache file %s: %s", cachePath, err)
+	}
+
+	return b, nil
+}
+
+func getAtFilePath(internalFile string) (string, error) {
+	version := "latest"
+	parts := strings.SplitN(internalFile, ":", 2)
+	if len(parts) > 1 {
+		version = parts[1]
+	}
+
+	path := parts[0]
 	parts = strings.Split(path, "/")
 	if len(parts) > 1 {
 		switch strings.ToLower(parts[0]) {
@@ -239,7 +278,10 @@ func getAtFilePath(internalFile string) (string, error) {
 			if len(parts) <= 3 {
 				return "", errors.New("invalid @file path: " + internalFile)
 			}
-			path = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/master/%s/%s.json", parts[1], parts[2], strings.Join(parts[3:], "/"), version)
+			if version == "latest" {
+				version = "master"
+			}
+			path = fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s/paasbox.json", parts[1], parts[2], version, strings.Join(parts[3:], "/"))
 		default:
 		}
 	} else {

@@ -27,6 +27,7 @@ func main() {
 		}()
 	}
 	cmd.New(cmd.Hooks{
-	//"stop": sysd.Stop,
+		//"stop": sysd.Stop,
+		"update": sysd.Update,
 	}).Start(sysd.Start)
 }
