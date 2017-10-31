@@ -53,6 +53,10 @@ ws: build
 	go build -tags 'debug' -o ./build/pb ./cmd/pb
 	HUMAN_LOG=1 ./build/pb example/stacks.json
 
+logtest:
+	go build -tags 'debug' -o ./build/pb ./cmd/pb
+	HUMAN_LOG=1 ./build/pb example/logtest.json
+
 elk: build
 	HUMAN_LOG=1 PAASBOX_LOG=logstash@http://localhost:52000 pb @elk example/elk_demo.json
 
