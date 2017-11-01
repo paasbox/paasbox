@@ -73,49 +73,49 @@ func (t *tailMap) done(file string, tf *tail.Tail) {
 	}
 
 	c := lockwarn.Notify()
-	// log.Debug("LOCKING MUTEX - done", log.Data{"file": file})
 	t.mtx.Lock()
 	close(c)
-	defer func() {
-		// log.Debug("UNLOCKING MUTEX - done", log.Data{"file": file})
-		t.mtx.Unlock()
-	}()
+	defer t.mtx.Unlock()
 
 	t.fileCount[file]--
 
 	if t.fileCount[file] == 0 {
+		log.Debug("fileCount is zero, stopping tf", log.Data{"file": file})
+
 		/*
-	
-		FIXME
 
-		steps to reproduce: 
+			FIXME
 
-			stack with one app, open logs, refresh browser quickly ~10 times
-			until logs stop loading properly (should see LockWarn in paasbox logs)
+			steps to reproduce:
+				stack with one app, open logs, refresh browser quickly ~10 times
+				until logs stop loading properly (should see LockWarn in paasbox logs)
 
-		calling tf.Stop here locks a mutex inside Wait in gopkg.in/tomb.v1
-		which blocks for some reason
+			calling tf.Stop here locks a mutex inside Wait in gopkg.in/tomb.v1
+			which blocks for some reason
 
-		guessing that refreshing logs too quickly causes multiple calls
-		to happen concurrently (inside the mutex, it waits for a channel
-		to be closed)
+			guessing that refreshing logs too quickly causes multiple calls
+			to happen concurrently (inside the mutex, it waits for a channel
+			to be closed)
 
-		not sure if this is a bug in how paasbox is using it, a bug in hpcloud/tail
-		or a bug in gopkg.in/tomb.v1
+			not sure if this is a bug in how paasbox is using it, a bug in hpcloud/tail
+			or a bug in gopkg.in/tomb.v1
 
 		*/
 
-		// log.Debug("fileCount is zero, stopping tf", log.Data{"file": file})
-		// err := tf.Stop()
-		// if err != nil {
-		// 	log.Error(err, nil)
-		// }
-		// log.Debug("tf stopped, cleaning up", log.Data{"file": file})
-		// tf.Cleanup()
-		// log.Debug("tf cleaned up", log.Data{"file": file})
+		go func() {
+			c := lockwarn.Notify()
+			defer func() {
+				close(c)
+			}()
+
+			err := tf.Stop()
+			if err != nil {
+				log.Error(err, nil)
+			}
+			tf.Cleanup()
+		}()
 	}
 
-	log.Debug("building tails array", log.Data{"file": file})
 	var tfArr []*tail.Tail
 	for _, tf2 := range t.tails[file] {
 		if tf2 != tf {
@@ -123,16 +123,13 @@ func (t *tailMap) done(file string, tf *tail.Tail) {
 		}
 	}
 	t.tails[file] = tfArr
-	log.Debug("tails array built", log.Data{"file": file})
 }
 
 func (t *tailMap) get(file string, offset int64, whence int) (*tail.Tail, error) {
 	c := lockwarn.Notify()
-	// log.Debug("LOCKING MUTEX - get", log.Data{"file": file})
 	t.mtx.Lock()
 	close(c)
-	// log.Debug("UNLOCKING MUTEX - get", log.Data{"file": file})
-	t.mtx.Unlock()
+	defer t.mtx.Unlock()
 
 	if _, ok := t.fileCount[file]; !ok {
 		log.Debug("first tail, adding entry to fileCount", log.Data{"file": file})
