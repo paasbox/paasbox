@@ -1,0 +1,545 @@
+{
+    "stacks": [
+        {
+            "id": "ons-website",
+            "name": "ONS website",
+            "log_path": "./logs",
+            "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+            "env": {
+                "inherit_all": false,
+                "inherit": [
+                    "PATH",
+                    "USER",
+                    "HOME",
+                    "GOPATH",
+                    "AWS_ACCESS_KEY_ID",
+                    "AWS_ACCESS_KEY",
+                    "AWS_SECRET_ACCESS_KEY",
+                    "AWS_DEFAULT_ACCESS_KEY",
+                    "AWS_DEFAULT_REGION"
+                ],
+                "remove": [],
+                "set": []
+            },
+            "tasks": [
+                {
+                    "id": "babbage",
+                    "name": "Babbage",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "./run-publishing.sh",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/babbage",
+                    "env": [
+                        "ELASTIC_SEARCH_PORT=36010",
+                        "CONTENT_SERVICE_URL=http://localhost:8082"
+                    ],
+                    "ports": [ 20005 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "sixteens",
+                    "name": "Sixteens",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "./run.sh",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/sixteens",
+                    "env": [],
+                    "ports": [ 9000 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "the-train",
+                    "name": "The train",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "./run.sh",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/the-train",
+                    "env": [],
+                    "ports": [ 8084 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "florence",
+                    "name": "Florence",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/florence",
+                    "env": [
+                        "BABBAGE_URL=http://localhost:20005",
+                        "ENABLE_NEW_APP=true"
+                    ],
+                    "ports": [ 8081 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "zebedee",
+                    "name": "Zebedee CMS",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "./run.sh",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/zebedee",
+                    "env": [
+                        "VERIFY_GRACE_PERIOD=true",
+                        "BABBAGE_URL=http://localhost:20005",
+                        "website_url=http://localhost:20005",
+                        "ELASTIC_SEARCH_PORT=36010",
+                        "zebedee_root=/Users/crispinmerriman/Documents"
+                    ],
+                    "ports": [ 8082 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-frontend-router",
+                    "name": "Frontend router",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make build && ./build/dp-frontend-router",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-frontend-router",
+                    "env": [
+                        "BIND_ADDR=:$PORT",
+                        "BABBAGE_URL=http://localhost:20005",
+                        "RESOLVER_URL=http://localhost:20020",
+                        "RENDERER_URL=http://localhost:20010",
+                        "HUMAN_LOG=true"
+                    ],
+                    "ports": [ 20000 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-content-resolver",
+                    "name": "Content resolver",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make build && ./build/dp-content-resolver",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-content-resolver",
+                    "env": [
+                        "BIND_ADDR=:$PORT",
+                        "ZEBEDEE_URL=http://localhost:8082",
+                        "HUMAN_LOG=true"
+                    ],
+                    "ports": [ 20020 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-frontend-renderer",
+                    "name": "Frontend renderer",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-frontend-renderer",
+                    "env": [
+                        "BIND_ADDR=:$PORT",
+                        "ZEBEDEE_URL=http://localhost:8082",
+                        "HUMAN_LOG=true",
+                        "DEBUG=1"
+                    ],
+                    "ports": [ 20010 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-dimension-importer",
+                    "name": "Dimension importer",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-dimension-importer",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 21000 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-dimension-extractor",
+                    "name": "Dimension extractor",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-dimension-extractor",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 23232 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-observation-importer",
+                    "name": "Observation importer",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-observation-importer",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 21700 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-observation-extractor",
+                    "name": "Observation extractor",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-observation-extractor",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 21600 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-import-api",
+                    "name": "Import API",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-import-api",
+                    "env": [
+                        "BIND_ADDR=:$PORT",
+                        "DATASET_API_AUTH_TOKEN=FD0108EA-825D-411C-9B1D-41EF7727F465",
+                        "SECRET_KEY=FD0108EA-825D-411C-9B1D-41EF7727F465"
+                    ],
+                    "ports": [ 21800 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-import-tracker",
+                    "name": "Import tracker",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-import-tracker",
+                    "env": ["DATASET_API_AUTH_TOKEN=FD0108EA-825D-411C-9B1D-41EF7727F465"],
+                    "ports": [ 22222 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-dataset-api",
+                    "name": "Dataset API",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-dataset-api",
+                    "env": [
+                        "BIND_ADDR=:$PORT"
+                    ],
+                    "ports": [ 22000 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-filter-api",
+                    "name": "Filter API",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-filter-api",
+                    "env": [
+                        "BIND_ADDR=:$PORT",
+                        "SECRET_KEY:FD0108EA-825D-411C-9B1D-41EF7727F465",
+                        "DATASET_API_AUTH_TOKEN=FD0108EA-825D-411C-9B1D-41EF7727F465"
+                    ],
+                    "ports": [ 22100 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-code-list-api",
+                    "name": "Code list API",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-code-list-api",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 22400 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-recipe-api",
+                    "name": "Recipes API",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-recipe-api",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 22300 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-frontend-filter-dataset-controller",
+                    "name": "Frontend filter dataset controller",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-frontend-filter-dataset-controller",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 20001 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-frontend-dataset-controller",
+                    "name": "Frontend dataset controller",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-frontend-dataset-controller",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 20200 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-hierarchy-api",
+                    "name": "Hierarchy API",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-hierarchy-api",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 22600 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                },
+                {
+                    "id": "dp-dataset-exporter",
+                    "name": "Dataset exporter",
+                    "service": true,
+                    "persist": false,
+                    "driver": "shell",
+                    "command": "make debug",
+                    "args": [],
+                    "pwd": "$GOPATH/src/github.com/ONSdigital/dp-dataset-exporter",
+                    "env": ["BIND_ADDR=:$PORT"],
+                    "ports": [ 22500 ],
+                    "#healthchecks": [{
+                        "type": "http",
+                        "target": "http://localhost:$PORT$/",
+                        "healthy_threshold": 10,
+                        "unhealthy_threshold": 2,
+                        "reap_threshold": 10,
+                        "frequency": "30s"
+                    }]
+                }
+            ]
+        },
+        {
+            "id": "third-party",
+            "name": "Third party",
+            "log_path": "./logs",
+            "log_pattern": "$WORKSPACE_ID$/$TASK_ID$/$INSTANCE_ID$/$NAME$.log",
+            "env": {
+                "inherit_all": false,
+                "inherit": [
+                    "USER",
+                    "HOME",
+                    "GOPATH"
+                ],
+                "remove": [],
+                "set": []
+            },
+            "tasks": [
+                {
+                    "id": "elasticsearch",
+                    "name": "Elasticsearch",
+                    "service": true,
+                    "persist": false,
+                    "driver": "docker",
+                    "image": "elasticsearch:2.4.2",
+                    "env": [ ],
+                    "ports": [ 36000, 36010 ],
+                    "port_map": [ 9200, 9300 ]
+                },
+                {
+                    "id": "highcharts",
+                    "name": "Highcharts",
+                    "service": true,
+                    "persist": false,
+                    "driver": "docker",
+                    "image": "onsdigital/highcharts-export-docker",
+                    "env": [ ],
+                    "ports": [ 9999 ],
+                    "port_map": [ 8080 ]
+                }
+            ]
+        }
+    ]
+}

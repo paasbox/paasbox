@@ -1,21 +1,2 @@
-@import url(https://fonts.googleapis.com/css?family=Roboto:300,400,500);h1, h2, h3, h4, h5 {
-  font-family: 'Roboto'; }
-
-.list--neutral {
-  padding: 0; }
-  .list--neutral li {
-    list-style: none; }
-
-.terminal {
-  height: 480px;
-  overflow: scroll;
-  padding: 16px;
-  background: black;
-  font-family: monospace;
-  color: white;
-  white-space: pre-line; }
-
-.logo {
-  width: 50%; }
-  .logo img {
-    width: 100%; }
+body{margin:0;padding:0}
+/*# sourceMappingURL=main.css.map*/

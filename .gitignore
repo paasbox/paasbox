@@ -5,3 +5,5 @@ build
 *.DS_Store
 /logs
 state.db
+.vscode
+*node_modules

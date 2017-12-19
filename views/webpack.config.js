@@ -1,33 +1,38 @@
-const webpack = require('webpack');
+const path = require('path');
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-    entry: './index.js',
+    entry: './index.jsx',
     output: {
-        path: '../assets',
-        filename: 'js/bundle.js',
-        publicPath: 'http://localhost:8080/'
+        path: path.resolve(__dirname, '../assets'),
+        filename: 'js/bundle.js'
     },
     module: {
-        loaders: [
+        rules: [
             {
-                test: /\.jsx?$/,
-                loader: 'babel-loader'
+                test: /\.(jsx$|js$)/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader'
+                }
             },
             {
                 test: /\.scss$/,
-                loader: ExtractTextPlugin.extract("style-loader", "css-loader!sass-loader")
+                use: ExtractTextPlugin.extract({
+                    use: [
+                        {loader: "css-loader"},
+                        {loader: "sass-loader"}
+                    ],
+                    fallback: "style-loader"
+                })
             }
         ]
     },
+    resolve: {
+        extensions: ['.js', '.jsx']
+    },
     plugins: [
         new ExtractTextPlugin("css/main.css"),
-        new CopyWebpackPlugin([
-            { from: 'images', to: 'images' }
-        ])
     ],
-    resolve: {
-        extensions: ['', '.js', '.jsx']
-    }
+    devtool: "source-map"
 };
