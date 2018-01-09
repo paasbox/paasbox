@@ -1,3 +1,5 @@
+import http from "./http";
+
 export default class logs {
     constructor(props) {
         this.socket = null;
@@ -13,7 +15,11 @@ export default class logs {
         }
     }
 
-    static stop(instanceURL) {
+    static stop() {
         this.socket.close();
+    }
+
+    static getAll(instanceURL) {
+        return http.get(`/api${instanceURL}/stdout`);
     }
 }

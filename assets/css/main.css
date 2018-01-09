@@ -1,2 +1,11 @@
-body{margin:0;padding:0}
+body {
+  margin: 0;
+  padding: 0; }
+
+.logs {
+  unicode-bidi: plaintext;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  -moz-control-character-visibility: visible; }
+
 /*# sourceMappingURL=main.css.map*/

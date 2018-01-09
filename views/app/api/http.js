@@ -18,14 +18,29 @@ function request(method, uri, body) {
                 resolve();
                 return;
             }
-            try {
-                return response.json();
-            } catch (error) {
-                console.error("Error parsing response to JSON", error);
-                reject();
+
+            const contentType = response.headers.get("content-type");
+            if (contentType.includes('application/json')) {
+                try {
+                    return response.json();
+                } catch (error) {
+                    console.error("Error parsing response to JSON", error);
+                    reject();
+                    return {};
+                }
             }
-        }).then(json => {
-            resolve(json);
+
+            if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+                try {
+                    return response.text();
+                } catch (error) {
+                    console.error("Error parsing text/HTML response", error);
+                    reject();
+                    return "";
+                }
+            }
+        }).then(parsedResponse => {
+            resolve(parsedResponse);
         });
     });
 }

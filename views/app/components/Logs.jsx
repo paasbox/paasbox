@@ -14,6 +14,8 @@ class Logs extends Component {
             logLines: []
         };
 
+        this.fetchOlderLogs = this.fetchOlderLogs.bind(this);
+        this.fetchAllLogs = this.fetchAllLogs.bind(this);
         this.handleNewLog = this.handleNewLog.bind(this);
     }
 
@@ -28,13 +30,35 @@ class Logs extends Component {
         }
     }
 
+    componentDidUpdate() {
+        if (this.bottomOfLogs) {
+            this.bottomOfLogs.scrollIntoView({behaviour: 'smooth'});
+        }
+    }
+
     componentWillUnmount() {
         logs.stop();
     }
 
+    fetchOlderLogs() {
+        console.log('hello there');
+    }
+
+    fetchAllLogs() {
+        const instanceURL = this.props.task.current_instances[0].url;
+        logs.getAll(instanceURL).then(response => {
+            this.setState({
+                logLines: [],
+                allLogs: response
+            })
+        }).catch(error => {
+            console.error("Error fetching entire standard out for " + instanceURL, error);
+        });
+    }
+
     handleNewLog(logLine) {
         let newLogLines = [...this.state.logLines, logLine];
-        if (newLogLines.length > 100) {
+        if (newLogLines.length > 1000) {
             newLogLines.splice(0, 1);
         }
         this.setState({
@@ -46,13 +70,25 @@ class Logs extends Component {
         return (
             <div>
                 <h2>{this.props.task ? this.props.task.name : this.props.params.taskID} logs</h2>
-                {this.state.logLines.length > 0 ?
-                    this.state.logLines.map(logLine => {
-                        return <div>{logLine}</div>
-                    })
-                :
-                    <p>No logs to show...</p>
-                }
+                <button type="button" onClick={this.fetchOlderLogs} disabled>Show older logs</button>
+                <button type="button" onClick={this.fetchAllLogs}>Show all logs</button>
+                <pre className="logs">
+                    {this.state.allLogs &&
+                        this.state.allLogs
+                    }
+                    {(!this.state.allLogs && this.state.logLines.length === 0) &&
+                        <p>No logs to show...</p>
+                    }
+                    {this.state.logLines.length > 0 &&
+                        <div>
+                            {this.state.logLines.map(logLine => {
+                                return <div>{logLine}</div>
+                            })}
+                            <br/>
+                            <div ref={el => { this.bottomOfLogs = el; }}>End of logs...</div>
+                        </div>
+                    }
+                </pre>
             </div>
         )
     }
