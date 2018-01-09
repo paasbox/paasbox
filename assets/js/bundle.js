@@ -9134,7 +9134,9 @@ var Logs = function (_Component) {
         var _this = _possibleConstructorReturn(this, (Logs.__proto__ || Object.getPrototypeOf(Logs)).call(this, props));
 
         _this.state = {
-            logLines: []
+            logLines: [],
+            isFetchingAllLogs: false,
+            allLogs: ""
         };
 
         _this.fetchOlderLogs = _this.fetchOlderLogs.bind(_this);
@@ -9180,12 +9182,19 @@ var Logs = function (_Component) {
             var _this3 = this;
 
             var instanceURL = this.props.task.current_instances[0].url;
+            this.setState({
+                isFetchingAllLogs: true
+            });
             _logs2.default.getAll(instanceURL).then(function (response) {
                 _this3.setState({
                     logLines: [],
-                    allLogs: response
+                    allLogs: response,
+                    isFetchingAllLogs: false
                 });
             }).catch(function (error) {
+                _this3.setState({
+                    isFetchingAllLogs: true
+                });
                 console.error("Error fetching entire standard out for " + instanceURL, error);
             });
         }
@@ -9212,7 +9221,7 @@ var Logs = function (_Component) {
             }), createVNode(2, 'button', null, 'Show all logs', {
                 'type': 'button',
                 'onClick': this.fetchAllLogs
-            }), createVNode(2, 'pre', 'logs', [this.state.allLogs && this.state.allLogs, !this.state.allLogs && this.state.logLines.length === 0 && createVNode(2, 'p', null, 'No logs to show...'), this.state.logLines.length > 0 && createVNode(2, 'div', null, [this.state.logLines.map(function (logLine) {
+            }), createVNode(2, 'pre', 'logs', [this.state.allLogs && this.state.allLogs, this.state.isFetchingAllLogs && createVNode(2, 'p', null, 'Loading all logs...'), !this.state.allLogs && this.state.logLines.length === 0 && createVNode(2, 'p', null, 'No logs to show...'), this.state.logLines.length > 0 && createVNode(2, 'div', null, [this.state.logLines.map(function (logLine) {
                 return createVNode(2, 'div', null, logLine);
             }), createVNode(2, 'br'), createVNode(2, 'div', null, 'End of logs...', null, null, function (el) {
                 _this4.bottomOfLogs = el;

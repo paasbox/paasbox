@@ -11,7 +11,9 @@ class Logs extends Component {
         super(props);
 
         this.state = {
-            logLines: []
+            logLines: [],
+            isFetchingAllLogs: false,
+            allLogs: ""
         };
 
         this.fetchOlderLogs = this.fetchOlderLogs.bind(this);
@@ -46,12 +48,19 @@ class Logs extends Component {
 
     fetchAllLogs() {
         const instanceURL = this.props.task.current_instances[0].url;
+        this.setState({
+            isFetchingAllLogs: true
+        });
         logs.getAll(instanceURL).then(response => {
             this.setState({
                 logLines: [],
-                allLogs: response
+                allLogs: response,
+                isFetchingAllLogs: false
             })
         }).catch(error => {
+            this.setState({
+                isFetchingAllLogs: true
+            });
             console.error("Error fetching entire standard out for " + instanceURL, error);
         });
     }
@@ -75,6 +84,9 @@ class Logs extends Component {
                 <pre className="logs">
                     {this.state.allLogs &&
                         this.state.allLogs
+                    }
+                    {this.state.isFetchingAllLogs &&
+                        <p>Loading all logs...</p>
                     }
                     {(!this.state.allLogs && this.state.logLines.length === 0) &&
                         <p>No logs to show...</p>
