@@ -4,7 +4,7 @@ import { connect } from 'inferno-redux';
 import { Link } from 'inferno-router';
 
 import tasks from '../api/tasks';
-import {addTasks} from '../global/actions';
+import {addTasks, updateTasksRunningStatus} from '../global/actions';
 
 class Tasks extends Component {
     constructor(props) {
@@ -36,8 +36,20 @@ class Tasks extends Component {
         });
     }
 
-    restartService(taskID) {
-        tasks.restart(this.props.params.stackID, taskID);
+    startService(taskID) {
+        tasks.start(this.props.params.stackID, taskID).then(() => {
+            this.props.dispatch(updateTasksRunningStatus(taskID, true));
+        }).catch(error => {
+            console.error(`Error trying to start service '${taskID}'`, error);
+        });
+    }
+    
+    stopService(taskID) {
+        tasks.stop(this.props.params.stackID, taskID).then(() => {
+            this.props.dispatch(updateTasksRunningStatus(taskID, false));
+        }).catch(error => {
+            console.error(`Error trying to stop service '${taskID}'`, error);
+        });
     }
 
     render() {
@@ -49,7 +61,11 @@ class Tasks extends Component {
                             <div>
                                 <Link to={`/${this.props.params.stackID}/${task.id}/logs`}>{task.name}</Link>
                                 ({task.ports[0]})
-                                <button type="button" onClick={() => {this.restartService(task.id)}}>Restart</button>
+                                {task.is_started ?
+                                    <button type="button" onClick={() => {this.stopService(task.id)}}>Stop</button>
+                                :
+                                    <button type="button" onClick={() => {this.startService(task.id)}}>Start</button>
+                                }
                             </div>
                         )
                     })

@@ -1,7 +1,8 @@
 import {
     ADD_STACKS,
     ADD_TASKS,
-    ADD_ACTIVE_TASK
+    ADD_ACTIVE_TASK, 
+    UPDATE_TASKS_RUNNING_STATUS
 } from './actions';
 
 const initialState = {
@@ -28,6 +29,20 @@ export default function(state = initialState, action) {
             return {
                 ...state,
                 activeTask: action.activeTask
+            }
+        }
+        case(UPDATE_TASKS_RUNNING_STATUS): {
+            return {
+                ...state,
+                tasks: state.tasks.map(task => {
+                    if (task.id === action.taskID) {
+                        return {
+                            ...task,
+                            is_started: action.isRunning
+                        }
+                    }
+                    return task;
+                })
             }
         }
         case("@@INIT"): {

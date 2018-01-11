@@ -22,4 +22,12 @@ export default class tasks {
             });
         });
     }
+
+    static start(stackID, taskID) {
+        return http.post(`/api/stacks/${stackID}/tasks/${taskID}/start`);
+    }
+    
+    static stop(stackID, taskID) {
+        return http.post(`/api/stacks/${stackID}/tasks/${taskID}/stop`);
+    }
 }
