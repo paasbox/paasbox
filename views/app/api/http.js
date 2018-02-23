@@ -11,7 +11,7 @@ function request(method, uri, body) {
 
         fetch(uri, options).then(response => {
             if (!response.ok) {
-                reject("Unexpected status code: " + json.status);
+                reject("Unexpected status code: " + response.status);
                 return;
             }
             if (method === "POST" || method === "PUT") {

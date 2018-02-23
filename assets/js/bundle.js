@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 17);
+/******/ 	return __webpack_require__(__webpack_require__.s = 9);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -284,6 +284,15 @@ module.exports.default = module.exports;
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
+module.exports = __webpack_require__(44).default;
+module.exports.default = module.exports;
+
+
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
 "use strict";
 
 
@@ -292,10 +301,12 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.addStacks = addStacks;
 exports.addTasks = addTasks;
+exports.updateTasksRunningStatus = updateTasksRunningStatus;
 exports.addActiveTask = addActiveTask;
 var ADD_STACKS = exports.ADD_STACKS = "ADD_STACKS";
 var ADD_TASKS = exports.ADD_TASKS = "ADD_TASKS";
 var ADD_ACTIVE_TASK = exports.ADD_ACTIVE_TASK = "ADD_ACTIVE_TASK";
+var UPDATE_TASKS_RUNNING_STATUS = exports.UPDATE_TASKS_RUNNING_STATUS = "UPDATE_TASKS_RUNNING_STATUS";
 
 function addStacks(stacks) {
     return {
@@ -311,6 +322,14 @@ function addTasks(tasks) {
     };
 }
 
+function updateTasksRunningStatus(taskID, isRunning) {
+    return {
+        type: UPDATE_TASKS_RUNNING_STATUS,
+        taskID: taskID,
+        isRunning: isRunning
+    };
+}
+
 function addActiveTask(activeTask) {
     return {
         type: ADD_ACTIVE_TASK,
@@ -319,7 +338,7 @@ function addActiveTask(activeTask) {
 }
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports) {
 
 var g;
@@ -346,17 +365,17 @@ module.exports = g;
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* WEBPACK VAR INJECTION */(function(process) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__createStore__ = __webpack_require__(9);
+/* WEBPACK VAR INJECTION */(function(process) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__createStore__ = __webpack_require__(10);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__combineReducers__ = __webpack_require__(34);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__bindActionCreators__ = __webpack_require__(35);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__applyMiddleware__ = __webpack_require__(36);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__compose__ = __webpack_require__(13);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__utils_warning__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__compose__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__utils_warning__ = __webpack_require__(13);
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "createStore", function() { return __WEBPACK_IMPORTED_MODULE_0__createStore__["b"]; });
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "combineReducers", function() { return __WEBPACK_IMPORTED_MODULE_1__combineReducers__["a"]; });
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "bindActionCreators", function() { return __WEBPACK_IMPORTED_MODULE_2__bindActionCreators__["a"]; });
@@ -381,15 +400,6 @@ if (process.env.NODE_ENV !== 'production' && typeof isCrushed.name === 'string' 
 
 
 /* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(2)))
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = __webpack_require__(44).default;
-module.exports.default = module.exports;
-
-
 
 /***/ }),
 /* 8 */
@@ -418,7 +428,7 @@ function request(method, uri, body) {
 
         fetch(uri, options).then(function (response) {
             if (!response.ok) {
-                reject("Unexpected status code: " + json.status);
+                reject("Unexpected status code: " + response.status);
                 return;
             }
             if (method === "POST" || method === "PUT") {
@@ -476,12 +486,102 @@ exports.default = http;
 
 /***/ }),
 /* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.browserHistory = undefined;
+
+var _inferno = __webpack_require__(0);
+
+var _inferno2 = _interopRequireDefault(_inferno);
+
+var _infernoComponent = __webpack_require__(1);
+
+var _infernoComponent2 = _interopRequireDefault(_infernoComponent);
+
+var _infernoRedux = __webpack_require__(3);
+
+var _redux = __webpack_require__(7);
+
+var _createBrowserHistory = __webpack_require__(37);
+
+var _createBrowserHistory2 = _interopRequireDefault(_createBrowserHistory);
+
+var _infernoRouter = __webpack_require__(4);
+
+var _reduxDevtoolsExtension = __webpack_require__(49);
+
+__webpack_require__(50);
+
+__webpack_require__(52);
+
+var _reducers = __webpack_require__(53);
+
+var _reducers2 = _interopRequireDefault(_reducers);
+
+var _App = __webpack_require__(54);
+
+var _App2 = _interopRequireDefault(_App);
+
+var _UnknownRoute = __webpack_require__(57);
+
+var _UnknownRoute2 = _interopRequireDefault(_UnknownRoute);
+
+var _Tasks = __webpack_require__(58);
+
+var _Tasks2 = _interopRequireDefault(_Tasks);
+
+var _Home = __webpack_require__(59);
+
+var _Home2 = _interopRequireDefault(_Home);
+
+var _Logs = __webpack_require__(60);
+
+var _Logs2 = _interopRequireDefault(_Logs);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var browserHistory = exports.browserHistory = (0, _createBrowserHistory2.default)();
+var store = (0, _redux.createStore)(_reducers2.default, (0, _reduxDevtoolsExtension.devToolsEnhancer)());
+
+var createVNode = _inferno2.default.createVNode;
+var application = createVNode(16, _infernoRedux.Provider, null, null, {
+    'store': store,
+    children: createVNode(16, _infernoRouter.Router, null, null, {
+        'history': browserHistory,
+        children: createVNode(16, _infernoRouter.Route, null, null, {
+            'component': _App2.default,
+            children: [createVNode(16, _infernoRouter.IndexRoute, null, null, {
+                'component': _Home2.default
+            }), createVNode(16, _infernoRouter.Route, null, null, {
+                'path': '/:stackID',
+                'component': _Tasks2.default
+            }), createVNode(16, _infernoRouter.Route, null, null, {
+                'path': '/:stackID/:taskID/:logType',
+                'component': _Logs2.default
+            }), createVNode(16, _infernoRouter.Route, null, null, {
+                'path': '*',
+                'component': _UnknownRoute2.default
+            })]
+        })
+    })
+});
+
+_inferno2.default.render(application, document.getElementById('app-root'));
+
+/***/ }),
+/* 10 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return ActionTypes; });
 /* harmony export (immutable) */ __webpack_exports__["b"] = createStore;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash_es_isPlainObject__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash_es_isPlainObject__ = __webpack_require__(11);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_symbol_observable__ = __webpack_require__(30);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_symbol_observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_symbol_observable__);
 
@@ -734,7 +834,7 @@ var ActionTypes = {
 }
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -806,7 +906,7 @@ function isPlainObject(value) {
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -820,7 +920,7 @@ var Symbol = __WEBPACK_IMPORTED_MODULE_0__root_js__["a" /* default */].Symbol;
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -848,7 +948,7 @@ function warning(message) {
 }
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -887,7 +987,7 @@ function compose() {
 }
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -955,7 +1055,7 @@ module.exports = warning;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)))
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1022,7 +1122,7 @@ var createPath = exports.createPath = function createPath(location) {
 };
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -1073,97 +1173,22 @@ var tasks = function () {
                 });
             });
         }
+    }, {
+        key: "start",
+        value: function start(stackID, taskID) {
+            return _http2.default.post("/api/stacks/" + stackID + "/tasks/" + taskID + "/start");
+        }
+    }, {
+        key: "stop",
+        value: function stop(stackID, taskID) {
+            return _http2.default.post("/api/stacks/" + stackID + "/tasks/" + taskID + "/stop");
+        }
     }]);
 
     return tasks;
 }();
 
 exports.default = tasks;
-
-/***/ }),
-/* 17 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var _inferno = __webpack_require__(0);
-
-var _inferno2 = _interopRequireDefault(_inferno);
-
-var _infernoComponent = __webpack_require__(1);
-
-var _infernoComponent2 = _interopRequireDefault(_infernoComponent);
-
-var _infernoRedux = __webpack_require__(3);
-
-var _redux = __webpack_require__(6);
-
-var _createBrowserHistory = __webpack_require__(37);
-
-var _createBrowserHistory2 = _interopRequireDefault(_createBrowserHistory);
-
-var _infernoRouter = __webpack_require__(7);
-
-var _reduxDevtoolsExtension = __webpack_require__(49);
-
-__webpack_require__(50);
-
-__webpack_require__(52);
-
-var _reducers = __webpack_require__(53);
-
-var _reducers2 = _interopRequireDefault(_reducers);
-
-var _App = __webpack_require__(54);
-
-var _App2 = _interopRequireDefault(_App);
-
-var _UnknownRoute = __webpack_require__(57);
-
-var _UnknownRoute2 = _interopRequireDefault(_UnknownRoute);
-
-var _Tasks = __webpack_require__(58);
-
-var _Tasks2 = _interopRequireDefault(_Tasks);
-
-var _Home = __webpack_require__(59);
-
-var _Home2 = _interopRequireDefault(_Home);
-
-var _Logs = __webpack_require__(60);
-
-var _Logs2 = _interopRequireDefault(_Logs);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var browserHistory = (0, _createBrowserHistory2.default)();
-var store = (0, _redux.createStore)(_reducers2.default, (0, _reduxDevtoolsExtension.devToolsEnhancer)());
-
-var createVNode = _inferno2.default.createVNode;
-var application = createVNode(16, _infernoRedux.Provider, null, null, {
-    'store': store,
-    children: createVNode(16, _infernoRouter.Router, null, null, {
-        'history': browserHistory,
-        children: createVNode(16, _infernoRouter.Route, null, null, {
-            'component': _App2.default,
-            children: [createVNode(16, _infernoRouter.IndexRoute, null, null, {
-                'component': _Home2.default
-            }), createVNode(16, _infernoRouter.Route, null, null, {
-                'path': '/:stackID',
-                'component': _Tasks2.default
-            }), createVNode(16, _infernoRouter.Route, null, null, {
-                'path': '/:stackID/:taskID/logs',
-                'component': _Logs2.default
-            }), createVNode(16, _infernoRouter.Route, null, null, {
-                'path': '*',
-                'component': _UnknownRoute2.default
-            })]
-        })
-    })
-});
-
-_inferno2.default.render(application, document.getElementById('app-root'));
 
 /***/ }),
 /* 18 */
@@ -4337,7 +4362,7 @@ function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'defau
 var inferno = __webpack_require__(0);
 var hoistStatics = _interopDefault(__webpack_require__(21));
 var Component = _interopDefault(__webpack_require__(1));
-var redux = __webpack_require__(6);
+var redux = __webpack_require__(7);
 
 /*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved.
@@ -5331,7 +5356,7 @@ exports.connectAdvanced = connectAdvanced;
 exports.connect = connect;
 exports['default'] = index;
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2), __webpack_require__(5)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2), __webpack_require__(6)))
 
 /***/ }),
 /* 21 */
@@ -5393,7 +5418,7 @@ module.exports.default = module.exports;
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Symbol_js__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Symbol_js__ = __webpack_require__(12);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__getRawTag_js__ = __webpack_require__(25);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__objectToString_js__ = __webpack_require__(26);
 
@@ -5453,14 +5478,14 @@ var freeGlobal = typeof global == 'object' && global && global.Object === Object
 
 /* harmony default export */ __webpack_exports__["a"] = (freeGlobal);
 
-/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(5)))
+/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(6)))
 
 /***/ }),
 /* 25 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Symbol_js__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__Symbol_js__ = __webpack_require__(12);
 
 
 /** Used for built-in method references. */
@@ -5651,7 +5676,7 @@ if (typeof self !== 'undefined') {
 
 var result = (0, _ponyfill2['default'])(root);
 exports['default'] = result;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(5), __webpack_require__(32)(module)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6), __webpack_require__(32)(module)))
 
 /***/ }),
 /* 32 */
@@ -5716,9 +5741,9 @@ function symbolObservablePonyfill(root) {
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(process) {/* harmony export (immutable) */ __webpack_exports__["a"] = combineReducers;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__createStore__ = __webpack_require__(9);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_lodash_es_isPlainObject__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_warning__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__createStore__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_lodash_es_isPlainObject__ = __webpack_require__(11);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__utils_warning__ = __webpack_require__(13);
 
 
 
@@ -5911,7 +5936,7 @@ function bindActionCreators(actionCreators, dispatch) {
 
 "use strict";
 /* harmony export (immutable) */ __webpack_exports__["a"] = applyMiddleware;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__compose__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__compose__ = __webpack_require__(14);
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 
@@ -5974,7 +5999,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-var _warning = __webpack_require__(14);
+var _warning = __webpack_require__(15);
 
 var _warning2 = _interopRequireDefault(_warning);
 
@@ -5984,7 +6009,7 @@ var _invariant2 = _interopRequireDefault(_invariant);
 
 var _LocationUtils = __webpack_require__(39);
 
-var _PathUtils = __webpack_require__(15);
+var _PathUtils = __webpack_require__(16);
 
 var _createTransitionManager = __webpack_require__(42);
 
@@ -6353,7 +6378,7 @@ var _valueEqual = __webpack_require__(41);
 
 var _valueEqual2 = _interopRequireDefault(_valueEqual);
 
-var _PathUtils = __webpack_require__(15);
+var _PathUtils = __webpack_require__(16);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -6548,7 +6573,7 @@ function valueEqual(a, b) {
 
 exports.__esModule = true;
 
-var _warning = __webpack_require__(14);
+var _warning = __webpack_require__(15);
 
 var _warning2 = _interopRequireDefault(_warning);
 
@@ -8041,7 +8066,7 @@ module.exports = Array.isArray || function (arr) {
 "use strict";
 
 
-var compose = __webpack_require__(6).compose;
+var compose = __webpack_require__(7).compose;
 
 exports.__esModule = true;
 exports.composeWithDevTools = (
@@ -8632,6 +8657,19 @@ exports.default = function () {
                     activeTask: action.activeTask
                 });
             }
+        case _actions.UPDATE_TASKS_RUNNING_STATUS:
+            {
+                return _extends({}, state, {
+                    tasks: state.tasks.map(function (task) {
+                        if (task.id === action.taskID) {
+                            return _extends({}, task, {
+                                is_started: action.isRunning
+                            });
+                        }
+                        return task;
+                    })
+                });
+            }
         case "@@INIT":
             {
                 return state;
@@ -8648,7 +8686,7 @@ exports.default = function () {
     }
 };
 
-var _actions = __webpack_require__(4);
+var _actions = __webpack_require__(5);
 
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
@@ -8685,7 +8723,7 @@ var _stacks = __webpack_require__(55);
 
 var _stacks2 = _interopRequireDefault(_stacks);
 
-var _actions = __webpack_require__(4);
+var _actions = __webpack_require__(5);
 
 var _Stacks = __webpack_require__(56);
 
@@ -8815,7 +8853,7 @@ var _infernoComponent2 = _interopRequireDefault(_infernoComponent);
 
 var _infernoRedux = __webpack_require__(3);
 
-var _infernoRouter = __webpack_require__(7);
+var _infernoRouter = __webpack_require__(4);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -8935,13 +8973,13 @@ var _infernoComponent2 = _interopRequireDefault(_infernoComponent);
 
 var _infernoRedux = __webpack_require__(3);
 
-var _infernoRouter = __webpack_require__(7);
+var _infernoRouter = __webpack_require__(4);
 
-var _tasks = __webpack_require__(16);
+var _tasks = __webpack_require__(17);
 
 var _tasks2 = _interopRequireDefault(_tasks);
 
-var _actions = __webpack_require__(4);
+var _actions = __webpack_require__(5);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -8994,23 +9032,45 @@ var Tasks = function (_Component) {
             });
         }
     }, {
-        key: 'restartService',
-        value: function restartService(taskID) {
-            _tasks2.default.restart(this.props.params.stackID, taskID);
+        key: 'startService',
+        value: function startService(taskID) {
+            var _this3 = this;
+
+            _tasks2.default.start(this.props.params.stackID, taskID).then(function () {
+                _this3.props.dispatch((0, _actions.updateTasksRunningStatus)(taskID, true));
+            }).catch(function (error) {
+                console.error('Error trying to start service \'' + taskID + '\'', error);
+            });
+        }
+    }, {
+        key: 'stopService',
+        value: function stopService(taskID) {
+            var _this4 = this;
+
+            _tasks2.default.stop(this.props.params.stackID, taskID).then(function () {
+                _this4.props.dispatch((0, _actions.updateTasksRunningStatus)(taskID, false));
+            }).catch(function (error) {
+                console.error('Error trying to stop service \'' + taskID + '\'', error);
+            });
         }
     }, {
         key: 'render',
         value: function render() {
-            var _this3 = this;
+            var _this5 = this;
 
             return createVNode(2, 'ul', null, this.props.tasks ? this.props.tasks.map(function (task) {
                 return createVNode(2, 'div', null, [createVNode(16, _infernoRouter.Link, null, null, {
-                    'to': '/' + _this3.props.params.stackID + '/' + task.id + '/logs',
+                    'to': '/' + _this5.props.params.stackID + '/' + task.id + '/logs',
                     children: task.name
-                }), '(', task.ports[0], ')', createVNode(2, 'button', null, 'Restart', {
+                }), '(', task.ports && task.ports.length > 0 && task.ports[0], ')', task.is_started ? createVNode(2, 'button', null, 'Stop', {
                     'type': 'button',
                     'onClick': function onClick() {
-                        _this3.restartService(task.id);
+                        _this5.stopService(task.id);
+                    }
+                }) : createVNode(2, 'button', null, 'Start', {
+                    'type': 'button',
+                    'onClick': function onClick() {
+                        _this5.startService(task.id);
                     }
                 })]);
             }) : createVNode(2, 'p', null, 'Loading...'));
@@ -9091,6 +9151,8 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _inferno = __webpack_require__(0);
@@ -9103,7 +9165,11 @@ var _infernoComponent2 = _interopRequireDefault(_infernoComponent);
 
 var _infernoRedux = __webpack_require__(3);
 
-var _tasks = __webpack_require__(16);
+var _infernoRouter = __webpack_require__(4);
+
+var _index = __webpack_require__(9);
+
+var _tasks = __webpack_require__(17);
 
 var _tasks2 = _interopRequireDefault(_tasks);
 
@@ -9111,7 +9177,7 @@ var _logs = __webpack_require__(61);
 
 var _logs2 = _interopRequireDefault(_logs);
 
-var _actions = __webpack_require__(4);
+var _actions = __webpack_require__(5);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -9122,6 +9188,12 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var defaultLogsState = {
+    logLines: [],
+    offset: undefined,
+    allLogs: ""
+};
 
 var createVNode = _inferno2.default.createVNode;
 
@@ -9134,14 +9206,19 @@ var Logs = function (_Component) {
         var _this = _possibleConstructorReturn(this, (Logs.__proto__ || Object.getPrototypeOf(Logs)).call(this, props));
 
         _this.state = {
-            logLines: [],
+            logLines: defaultLogsState.logLines,
+            offset: defaultLogsState.offset,
+            allLogs: defaultLogsState.allLogs,
             isFetchingAllLogs: false,
-            allLogs: ""
+            isShowingAllLogs: false,
+            isFetchingOlderLogs: false,
+            isShowingStdErr: false
         };
 
         _this.fetchOlderLogs = _this.fetchOlderLogs.bind(_this);
         _this.fetchAllLogs = _this.fetchAllLogs.bind(_this);
         _this.handleNewLog = _this.handleNewLog.bind(_this);
+        _this.handleAllLogsChange = _this.handleAllLogsChange.bind(_this);
         return _this;
     }
 
@@ -9150,58 +9227,147 @@ var Logs = function (_Component) {
         value: function componentWillMount() {
             var _this2 = this;
 
+            if (this.props.params.logType !== "stderr" && this.props.params.logType !== "stdout") {
+                _index.browserHistory.push('/' + this.props.params.stackID + '/' + this.props.params.taskID + '/stdout');
+            }
+
+            if (this.props.params.logType === "stderr") {
+                this.setState({ isShowingStdErr: true });
+            }
+
+            if (this.props.params.logType === "stdout") {
+                this.setState({ isShowingStdErr: false });
+            }
+
             if (!this.props.task || this.props.task.id !== this.props.params.taskID) {
                 _tasks2.default.get(this.props.params.stackID, this.props.params.taskID).then(function (response) {
                     _this2.props.dispatch((0, _actions.addActiveTask)(response));
-                    _logs2.default.start(response.current_instances[0].url, _this2.handleNewLog);
+                    if (!response.is_started) {
+                        return;
+                    }
+                    _logs2.default.start(response.current_instances[0].url, _this2.handleNewLog, _this2.state.isShowingStdErr);
                 }).catch(function (error) {
                     console.error("Error getting stack and task data", error);
                 });
             }
         }
     }, {
+        key: 'componentWillReceiveProps',
+        value: function componentWillReceiveProps(nextProps) {
+            if (this.props.params.logType && nextProps.params.logType !== this.props.params.logType) {
+                _logs2.default.stop();
+            }
+
+            if (nextProps.params.logType === "stderr" && this.props.params.logType === "stdout") {
+                _logs2.default.start(this.props.task.current_instances[0].url, this.handleNewLog, true);
+                this.setState(_extends({
+                    isShowingStdErr: true,
+                    isShowingAllLogs: false
+                }, defaultLogsState));
+            }
+
+            if (nextProps.params.logType === "stdout" && this.props.params.logType === "stderr") {
+                _logs2.default.start(this.props.task.current_instances[0].url, this.handleNewLog, false);
+                this.setState(_extends({
+                    isShowingStdErr: false,
+                    isShowingAllLogs: false
+                }, defaultLogsState));
+            }
+        }
+    }, {
         key: 'componentDidUpdate',
         value: function componentDidUpdate() {
             if (this.bottomOfLogs) {
-                this.bottomOfLogs.scrollIntoView({ behaviour: 'smooth' });
+                // this.bottomOfLogs.scrollIntoView({behaviour: 'smooth'});
             }
         }
     }, {
         key: 'componentWillUnmount',
         value: function componentWillUnmount() {
-            _logs2.default.stop();
+            if (this.props.task.is_started) {
+                _logs2.default.stop();
+            }
         }
     }, {
         key: 'fetchOlderLogs',
         value: function fetchOlderLogs() {
-            console.log('hello there');
+            var _this3 = this;
+
+            var instanceURL = this.props.task.current_instances[0].url;
+            var newOffset = this.state.offset - 10;
+            this.setState({
+                isFetchingOlderLogs: true
+            });
+            _logs2.default.get(instanceURL, newOffset, 10).then(function (response) {
+                _this3.setState({
+                    isFetchingOlderLogs: false,
+                    offset: newOffset
+                });
+                _this3.handlePreviousLog(response);
+            }).catch(function (error) {
+                _this3.setState({
+                    isFetchingOlderLogs: false
+                });
+                console.error("Error getting older logs for " + instanceURL, error);
+            });
         }
     }, {
         key: 'fetchAllLogs',
         value: function fetchAllLogs() {
-            var _this3 = this;
+            var _this4 = this;
 
             var instanceURL = this.props.task.current_instances[0].url;
             this.setState({
                 isFetchingAllLogs: true
             });
-            _logs2.default.getAll(instanceURL).then(function (response) {
-                _this3.setState({
+            _logs2.default.getAll(instanceURL, this.state.isShowingStdErr).then(function (response) {
+                _this4.setState({
                     logLines: [],
                     allLogs: response,
                     isFetchingAllLogs: false
                 });
             }).catch(function (error) {
-                _this3.setState({
-                    isFetchingAllLogs: true
+                _this4.setState({
+                    isFetchingAllLogs: false
                 });
-                console.error("Error fetching entire standard out for " + instanceURL, error);
+                console.error("Error fetching entire " + (_this4.state.isShowingStdErr ? "standard error" : "standard out") + " for " + instanceURL, error);
+            });
+        }
+    }, {
+        key: 'handleAllLogsChange',
+        value: function handleAllLogsChange() {
+            var isShowingAllLogs = !this.state.isShowingAllLogs;
+
+            this.setState({ isShowingAllLogs: isShowingAllLogs });
+
+            if (!isShowingAllLogs) {
+                this.setState({ allLogs: "" });
+                _logs2.default.stop();
+                _logs2.default.start(this.props.task.current_instances[0].url, this.handleNewLog, this.state.isShowingAllLogs);
+                return;
+            }
+
+            this.fetchAllLogs();
+        }
+    }, {
+        key: 'handlePreviousLog',
+        value: function handlePreviousLog(logLine) {
+            this.setState({
+                logLines: [logLine].concat(_toConsumableArray(this.state.logLines))
             });
         }
     }, {
         key: 'handleNewLog',
         value: function handleNewLog(logLine) {
+            if (!this.state.offset) {
+                this.setState({
+                    offset: parseInt(logLine.replace('Offset: ', ''))
+                });
+                return;
+            }
+
             var newLogLines = [].concat(_toConsumableArray(this.state.logLines), [logLine]);
+
             if (newLogLines.length > 1000) {
                 newLogLines.splice(0, 1);
             }
@@ -9210,22 +9376,62 @@ var Logs = function (_Component) {
             });
         }
     }, {
+        key: 'renderPorts',
+        value: function renderPorts(task) {
+            if (!this.props.task) {
+                return "";
+            }
+
+            var ports = task.ports;
+
+            if (ports.length === 0) {
+                return createVNode(2, 'p', null, 'Port: none');
+            }
+
+            if (ports.length === 1) {
+                return createVNode(2, 'p', null, ['Port: ', ports[0]]);
+            }
+
+            return createVNode(2, 'p', null, ['Ports: ', ports.join(", ")]);
+        }
+    }, {
+        key: 'renderLogTypeLinks',
+        value: function renderLogTypeLinks() {
+            if (this.state.isShowingStdErr) {
+                return createVNode(2, 'div', 'tabs', [createVNode(2, 'h3', 'tabs__item', createVNode(16, _infernoRouter.Link, null, null, {
+                    'className': 'tabs__link',
+                    'to': '/' + this.props.params.stackID + '/' + this.props.params.taskID + '/stdout',
+                    children: 'STD OUT'
+                })), createVNode(2, 'h3', 'tabs__item tabs__item--active', 'STD ERR')]);
+            }
+
+            return createVNode(2, 'div', 'tabs', [createVNode(2, 'h3', 'tabs__item tabs__item--active', 'STD OUT'), createVNode(2, 'h3', 'tabs__item', createVNode(16, _infernoRouter.Link, null, null, {
+                'className': 'tabs__link',
+                'to': '/' + this.props.params.stackID + '/' + this.props.params.taskID + '/stderr',
+                children: 'STD ERR'
+            }))]);
+        }
+    }, {
+        key: 'renderLogLines',
+        value: function renderLogLines() {
+            var _this5 = this;
+
+            return createVNode(2, 'div', null, createVNode(2, 'pre', 'logs', [this.state.allLogs && this.state.allLogs, this.state.isFetchingAllLogs && createVNode(2, 'p', null, 'Loading all logs...'), !this.state.allLogs && this.state.logLines.length === 0 && createVNode(2, 'p', null, 'No logs to show...'), this.state.logLines.length > 0 && !this.state.isShowingAllLogs && createVNode(2, 'p', null, ['Offset: ', this.state.offset]), this.state.logLines.length > 0 && createVNode(2, 'div', null, [this.state.logLines.map(function (logLine) {
+                return createVNode(2, 'div', null, logLine);
+            }), createVNode(2, 'br'), createVNode(2, 'div', null, null, null, null, function (el) {
+                _this5.bottomOfLogs = el;
+            })])]));
+        }
+    }, {
         key: 'render',
         value: function render() {
-            var _this4 = this;
-
-            return createVNode(2, 'div', null, [createVNode(2, 'h2', null, [this.props.task ? this.props.task.name : this.props.params.taskID, ' logs']), createVNode(2, 'button', null, 'Show older logs', {
-                'type': 'button',
-                'onClick': this.fetchOlderLogs,
-                'disabled': true
-            }), createVNode(2, 'button', null, 'Show all logs', {
-                'type': 'button',
-                'onClick': this.fetchAllLogs
-            }), createVNode(2, 'pre', 'logs', [this.state.allLogs && this.state.allLogs, this.state.isFetchingAllLogs && createVNode(2, 'p', null, 'Loading all logs...'), !this.state.allLogs && this.state.logLines.length === 0 && createVNode(2, 'p', null, 'No logs to show...'), this.state.logLines.length > 0 && createVNode(2, 'div', null, [this.state.logLines.map(function (logLine) {
-                return createVNode(2, 'div', null, logLine);
-            }), createVNode(2, 'br'), createVNode(2, 'div', null, 'End of logs...', null, null, function (el) {
-                _this4.bottomOfLogs = el;
-            })])])]);
+            return createVNode(2, 'div', null, [createVNode(2, 'h2', null, [this.props.task ? this.props.task.name : this.props.params.taskID, ' logs']), this.renderPorts(this.props.task), this.state.isFetchingOlderLogs && createVNode(2, 'p', null, 'Loading older logs..'), this.props.task && this.props.task.is_started && createVNode(2, 'div', null, [this.renderLogTypeLinks(), createVNode(2, 'label', null, 'Show all logs', {
+                'for': ''
+            }), createVNode(512, 'input', null, null, {
+                'type': 'checkbox',
+                'checked': this.state.isShowingAllLogs,
+                'onChange': this.handleAllLogsChange
+            }), this.renderLogLines()]), this.props.task && !this.props.task.is_started && createVNode(2, 'h3', null, 'App isn\'t started')]);
         }
     }]);
 
@@ -9270,11 +9476,11 @@ var logs = function () {
 
     _createClass(logs, null, [{
         key: "start",
-        value: function start(instanceURL, onLog) {
+        value: function start(instanceURL, onLog, isStdErr) {
             if (this.socket) {
                 this.stop();
             }
-            this.socket = new WebSocket("ws://" + window.location.host + "/api" + instanceURL + "/stdout.ws?tail=y");
+            this.socket = new WebSocket("ws://" + window.location.host + "/api" + instanceURL + "/" + (isStdErr ? "stderr" : "stdout") + ".ws?tail=y");
             this.socket.onmessage = function (message) {
                 onLog(message.data);
             };
@@ -9282,12 +9488,34 @@ var logs = function () {
     }, {
         key: "stop",
         value: function stop() {
+            if (!this.socket) {
+                return;
+            }
             this.socket.close();
         }
     }, {
+        key: "get",
+        value: function get(instanceURL, offset, length) {
+            var URL = "/api" + instanceURL + "/stdout";
+
+            if (offset && !length) {
+                URL += '?offset=' + offset;
+            }
+
+            if (!offset && length) {
+                URL += '?length=' + length;
+            }
+
+            if (offset && length) {
+                URL += '?offset=' + offset + '&length=' + length;
+            }
+
+            return _http2.default.get(URL);
+        }
+    }, {
         key: "getAll",
-        value: function getAll(instanceURL) {
-            return _http2.default.get("/api" + instanceURL + "/stdout");
+        value: function getAll(instanceURL, isStdErr) {
+            return _http2.default.get("/api" + instanceURL + "/" + (isStdErr ? "stderr" : "stdout"));
         }
     }]);
 

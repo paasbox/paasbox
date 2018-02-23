@@ -15,7 +15,7 @@ import Tasks from './app/components/Tasks';
 import Home from './app/components/Home';  
 import Logs from './app/components/Logs'; 
 
-const browserHistory = createBrowserHistory();
+export const browserHistory = createBrowserHistory();
 const store = createStore(reducers, devToolsEnhancer());
 
 const application = (
@@ -24,7 +24,7 @@ const application = (
             <Route component={App}>
                 <IndexRoute component={Home}/>
                 <Route path="/:stackID" component={Tasks} />
-                <Route path="/:stackID/:taskID/logs" component={Logs} />
+                <Route path="/:stackID/:taskID/:logType" component={Logs} />
                 <Route path="*" component={UnknownRoute}/>
             </Route>
         </Router>

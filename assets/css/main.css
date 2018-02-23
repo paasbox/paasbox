@@ -2,10 +2,23 @@ body {
   margin: 0;
   padding: 0; }
 
+a:visited {
+  color: inherit; }
+
 .logs {
   unicode-bidi: plaintext;
   white-space: pre-wrap;
   word-wrap: break-word;
   -moz-control-character-visibility: visible; }
+
+.tabs__item {
+  display: inline-block; }
+  .tabs__item:not(:first-child) {
+    margin-left: 1rem; }
+  .tabs__item--active {
+    border-bottom: 4px solid grey; }
+
+.tabs__link {
+  text-decoration: none; }
 
 /*# sourceMappingURL=main.css.map*/

@@ -60,7 +60,7 @@ class Tasks extends Component {
                         return (
                             <div>
                                 <Link to={`/${this.props.params.stackID}/${task.id}/logs`}>{task.name}</Link>
-                                ({task.ports[0]})
+                                ({(task.ports && task.ports.length > 0) && task.ports[0]})
                                 {task.is_started ?
                                     <button type="button" onClick={() => {this.stopService(task.id)}}>Stop</button>
                                 :
