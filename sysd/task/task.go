@@ -181,7 +181,7 @@ func NewTask(stackID string, store state.Store, logDriver logger.Driver, lb load
 				}
 				t.init = append(t.init, gI)
 			default:
-				return nil, fmt.Errorf("unknown init type: %s", t)
+				return nil, fmt.Errorf("unknown init type: %s", t.init)
 			}
 		} else {
 			return nil, errors.New("init type not specified")
