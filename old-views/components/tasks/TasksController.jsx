@@ -82,7 +82,7 @@ class TasksController extends Component {
 
     handleLogClick(itemProps) {
         if (itemProps.task.show_logs) {
-            browserHistory.push(`/${itemProps.activeStackID}`);    
+            browserHistory.push(`/${itemProps.activeStackID}`);
             return;
         }
         browserHistory.push(`/${itemProps.activeStackID}/${itemProps.task.id}/logs`);

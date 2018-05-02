@@ -3,16 +3,41 @@ import http from "./http";
 export default class logs {
     constructor(props) {
         this.socket = null;
+        this.connectTries = 0;
+        this.connectAttemptDelay = 1;
+        this.connectTimer = null;
     }
 
     static start(instanceURL, onLog, isStdErr) {
+        console.log("try");
+        this.connectTries++;
         if (this.socket) {
             this.stop();
         }
         this.socket = new WebSocket(`ws://${window.location.host}/api${instanceURL}/${isStdErr ? "stderr" : "stdout"}.ws?tail=y`);
-        this.socket.onmessage = function(message) {
+        this.socket.onerror = () => {
+            console.log("error");
+            clearTimeout(this.connectTimer);
+            if (this.connectTries > 7) {
+                return;
+            }
+            this.connectAttemptDelay = this.connectAttemptDelay * 3.5;
+            this.connectTimer = setTimeout(() => {
+                this.start(instanceURL, onLog, isStdErr);
+            }, this.connectAttemptDelay);
+        };
+        this.socket.onopen = () => {
+            console.log("open");
+            this.connectTries = 0;
+            this.connectAttemptDelay = 1;
+            clearTimeout(this.connectTimer);
+        };
+        this.socket.onclose = () => {
+            console.log("close");
+        };
+        this.socket.onmessage = message => {
             onLog(message.data);
-        }
+        };
     }
 
     static stop() {

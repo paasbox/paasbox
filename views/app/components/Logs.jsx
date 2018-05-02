@@ -6,12 +6,15 @@ import { browserHistory } from '../../index';
 
 import tasks from '../api/tasks';
 import logs from '../api/logs';
-import {addActiveTask} from '../global/actions';
+import {addActiveTask, addTasks, updateActiveTaskRunningStatus} from '../global/actions';
 
 const defaultLogsState = {
     logLines: [],
     offset: undefined,
-    allLogs: ""
+    allLogs: "",
+    isFetchingAllLogs: false,
+    isShowingAllLogs: false,
+    isFetchingOlderLogs: false,
 }
 
 class Logs extends Component {
@@ -22,10 +25,10 @@ class Logs extends Component {
             logLines: defaultLogsState.logLines,
             offset: defaultLogsState.offset,
             allLogs: defaultLogsState.allLogs,
-            isFetchingAllLogs: false,
-            isShowingAllLogs: false,
-            isFetchingOlderLogs: false,
-            isShowingStdErr: false
+            isFetchingAllLogs: defaultLogsState.isFetchingAllLogs,
+            isShowingAllLogs: defaultLogsState.isShowingAllLogs,
+            isFetchingOlderLogs: defaultLogsState.isFetchingOlderLogs,
+            isShowingStdErr: defaultLogsState.isShowingStdErr
         };
 
         this.fetchOlderLogs = this.fetchOlderLogs.bind(this);
@@ -36,7 +39,7 @@ class Logs extends Component {
 
     componentWillMount() {
         if (this.props.params.logType !== "stderr" && this.props.params.logType !== "stdout") {
-            browserHistory.push(`/${this.props.params.stackID}/${this.props.params.taskID}/stdout`);
+            browserHistory.replace(`/${this.props.params.stackID}/${this.props.params.taskID}/stdout`);
         }
 
         if (this.props.params.logType === "stderr") {
@@ -58,27 +61,42 @@ class Logs extends Component {
                 console.error("Error getting stack and task data", error);
             });
         }
+
+        if (!this.props.allTasks) {
+            tasks.getAll(this.props.params.stackID).then(response => {
+                this.props.dispatch(addTasks(response.tasks));
+            }).catch(error => {
+                console.error("Error getting all tasks on logs screen", error);
+            });
+        }
     }
 
     componentWillReceiveProps(nextProps) {
+        if (this.props.task && this.props.task.is_started && (this.props.task.current_instances[0].id !== nextProps.task.current_instances[0].id)) {
+            logs.start(nextProps.task.current_instances[0].url, this.handleNewLog, this.state.isShowingStdErr);
+        }
+        
+        if (this.props.task && (this.props.task.is_started && !nextProps.task.is_started)) {
+            this.setState({...defaultLogsState});
+            logs.stop();
+        }
+
         if (this.props.params.logType && nextProps.params.logType !== this.props.params.logType) {
             logs.stop();
         }
 
         if (nextProps.params.logType === "stderr" && this.props.params.logType === "stdout") {
-            logs.start(this.props.task.current_instances[0].url, this.handleNewLog, true);
+            logs.start(nextProps.task.current_instances[0].url, this.handleNewLog, true);
             this.setState({
                 isShowingStdErr: true,
-                isShowingAllLogs: false,
                 ...defaultLogsState
             });
         }
         
         if (nextProps.params.logType === "stdout" && this.props.params.logType === "stderr") {
-            logs.start(this.props.task.current_instances[0].url, this.handleNewLog, false);
+            logs.start(nextProps.task.current_instances[0].url, this.handleNewLog, false);
             this.setState({
                 isShowingStdErr: false,
-                isShowingAllLogs: false,
                 ...defaultLogsState
             });
         }
@@ -153,7 +171,7 @@ class Logs extends Component {
     handlePreviousLog(logLine) {
         this.setState({
             logLines: [logLine, ...this.state.logLines]
-        })
+        });
     }
 
     handleNewLog(logLine) {
@@ -171,6 +189,31 @@ class Logs extends Component {
         }
         this.setState({
             logLines: newLogLines
+        });
+    }
+
+    updateTask(taskID) {
+        tasks.get(this.props.params.stackID, taskID).then(response => {
+            this.props.dispatch(addActiveTask(response));
+        }).catch(error => {
+            console.error("Error getting task", error);
+        });
+    }
+
+    startService(taskID) {
+        tasks.start(this.props.params.stackID, taskID).then(() => {
+            this.updateTask(taskID);
+            this.props.dispatch(updateActiveTaskRunningStatus(taskID, true));
+        }).catch(error => {
+            console.error(`Error trying to start service '${taskID}'`, error);
+        });
+    }
+    
+    stopService(taskID) {
+        tasks.stop(this.props.params.stackID, taskID).then(() => {
+            this.props.dispatch(updateActiveTaskRunningStatus(taskID, false));
+        }).catch(error => {
+            console.error(`Error trying to stop service '${taskID}'`, error);
         });
     }
 
@@ -244,10 +287,26 @@ class Logs extends Component {
         )
     }
 
+    renderStopStartService() {
+        if (!this.props.task) {
+            return;
+        }
+
+        if (this.props.task.is_started) {
+            return (
+                <button type="button" onClick={() => {this.stopService(this.props.task.id)}}>Stop</button>
+            )
+        }
+
+        return (
+            <button type="button" onClick={() => {this.startService(this.props.task.id)}}>Start</button>
+        )
+    }
+
     render() {
         return (
             <div>
-                <h2>{this.props.task ? this.props.task.name : this.props.params.taskID} logs</h2>
+                <h2>{this.props.task ? this.props.task.name : this.props.params.taskID} logs {this.renderStopStartService()}</h2>
                 {this.renderPorts(this.props.task)}
                 {this.state.isFetchingOlderLogs &&
                     <p>Loading older logs..</p>
@@ -255,10 +314,8 @@ class Logs extends Component {
                 {(this.props.task && this.props.task.is_started) &&
                     <div>
                         {this.renderLogTypeLinks()}
-                        {/* <button type="button" onClick={this.fetchOlderLogs} disabled={this.state.isShowingAllLogs}>Show older logs</button> */}
-                        <label htmlFor="">Show all logs</label>
-                        <input type="checkbox" checked={this.state.isShowingAllLogs} onChange={this.handleAllLogsChange}/>
-                        {/* <button type="button" onClick={this.fetchAllLogs}>Show all logs</button> */}
+                        <label htmlFor="show-all-logs">Show all logs</label>
+                        <input id="show-all-logs" type="checkbox" checked={this.state.isShowingAllLogs} onChange={this.handleAllLogsChange}/>
                         {this.renderLogLines()}
                     </div>
                 }
@@ -272,7 +329,8 @@ class Logs extends Component {
 
 function mapStateToProps(state) {
     return {
-        task: state.activeTask
+        task: state.activeTask,
+        allTasks: state.task
     }
 }
 

@@ -4,7 +4,7 @@ import { connect } from 'inferno-redux';
 import { Link } from 'inferno-router';
 
 import tasks from '../api/tasks';
-import {addTasks, updateTasksRunningStatus} from '../global/actions';
+import {addTasks, updateTaskRunningStatus} from '../global/actions';
 
 class Tasks extends Component {
     constructor(props) {
@@ -38,7 +38,7 @@ class Tasks extends Component {
 
     startService(taskID) {
         tasks.start(this.props.params.stackID, taskID).then(() => {
-            this.props.dispatch(updateTasksRunningStatus(taskID, true));
+            this.props.dispatch(updateTaskRunningStatus(taskID, true));
         }).catch(error => {
             console.error(`Error trying to start service '${taskID}'`, error);
         });
@@ -46,7 +46,7 @@ class Tasks extends Component {
     
     stopService(taskID) {
         tasks.stop(this.props.params.stackID, taskID).then(() => {
-            this.props.dispatch(updateTasksRunningStatus(taskID, false));
+            this.props.dispatch(updateTaskRunningStatus(taskID, false));
         }).catch(error => {
             console.error(`Error trying to stop service '${taskID}'`, error);
         });
