@@ -90,7 +90,7 @@ func templatesIndexTmpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "templates/index.tmpl", size: 317, mode: os.FileMode(420), modTime: time.Unix(1515529636, 0)}
+	info := bindataFileInfo{name: "templates/index.tmpl", size: 317, mode: os.FileMode(420), modTime: time.Unix(1523303836, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -110,7 +110,7 @@ func cssMainCss() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "css/main.css", size: 443, mode: os.FileMode(420), modTime: time.Unix(1519419662, 0)}
+	info := bindataFileInfo{name: "css/main.css", size: 443, mode: os.FileMode(420), modTime: time.Unix(1523303836, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -130,7 +130,7 @@ func cssMainCssMap() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "css/main.css.map", size: 89, mode: os.FileMode(420), modTime: time.Unix(1519419662, 0)}
+	info := bindataFileInfo{name: "css/main.css.map", size: 89, mode: os.FileMode(420), modTime: time.Unix(1488232972, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -150,7 +150,7 @@ func jsBundleJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "js/bundle.js", size: 332579, mode: os.FileMode(420), modTime: time.Unix(1519419662, 0)}
+	info := bindataFileInfo{name: "js/bundle.js", size: 332579, mode: os.FileMode(420), modTime: time.Unix(1523303836, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -170,7 +170,7 @@ func jsBundleJsMap() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "js/bundle.js.map", size: 381766, mode: os.FileMode(420), modTime: time.Unix(1519419662, 0)}
+	info := bindataFileInfo{name: "js/bundle.js.map", size: 381766, mode: os.FileMode(420), modTime: time.Unix(1523303836, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -190,7 +190,7 @@ func imagesFaviconPng() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "images/favicon.png", size: 1381, mode: os.FileMode(420), modTime: time.Unix(1493282392, 0)}
+	info := bindataFileInfo{name: "images/favicon.png", size: 1381, mode: os.FileMode(420), modTime: time.Unix(1494153782, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -210,7 +210,7 @@ func imagesLogoJpg() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "images/logo.jpg", size: 26288, mode: os.FileMode(420), modTime: time.Unix(1494175891, 0)}
+	info := bindataFileInfo{name: "images/logo.jpg", size: 26288, mode: os.FileMode(420), modTime: time.Unix(1494153868, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
