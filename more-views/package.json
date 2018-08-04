@@ -1,0 +1,52 @@
+{
+  "name": "paasbox-frontend",
+  "version": "0.0.1",
+  "description": "Frontend UI for PaasBox",
+  "main": "index.js",
+  "scripts": {
+    "test": "test",
+    "build": "webpack --config webpack.config.js",
+    "watch": "webpack -w --config webpack.config.js",
+    "type-check": "flow"
+  },
+  "author": "Crispin Merriman",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/cli": "^7.0.0-beta.55",
+    "@babel/core": "^7.0.0-beta.55",
+    "@babel/preset-env": "^7.0.0-beta.55",
+    "@babel/preset-es2017": "^7.0.0-beta.53",
+    "@babel/preset-react": "^7.0.0-beta.55",
+    "@babel/preset-typescript": "^7.0.0-beta.55",
+    "@types/react": "^16.4.7",
+    "@types/react-dom": "^16.0.6",
+    "@types/react-redux": "^6.0.6",
+    "babel-core": "^7.0.0-bridge.0",
+    "babel-loader": "^7.1.5",
+    "css-loader": "^1.0.0",
+    "path": "^0.12.7",
+    "prop-types": "^15.6.2",
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2",
+    "react-redux": "^5.0.7",
+    "redux": "^4.0.0",
+    "style-loader": "^0.21.0",
+    "ts-loader": "^4.4.2",
+    "typescript": "^3.0.1",
+    "webpack": "^4.16.3",
+    "webpack-cli": "^3.1.0"
+  },
+  "devDependencies": {
+    "@babel/plugin-transform-runtime": "^7.0.0-beta.55",
+    "@babel/runtime": "^7.0.0-beta.55",
+    "awesome-typescript-loader": "^5.2.0",
+    "source-map-loader": "^0.2.3"
+  },
+  "resolutions": {
+    "babel-core": "^7.0.0-bridge.0",
+    "babel-preset-env": "^7.0.0-bridge.0"
+  },
+  "peerDependencies": {
+    "babel-core": "6.x || ^7.0.0-0"
+  }
+}

@@ -1,0 +1,8 @@
+.loader {
+    display: inline-block;
+}
+
+.loader--small {
+    height: 2rem;
+    width: 2rem;
+}
