@@ -1,4 +1,5 @@
 import * as React from 'react';
+import './Loader.css';
 
 interface ParentProps {
     small?: boolean
@@ -15,7 +16,10 @@ export default class Loader extends React.Component<ParentProps> {
 
     render() {
         return(
-            <div className={`loader ${this.props.small ? " loader--small" : ""}`}>Loading</div>
+            <div className={`loader ${this.props.small ? " loader--small" : ""}`}>
+                Loading...
+                <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+            </div>
         )
     }
 }

@@ -1,29 +1,42 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
+import { RouteComponentProps, Route, withRouter } from 'react-router-dom';
+
 import { State } from '../../reducer';
 import { Stack } from '../../utilities/types';
 import Stacks from './Stacks';
 import Loader from '../../components/loader/Loader';
+import TasksController from '../tasks/TasksController';
 
 interface ReduxProps {
     stacks: Array<Stack>,
     isFetchingStacks: boolean
 }
 
-class StacksController extends React.Component<ReduxProps> {
-    constructor(props: ReduxProps) {
+type Props = ReduxProps & RouteComponentProps<any>
+
+class StacksController extends React.Component<Props> {
+    constructor(props: Props) {
         super(props);
+        console.log("StacksController props:", props);
+    }
+
+    componentWillReceiveProps(nextProps: Props) {
+        console.log("StacksController new props:", nextProps);
     }
 
     render() {
-        console.log(this.props);
+        console.log(`${this.props.match.url}/:stackID`);
         return (
             <div>
                 <h2>Stacks</h2>
                 {this.props.isFetchingStacks ?
                     <Loader />
                 :
-                    <Stacks stacks={this.props.stacks}/>
+                    <div>
+                        <Stacks stacks={this.props.stacks} stackPath={this.props.match.url}/>
+                        {/* <Route path={`${this.props.match.url}/:stackID`} component={TasksController}/> */}
+                    </div>
                 }
             </div>
         )
@@ -38,4 +51,4 @@ function mapStateToProps(state: State): ReduxProps {
     }
 }
 
-export default connect<ReduxProps>(mapStateToProps)(StacksController);
+export default withRouter(connect<ReduxProps>(mapStateToProps)(StacksController));

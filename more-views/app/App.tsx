@@ -8,7 +8,6 @@ import { Stack, APIStacks } from './utilities/types';
 import { addStacks, setIsFetchingStacks } from './utilities/actions';
 import { State } from './reducer';
 import Mapper from './utilities/mapper';
-import StacksController from './views/stacks/StacksController';
 
 interface ReduxProps {
     stacks: Array<Stack>
@@ -34,7 +33,7 @@ class App extends React.Component<Props> {
         return (
             <div>
                 <h1>PaasBox</h1>
-                <StacksController />
+                {this.props.children}
             </div>
         )
     }

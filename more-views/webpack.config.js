@@ -1,12 +1,14 @@
 const path = require('path');
 
+console.log(`Build: ${process.env.NODE_ENV}`);
+
 module.exports = {
     entry: './index.tsx',
     output: {
         filename: 'js/new-main.js',
         path: path.resolve(__dirname, '../assets')
     },
-    mode: "development",
+    devtool: process.env.NODE_ENV === 'production' ? "source-map" : "eval-cheap-module-source-map",
     module: {
         rules: [
           {
@@ -25,5 +27,5 @@ module.exports = {
           }
         ]
       },
-    resolve: { extensions: ['*', '.js', '.jsx', '.ts', '.tsx'] },
+    resolve: { extensions: ['*', '.js', '.jsx', '.ts', '.tsx'] }
 };

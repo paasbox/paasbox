@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "test",
-    "build": "webpack --config webpack.config.js",
-    "watch": "webpack -w --config webpack.config.js",
+    "build": "NODE_ENV=production webpack -p --config webpack.config.js --mode=production",
+    "build:dev": "NODE_ENV=development webpack --config webpack.config.js --mode=development",
+    "watch": "NODE_ENV=development webpack -w --config webpack.config.js --mode=development",
     "type-check": "flow"
   },
   "author": "Crispin Merriman",
@@ -29,6 +30,8 @@
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
     "react-redux": "^5.0.7",
+    "react-router": "^4.3.1",
+    "react-router-dom": "^4.3.1",
     "redux": "^4.0.0",
     "style-loader": "^0.21.0",
     "ts-loader": "^4.4.2",
@@ -39,8 +42,9 @@
   "devDependencies": {
     "@babel/plugin-transform-runtime": "^7.0.0-beta.55",
     "@babel/runtime": "^7.0.0-beta.55",
-    "awesome-typescript-loader": "^5.2.0",
-    "source-map-loader": "^0.2.3"
+    "@types/react-router": "^4.0.30",
+    "@types/react-router-dom": "^4.3.0",
+    "awesome-typescript-loader": "^5.2.0"
   },
   "resolutions": {
     "babel-core": "^7.0.0-bridge.0",
