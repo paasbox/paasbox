@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as Redux from 'redux';
 import { connect } from 'react-redux';
+import { withRouter } from 'react-router-dom';
 
 import './App.css';
 import API from './utilities/api';
@@ -52,4 +53,4 @@ function mapDispatchToProps(dispatch: Redux.Dispatch): DispatchProps {
     }
 }
 
-export default connect<ReduxProps, DispatchProps>(mapStateToProps, mapDispatchToProps)(App);
+export default withRouter<any>(connect<ReduxProps, DispatchProps>(mapStateToProps, mapDispatchToProps)(App));
