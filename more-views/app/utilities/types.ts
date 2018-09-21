@@ -23,7 +23,8 @@ export type Task = {
     ports: Array<number>,
     instances: number,
     driver: string,
-    current_instances?: Array<string>
+    healthchecks: Healthcheck[]
+    current_instances: Array<string>
 }
 
 export type APITasks = {
@@ -41,10 +42,28 @@ export type APITask = {
     instances: number,
     driver: string,
     env: Array<string>,
-    image?: string
+    image?: string,
+    healthchecks: Healthcheck[],
+    command: string
 }
 
 export type Instance = {
     id: string,
     url: string
+}
+
+export type Healthcheck = {
+    frequency: number
+    healthy_threshold: number
+    instances: HealthcheckInstance[]
+    reap_threshold: number
+    target: string
+    type: string
+    unhealthy_threshold: number
+}
+
+export type HealthcheckInstance = {
+    healthy: boolean
+    instance_id: string
+    score: number
 }

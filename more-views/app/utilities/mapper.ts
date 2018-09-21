@@ -18,7 +18,8 @@ export default class Mapper {
             is_service: response.is_service || false,
             instances: response.instances || 0,
             driver: response.driver || "",
-            current_instances: response.current_instances ? response.current_instances.map((instance: Instance) => instance.id) : []
+            current_instances: response.current_instances ? response.current_instances.map((instance: Instance) => instance.id) : [],
+            healthchecks: response.healthchecks
         }
     }
 }

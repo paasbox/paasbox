@@ -1,0 +1,12 @@
+.ports {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ports__item {
+    margin: 0;
+    padding: 0;
+    line-height: inherit;
+    display: inline;
+}
