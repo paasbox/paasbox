@@ -18,15 +18,9 @@ type Props = ReduxProps & RouteComponentProps<any>
 class StacksController extends React.Component<Props> {
     constructor(props: Props) {
         super(props);
-        console.log("StacksController props:", props);
-    }
-
-    componentWillReceiveProps(nextProps: Props) {
-        console.log("StacksController new props:", nextProps);
     }
 
     render() {
-        console.log(`${this.props.match.url}/:stackID`);
         return (
             <div>
                 <h2>Stacks</h2>
@@ -35,7 +29,7 @@ class StacksController extends React.Component<Props> {
                 :
                     <div>
                         <Stacks stacks={this.props.stacks} stackPath={this.props.match.url}/>
-                        {/* <Route path={`${this.props.match.url}/:stackID`} component={TasksController}/> */}
+                        <Route path={`${this.props.match.url}/:stackID`} component={TasksController}/>
                     </div>
                 }
             </div>
@@ -51,4 +45,4 @@ function mapStateToProps(state: State): ReduxProps {
     }
 }
 
-export default withRouter(connect<ReduxProps>(mapStateToProps)(StacksController));
+export default withRouter<any>(connect<ReduxProps>(mapStateToProps)(StacksController));

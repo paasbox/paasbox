@@ -3,6 +3,7 @@ import { Task, Stack } from "./types";
 export enum ActionTypeKeys {
     ADD_STACKS = "ADD_STACKS",
     SET_IS_FETCHING_STACKS = "SET_IS_FETCHING_STACKS",
+    ADD_ACTIVE_STACK = "ADD_ACTIVE_STACK",
     ADD_TASKS = "ADD_TASKS",
     SET_IS_FETCHING_TASKS = "SET_IS_FETCHING_TASKS",
     ADD_ACTIVE_TASK = "ADD_ACTIVE_TASK",
@@ -22,6 +23,11 @@ interface addStacksAction {
 interface setIsFetchingStacksAction {
     type: ActionTypeKeys.SET_IS_FETCHING_STACKS,
     isFetching: boolean
+}
+
+interface addActiveStack {
+    type: ActionTypeKeys.ADD_ACTIVE_STACK,
+    stack: Stack
 }
 
 interface addTasksAction {
@@ -45,6 +51,7 @@ interface ReduxInit {
 export type ActionTypes = (
     addStacksAction |
     setIsFetchingStacksAction |
+    addActiveStack |
     addTasksAction |
     setIsFetchingTasksAction |
     OtherAction |

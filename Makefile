@@ -47,7 +47,8 @@ ${GOPATH}/bin/go-bindata:
 
 debug: build
 	go build -tags 'debug' -o ./build/pb ./cmd/pb
-	HUMAN_LOG=1 ./build/pb stacks/ons-stack.json
+	HUMAN_LOG=1 ./build/pb /Users/crispinmerriman/PaasBox/stacks/cmd/geography-stack.json
+	#HUMAN_LOG=1 ./build/pb example/stack.json
 
 ws: build
 	go build -tags 'debug' -o ./build/pb ./cmd/pb

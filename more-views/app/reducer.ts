@@ -73,6 +73,18 @@ export default function reducer(state: State = initialState, action: ActionTypes
                 }
             }
         }
+        case (ActionTypeKeys.ADD_ACTIVE_STACK): {
+            return {
+                ...state,
+                stacks: {
+                    ...state.stacks,
+                    active: {
+                        ...state.stacks.active,
+                        item: action.stack
+                    }
+                }
+            }
+        }
         case (ActionTypeKeys.ADD_TASKS): {
             return {
                 ...state,

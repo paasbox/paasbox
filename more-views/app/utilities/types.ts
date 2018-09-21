@@ -17,5 +17,34 @@ export type APIStack = {
 
 export type Task = {
     id: string,
-    name?: string
+    name: string,
+    is_started: boolean,
+    is_service: boolean,
+    ports: Array<number>,
+    instances: number,
+    driver: string,
+    current_instances?: Array<string>
+}
+
+export type APITasks = {
+    tasks: Array<APITask>
+}
+
+export type APITask = {
+    id: string,
+    name: string,
+    is_started: boolean,
+    is_service: boolean,
+    ports: Array<number>,
+    current_instances: Array<Instance>,
+    dev_mode: boolean,
+    instances: number,
+    driver: string,
+    env: Array<string>,
+    image?: string
+}
+
+export type Instance = {
+    id: string,
+    url: string
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as Redux from 'redux';
 import { connect } from 'react-redux';
-import { withRouter } from 'react-router-dom';
+import { withRouter, Route } from 'react-router-dom';
 
 import './App.css';
 import API from './utilities/api';
@@ -11,11 +11,11 @@ import { State } from './reducer';
 import Mapper from './utilities/mapper';
 
 interface ReduxProps {
-    stacks: Array<Stack>
+    stacks: Stack[]
 }
 
 interface DispatchProps {
-    addStacks: (stacks: Array<Stack>) => void,
+    addStacks: (stacks: Stack[]) => void,
     setIsFetchingStacks: (isFetching: boolean) => void
 }
 
@@ -25,7 +25,7 @@ class App extends React.Component<Props> {
     async componentWillMount() {
         this.props.setIsFetchingStacks(true);
         const response: APIStacks = await API.getAllStacks();
-        const stacks: Array<Stack> = response.stacks.map(stack => Mapper.stackResponse(stack));
+        const stacks: Stack[] = response.stacks.map(stack => Mapper.stackResponse(stack));
         this.props.addStacks(stacks);
         this.props.setIsFetchingStacks(false);
     }
@@ -48,7 +48,7 @@ function mapStateToProps(state: State): ReduxProps {
 
 function mapDispatchToProps(dispatch: Redux.Dispatch): DispatchProps {
     return {
-        addStacks: (stacks: Array<Stack>) => dispatch(addStacks(stacks)),
+        addStacks: (stacks: Stack[]) => dispatch(addStacks(stacks)),
         setIsFetchingStacks: (isFetching: boolean) => dispatch(setIsFetchingStacks(isFetching))
     }
 }

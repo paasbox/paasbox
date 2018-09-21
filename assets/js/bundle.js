@@ -284,7 +284,7 @@ module.exports.default = module.exports;
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(44).default;
+module.exports = __webpack_require__(43).default;
 module.exports.default = module.exports;
 
 
@@ -301,12 +301,14 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.addStacks = addStacks;
 exports.addTasks = addTasks;
-exports.updateTasksRunningStatus = updateTasksRunningStatus;
+exports.updateActiveTaskRunningStatus = updateActiveTaskRunningStatus;
+exports.updateTaskRunningStatus = updateTaskRunningStatus;
 exports.addActiveTask = addActiveTask;
 var ADD_STACKS = exports.ADD_STACKS = "ADD_STACKS";
 var ADD_TASKS = exports.ADD_TASKS = "ADD_TASKS";
 var ADD_ACTIVE_TASK = exports.ADD_ACTIVE_TASK = "ADD_ACTIVE_TASK";
-var UPDATE_TASKS_RUNNING_STATUS = exports.UPDATE_TASKS_RUNNING_STATUS = "UPDATE_TASKS_RUNNING_STATUS";
+var UPDATE_TASK_RUNNING_STATUS = exports.UPDATE_TASK_RUNNING_STATUS = "UPDATE_TASK_RUNNING_STATUS";
+var UPDATE_ACTIVE_TASK_RUNNING_STATUS = exports.UPDATE_ACTIVE_TASK_RUNNING_STATUS = "UPDATE_ACTIVE_TASK_RUNNING_STATUS";
 
 function addStacks(stacks) {
     return {
@@ -322,9 +324,17 @@ function addTasks(tasks) {
     };
 }
 
-function updateTasksRunningStatus(taskID, isRunning) {
+function updateActiveTaskRunningStatus(taskID, isRunning) {
     return {
-        type: UPDATE_TASKS_RUNNING_STATUS,
+        type: UPDATE_ACTIVE_TASK_RUNNING_STATUS,
+        taskID: taskID,
+        isRunning: isRunning
+    };
+}
+
+function updateTaskRunningStatus(taskID, isRunning) {
+    return {
+        type: UPDATE_TASK_RUNNING_STATUS,
         taskID: taskID,
         isRunning: isRunning
     };
@@ -371,9 +381,9 @@ module.exports = g;
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* WEBPACK VAR INJECTION */(function(process) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__createStore__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__combineReducers__ = __webpack_require__(34);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__bindActionCreators__ = __webpack_require__(35);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__applyMiddleware__ = __webpack_require__(36);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__combineReducers__ = __webpack_require__(33);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__bindActionCreators__ = __webpack_require__(34);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__applyMiddleware__ = __webpack_require__(35);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__compose__ = __webpack_require__(14);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__utils_warning__ = __webpack_require__(13);
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "createStore", function() { return __WEBPACK_IMPORTED_MODULE_0__createStore__["b"]; });
@@ -508,39 +518,39 @@ var _infernoRedux = __webpack_require__(3);
 
 var _redux = __webpack_require__(7);
 
-var _createBrowserHistory = __webpack_require__(37);
+var _createBrowserHistory = __webpack_require__(36);
 
 var _createBrowserHistory2 = _interopRequireDefault(_createBrowserHistory);
 
 var _infernoRouter = __webpack_require__(4);
 
-var _reduxDevtoolsExtension = __webpack_require__(49);
+var _reduxDevtoolsExtension = __webpack_require__(48);
 
-__webpack_require__(50);
+__webpack_require__(49);
 
-__webpack_require__(52);
+__webpack_require__(51);
 
-var _reducers = __webpack_require__(53);
+var _reducers = __webpack_require__(52);
 
 var _reducers2 = _interopRequireDefault(_reducers);
 
-var _App = __webpack_require__(54);
+var _App = __webpack_require__(53);
 
 var _App2 = _interopRequireDefault(_App);
 
-var _UnknownRoute = __webpack_require__(57);
+var _UnknownRoute = __webpack_require__(56);
 
 var _UnknownRoute2 = _interopRequireDefault(_UnknownRoute);
 
-var _Tasks = __webpack_require__(58);
+var _Tasks = __webpack_require__(57);
 
 var _Tasks2 = _interopRequireDefault(_Tasks);
 
-var _Home = __webpack_require__(59);
+var _Home = __webpack_require__(58);
 
 var _Home2 = _interopRequireDefault(_Home);
 
-var _Logs = __webpack_require__(60);
+var _Logs = __webpack_require__(59);
 
 var _Logs2 = _interopRequireDefault(_Logs);
 
@@ -583,7 +593,6 @@ _inferno2.default.render(application, document.getElementById('app-root'));
 /* harmony export (immutable) */ __webpack_exports__["b"] = createStore;
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_lodash_es_isPlainObject__ = __webpack_require__(11);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_symbol_observable__ = __webpack_require__(30);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_symbol_observable___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_symbol_observable__);
 
 
 
@@ -815,7 +824,7 @@ var ActionTypes = {
         var unsubscribe = outerSubscribe(observeState);
         return { unsubscribe: unsubscribe };
       }
-    }, _ref[__WEBPACK_IMPORTED_MODULE_1_symbol_observable___default.a] = function () {
+    }, _ref[__WEBPACK_IMPORTED_MODULE_1_symbol_observable__["a" /* default */]] = function () {
       return this;
     }, _ref;
   }
@@ -830,7 +839,7 @@ var ActionTypes = {
     subscribe: subscribe,
     getState: getState,
     replaceReducer: replaceReducer
-  }, _ref2[__WEBPACK_IMPORTED_MODULE_1_symbol_observable___default.a] = observable, _ref2;
+  }, _ref2[__WEBPACK_IMPORTED_MODULE_1_symbol_observable__["a" /* default */]] = observable, _ref2;
 }
 
 /***/ }),
@@ -5637,30 +5646,14 @@ function isObjectLike(value) {
 
 /***/ }),
 /* 30 */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = __webpack_require__(31);
-
-
-/***/ }),
-/* 31 */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(global, module) {
+/* WEBPACK VAR INJECTION */(function(global, module) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ponyfill_js__ = __webpack_require__(32);
+/* global window */
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
 
-var _ponyfill = __webpack_require__(33);
-
-var _ponyfill2 = _interopRequireDefault(_ponyfill);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-var root; /* global window */
-
+var root;
 
 if (typeof self !== 'undefined') {
   root = self;
@@ -5674,18 +5667,18 @@ if (typeof self !== 'undefined') {
   root = Function('return this')();
 }
 
-var result = (0, _ponyfill2['default'])(root);
-exports['default'] = result;
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6), __webpack_require__(32)(module)))
+var result = Object(__WEBPACK_IMPORTED_MODULE_0__ponyfill_js__["a" /* default */])(root);
+/* harmony default export */ __webpack_exports__["a"] = (result);
+
+/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(6), __webpack_require__(31)(module)))
 
 /***/ }),
-/* 32 */
+/* 31 */
 /***/ (function(module, exports) {
 
-module.exports = function(module) {
-	if(!module.webpackPolyfill) {
-		module.deprecate = function() {};
-		module.paths = [];
+module.exports = function(originalModule) {
+	if(!originalModule.webpackPolyfill) {
+		var module = Object.create(originalModule);
 		// module.parent = undefined by default
 		if(!module.children) module.children = [];
 		Object.defineProperty(module, "loaded", {
@@ -5700,6 +5693,9 @@ module.exports = function(module) {
 				return module.i;
 			}
 		});
+		Object.defineProperty(module, "exports", {
+			enumerable: true,
+		});
 		module.webpackPolyfill = 1;
 	}
 	return module;
@@ -5707,26 +5703,21 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 33 */
-/***/ (function(module, exports, __webpack_require__) {
+/* 32 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports['default'] = symbolObservablePonyfill;
+/* harmony export (immutable) */ __webpack_exports__["a"] = symbolObservablePonyfill;
 function symbolObservablePonyfill(root) {
 	var result;
-	var _Symbol = root.Symbol;
+	var Symbol = root.Symbol;
 
-	if (typeof _Symbol === 'function') {
-		if (_Symbol.observable) {
-			result = _Symbol.observable;
+	if (typeof Symbol === 'function') {
+		if (Symbol.observable) {
+			result = Symbol.observable;
 		} else {
-			result = _Symbol('observable');
-			_Symbol.observable = result;
+			result = Symbol('observable');
+			Symbol.observable = result;
 		}
 	} else {
 		result = '@@observable';
@@ -5735,8 +5726,9 @@ function symbolObservablePonyfill(root) {
 	return result;
 };
 
+
 /***/ }),
-/* 34 */
+/* 33 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5877,7 +5869,7 @@ function combineReducers(reducers) {
 /* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(2)))
 
 /***/ }),
-/* 35 */
+/* 34 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5931,7 +5923,7 @@ function bindActionCreators(actionCreators, dispatch) {
 }
 
 /***/ }),
-/* 36 */
+/* 35 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -5987,7 +5979,7 @@ function applyMiddleware() {
 }
 
 /***/ }),
-/* 37 */
+/* 36 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6003,19 +5995,19 @@ var _warning = __webpack_require__(15);
 
 var _warning2 = _interopRequireDefault(_warning);
 
-var _invariant = __webpack_require__(38);
+var _invariant = __webpack_require__(37);
 
 var _invariant2 = _interopRequireDefault(_invariant);
 
-var _LocationUtils = __webpack_require__(39);
+var _LocationUtils = __webpack_require__(38);
 
 var _PathUtils = __webpack_require__(16);
 
-var _createTransitionManager = __webpack_require__(42);
+var _createTransitionManager = __webpack_require__(41);
 
 var _createTransitionManager2 = _interopRequireDefault(_createTransitionManager);
 
-var _DOMUtils = __webpack_require__(43);
+var _DOMUtils = __webpack_require__(42);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -6300,17 +6292,15 @@ var createBrowserHistory = function createBrowserHistory() {
 exports.default = createBrowserHistory;
 
 /***/ }),
-/* 38 */
+/* 37 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(process) {/**
- * Copyright 2013-2015, Facebook, Inc.
- * All rights reserved.
+ * Copyright (c) 2013-present, Facebook, Inc.
  *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 
@@ -6359,7 +6349,7 @@ module.exports = invariant;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)))
 
 /***/ }),
-/* 39 */
+/* 38 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6370,11 +6360,11 @@ exports.locationsAreEqual = exports.createLocation = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
-var _resolvePathname = __webpack_require__(40);
+var _resolvePathname = __webpack_require__(39);
 
 var _resolvePathname2 = _interopRequireDefault(_resolvePathname);
 
-var _valueEqual = __webpack_require__(41);
+var _valueEqual = __webpack_require__(40);
 
 var _valueEqual2 = _interopRequireDefault(_valueEqual);
 
@@ -6443,7 +6433,7 @@ var locationsAreEqual = exports.locationsAreEqual = function locationsAreEqual(a
 };
 
 /***/ }),
-/* 40 */
+/* 39 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6520,7 +6510,7 @@ function resolvePathname(to) {
 /* harmony default export */ __webpack_exports__["default"] = (resolvePathname);
 
 /***/ }),
-/* 41 */
+/* 40 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6565,7 +6555,7 @@ function valueEqual(a, b) {
 /* harmony default export */ __webpack_exports__["default"] = (valueEqual);
 
 /***/ }),
-/* 42 */
+/* 41 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6656,7 +6646,7 @@ var createTransitionManager = function createTransitionManager() {
 exports.default = createTransitionManager;
 
 /***/ }),
-/* 43 */
+/* 42 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6717,7 +6707,7 @@ var isExtraneousPopstateEvent = exports.isExtraneousPopstateEvent = function isE
 };
 
 /***/ }),
-/* 44 */
+/* 43 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -6727,11 +6717,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var createElement = _interopDefault(__webpack_require__(45));
+var createElement = _interopDefault(__webpack_require__(44));
 var Component = _interopDefault(__webpack_require__(1));
 var Inferno = __webpack_require__(0);
 var Inferno__default = _interopDefault(Inferno);
-var pathToRegexp = _interopDefault(__webpack_require__(47));
+var pathToRegexp = _interopDefault(__webpack_require__(46));
 
 /**
  * @module Inferno-Shared
@@ -7466,16 +7456,16 @@ exports['default'] = index;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)))
 
 /***/ }),
-/* 45 */
+/* 44 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(46).default;
+module.exports = __webpack_require__(45).default;
 module.exports.default = module.exports;
 
 
 
 /***/ }),
-/* 46 */
+/* 45 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -7619,10 +7609,10 @@ exports['default'] = createElement;
 
 
 /***/ }),
-/* 47 */
+/* 46 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var isarray = __webpack_require__(48)
+var isarray = __webpack_require__(47)
 
 /**
  * Expose `pathToRegexp`.
@@ -8051,7 +8041,7 @@ function pathToRegexp (path, keys, options) {
 
 
 /***/ }),
-/* 48 */
+/* 47 */
 /***/ (function(module, exports) {
 
 module.exports = Array.isArray || function (arr) {
@@ -8060,7 +8050,7 @@ module.exports = Array.isArray || function (arr) {
 
 
 /***/ }),
-/* 49 */
+/* 48 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8087,16 +8077,16 @@ exports.devToolsEnhancer = (
 
 
 /***/ }),
-/* 50 */
+/* 49 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(51);
+module.exports = __webpack_require__(50);
 module.exports.default = module.exports;
 
 
 
 /***/ }),
-/* 51 */
+/* 50 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8616,13 +8606,13 @@ initDevTools();
 
 
 /***/ }),
-/* 52 */
+/* 51 */
 /***/ (function(module, exports) {
 
 // removed by extract-text-webpack-plugin
 
 /***/ }),
-/* 53 */
+/* 52 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8657,7 +8647,15 @@ exports.default = function () {
                     activeTask: action.activeTask
                 });
             }
-        case _actions.UPDATE_TASKS_RUNNING_STATUS:
+        case _actions.UPDATE_ACTIVE_TASK_RUNNING_STATUS:
+            {
+                return _extends({}, state, {
+                    activeTask: _extends({}, state.activeTask, {
+                        is_started: action.isRunning
+                    })
+                });
+            }
+        case _actions.UPDATE_TASK_RUNNING_STATUS:
             {
                 return _extends({}, state, {
                     tasks: state.tasks.map(function (task) {
@@ -8697,7 +8695,7 @@ var initialState = {
 };
 
 /***/ }),
-/* 54 */
+/* 53 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8719,13 +8717,13 @@ var _infernoComponent2 = _interopRequireDefault(_infernoComponent);
 
 var _infernoRedux = __webpack_require__(3);
 
-var _stacks = __webpack_require__(55);
+var _stacks = __webpack_require__(54);
 
 var _stacks2 = _interopRequireDefault(_stacks);
 
 var _actions = __webpack_require__(5);
 
-var _Stacks = __webpack_require__(56);
+var _Stacks = __webpack_require__(55);
 
 var _Stacks2 = _interopRequireDefault(_Stacks);
 
@@ -8788,7 +8786,7 @@ function mapStateToProps(state) {
 exports.default = (0, _infernoRedux.connect)(mapStateToProps)(App);
 
 /***/ }),
-/* 55 */
+/* 54 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8831,7 +8829,7 @@ var stacks = function () {
 exports.default = stacks;
 
 /***/ }),
-/* 56 */
+/* 55 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8899,7 +8897,7 @@ function mapStateToProps(state) {
 exports.default = (0, _infernoRedux.connect)(mapStateToProps)(Stacks);
 
 /***/ }),
-/* 57 */
+/* 56 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -8951,7 +8949,7 @@ var UnknownRoute = function (_Component) {
 exports.default = UnknownRoute;
 
 /***/ }),
-/* 58 */
+/* 57 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9037,7 +9035,7 @@ var Tasks = function (_Component) {
             var _this3 = this;
 
             _tasks2.default.start(this.props.params.stackID, taskID).then(function () {
-                _this3.props.dispatch((0, _actions.updateTasksRunningStatus)(taskID, true));
+                _this3.props.dispatch((0, _actions.updateTaskRunningStatus)(taskID, true));
             }).catch(function (error) {
                 console.error('Error trying to start service \'' + taskID + '\'', error);
             });
@@ -9048,7 +9046,7 @@ var Tasks = function (_Component) {
             var _this4 = this;
 
             _tasks2.default.stop(this.props.params.stackID, taskID).then(function () {
-                _this4.props.dispatch((0, _actions.updateTasksRunningStatus)(taskID, false));
+                _this4.props.dispatch((0, _actions.updateTaskRunningStatus)(taskID, false));
             }).catch(function (error) {
                 console.error('Error trying to stop service \'' + taskID + '\'', error);
             });
@@ -9089,7 +9087,7 @@ function mapStateToProps(state) {
 exports.default = (0, _infernoRedux.connect)(mapStateToProps)(Tasks);
 
 /***/ }),
-/* 59 */
+/* 58 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9141,7 +9139,7 @@ var Home = function (_Component) {
 exports.default = Home;
 
 /***/ }),
-/* 60 */
+/* 59 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9173,7 +9171,7 @@ var _tasks = __webpack_require__(17);
 
 var _tasks2 = _interopRequireDefault(_tasks);
 
-var _logs = __webpack_require__(61);
+var _logs = __webpack_require__(60);
 
 var _logs2 = _interopRequireDefault(_logs);
 
@@ -9192,7 +9190,10 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 var defaultLogsState = {
     logLines: [],
     offset: undefined,
-    allLogs: ""
+    allLogs: "",
+    isFetchingAllLogs: false,
+    isShowingAllLogs: false,
+    isFetchingOlderLogs: false
 };
 
 var createVNode = _inferno2.default.createVNode;
@@ -9209,10 +9210,10 @@ var Logs = function (_Component) {
             logLines: defaultLogsState.logLines,
             offset: defaultLogsState.offset,
             allLogs: defaultLogsState.allLogs,
-            isFetchingAllLogs: false,
-            isShowingAllLogs: false,
-            isFetchingOlderLogs: false,
-            isShowingStdErr: false
+            isFetchingAllLogs: defaultLogsState.isFetchingAllLogs,
+            isShowingAllLogs: defaultLogsState.isShowingAllLogs,
+            isFetchingOlderLogs: defaultLogsState.isFetchingOlderLogs,
+            isShowingStdErr: defaultLogsState.isShowingStdErr
         };
 
         _this.fetchOlderLogs = _this.fetchOlderLogs.bind(_this);
@@ -9228,7 +9229,7 @@ var Logs = function (_Component) {
             var _this2 = this;
 
             if (this.props.params.logType !== "stderr" && this.props.params.logType !== "stdout") {
-                _index.browserHistory.push('/' + this.props.params.stackID + '/' + this.props.params.taskID + '/stdout');
+                _index.browserHistory.replace('/' + this.props.params.stackID + '/' + this.props.params.taskID + '/stdout');
             }
 
             if (this.props.params.logType === "stderr") {
@@ -9250,27 +9251,42 @@ var Logs = function (_Component) {
                     console.error("Error getting stack and task data", error);
                 });
             }
+
+            if (!this.props.allTasks) {
+                _tasks2.default.getAll(this.props.params.stackID).then(function (response) {
+                    _this2.props.dispatch((0, _actions.addTasks)(response.tasks));
+                }).catch(function (error) {
+                    console.error("Error getting all tasks on logs screen", error);
+                });
+            }
         }
     }, {
         key: 'componentWillReceiveProps',
         value: function componentWillReceiveProps(nextProps) {
+            if (this.props.task && this.props.task.is_started && this.props.task.current_instances[0].id !== nextProps.task.current_instances[0].id) {
+                _logs2.default.start(nextProps.task.current_instances[0].url, this.handleNewLog, this.state.isShowingStdErr);
+            }
+
+            if (this.props.task && this.props.task.is_started && !nextProps.task.is_started) {
+                this.setState(_extends({}, defaultLogsState));
+                _logs2.default.stop();
+            }
+
             if (this.props.params.logType && nextProps.params.logType !== this.props.params.logType) {
                 _logs2.default.stop();
             }
 
             if (nextProps.params.logType === "stderr" && this.props.params.logType === "stdout") {
-                _logs2.default.start(this.props.task.current_instances[0].url, this.handleNewLog, true);
+                _logs2.default.start(nextProps.task.current_instances[0].url, this.handleNewLog, true);
                 this.setState(_extends({
-                    isShowingStdErr: true,
-                    isShowingAllLogs: false
+                    isShowingStdErr: true
                 }, defaultLogsState));
             }
 
             if (nextProps.params.logType === "stdout" && this.props.params.logType === "stderr") {
-                _logs2.default.start(this.props.task.current_instances[0].url, this.handleNewLog, false);
+                _logs2.default.start(nextProps.task.current_instances[0].url, this.handleNewLog, false);
                 this.setState(_extends({
-                    isShowingStdErr: false,
-                    isShowingAllLogs: false
+                    isShowingStdErr: false
                 }, defaultLogsState));
             }
         }
@@ -9376,9 +9392,43 @@ var Logs = function (_Component) {
             });
         }
     }, {
+        key: 'updateTask',
+        value: function updateTask(taskID) {
+            var _this5 = this;
+
+            _tasks2.default.get(this.props.params.stackID, taskID).then(function (response) {
+                _this5.props.dispatch((0, _actions.addActiveTask)(response));
+            }).catch(function (error) {
+                console.error("Error getting task", error);
+            });
+        }
+    }, {
+        key: 'startService',
+        value: function startService(taskID) {
+            var _this6 = this;
+
+            _tasks2.default.start(this.props.params.stackID, taskID).then(function () {
+                _this6.updateTask(taskID);
+                _this6.props.dispatch((0, _actions.updateActiveTaskRunningStatus)(taskID, true));
+            }).catch(function (error) {
+                console.error('Error trying to start service \'' + taskID + '\'', error);
+            });
+        }
+    }, {
+        key: 'stopService',
+        value: function stopService(taskID) {
+            var _this7 = this;
+
+            _tasks2.default.stop(this.props.params.stackID, taskID).then(function () {
+                _this7.props.dispatch((0, _actions.updateActiveTaskRunningStatus)(taskID, false));
+            }).catch(function (error) {
+                console.error('Error trying to stop service \'' + taskID + '\'', error);
+            });
+        }
+    }, {
         key: 'renderPorts',
         value: function renderPorts(task) {
-            if (!this.props.task) {
+            if (!this.props.task || !this.props.task.ports) {
                 return "";
             }
 
@@ -9414,20 +9464,46 @@ var Logs = function (_Component) {
     }, {
         key: 'renderLogLines',
         value: function renderLogLines() {
-            var _this5 = this;
+            var _this8 = this;
 
             return createVNode(2, 'div', null, createVNode(2, 'pre', 'logs', [this.state.allLogs && this.state.allLogs, this.state.isFetchingAllLogs && createVNode(2, 'p', null, 'Loading all logs...'), !this.state.allLogs && this.state.logLines.length === 0 && createVNode(2, 'p', null, 'No logs to show...'), this.state.logLines.length > 0 && !this.state.isShowingAllLogs && createVNode(2, 'p', null, ['Offset: ', this.state.offset]), this.state.logLines.length > 0 && createVNode(2, 'div', null, [this.state.logLines.map(function (logLine) {
                 return createVNode(2, 'div', null, logLine);
             }), createVNode(2, 'br'), createVNode(2, 'div', null, null, null, null, function (el) {
-                _this5.bottomOfLogs = el;
+                _this8.bottomOfLogs = el;
             })])]));
+        }
+    }, {
+        key: 'renderStopStartService',
+        value: function renderStopStartService() {
+            var _this9 = this;
+
+            if (!this.props.task) {
+                return;
+            }
+
+            if (this.props.task.is_started) {
+                return createVNode(2, 'button', null, 'Stop', {
+                    'type': 'button',
+                    'onClick': function onClick() {
+                        _this9.stopService(_this9.props.task.id);
+                    }
+                });
+            }
+
+            return createVNode(2, 'button', null, 'Start', {
+                'type': 'button',
+                'onClick': function onClick() {
+                    _this9.startService(_this9.props.task.id);
+                }
+            });
         }
     }, {
         key: 'render',
         value: function render() {
-            return createVNode(2, 'div', null, [createVNode(2, 'h2', null, [this.props.task ? this.props.task.name : this.props.params.taskID, ' logs']), this.renderPorts(this.props.task), this.state.isFetchingOlderLogs && createVNode(2, 'p', null, 'Loading older logs..'), this.props.task && this.props.task.is_started && createVNode(2, 'div', null, [this.renderLogTypeLinks(), createVNode(2, 'label', null, 'Show all logs', {
-                'for': ''
+            return createVNode(2, 'div', null, [createVNode(2, 'h2', null, [this.props.task ? this.props.task.name : this.props.params.taskID, ' logs ', this.renderStopStartService()]), this.renderPorts(this.props.task), this.state.isFetchingOlderLogs && createVNode(2, 'p', null, 'Loading older logs..'), this.props.task && this.props.task.is_started && createVNode(2, 'div', null, [this.renderLogTypeLinks(), createVNode(2, 'label', null, 'Show all logs', {
+                'for': 'show-all-logs'
             }), createVNode(512, 'input', null, null, {
+                'id': 'show-all-logs',
                 'type': 'checkbox',
                 'checked': this.state.isShowingAllLogs,
                 'onChange': this.handleAllLogsChange
@@ -9440,14 +9516,15 @@ var Logs = function (_Component) {
 
 function mapStateToProps(state) {
     return {
-        task: state.activeTask
+        task: state.activeTask,
+        allTasks: state.task
     };
 }
 
 exports.default = (0, _infernoRedux.connect)(mapStateToProps)(Logs);
 
 /***/ }),
-/* 61 */
+/* 60 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -9472,15 +9549,42 @@ var logs = function () {
         _classCallCheck(this, logs);
 
         this.socket = null;
+        this.connectTries = 0;
+        this.connectAttemptDelay = 1;
+        this.connectTimer = null;
     }
 
     _createClass(logs, null, [{
         key: "start",
         value: function start(instanceURL, onLog, isStdErr) {
+            var _this = this;
+
+            console.log("try");
+            this.connectTries++;
             if (this.socket) {
                 this.stop();
             }
             this.socket = new WebSocket("ws://" + window.location.host + "/api" + instanceURL + "/" + (isStdErr ? "stderr" : "stdout") + ".ws?tail=y");
+            this.socket.onerror = function () {
+                console.log("error");
+                clearTimeout(_this.connectTimer);
+                if (_this.connectTries > 7) {
+                    return;
+                }
+                _this.connectAttemptDelay = _this.connectAttemptDelay * 3.5;
+                _this.connectTimer = setTimeout(function () {
+                    _this.start(instanceURL, onLog, isStdErr);
+                }, _this.connectAttemptDelay);
+            };
+            this.socket.onopen = function () {
+                console.log("open");
+                _this.connectTries = 0;
+                _this.connectAttemptDelay = 1;
+                clearTimeout(_this.connectTimer);
+            };
+            this.socket.onclose = function () {
+                console.log("close");
+            };
             this.socket.onmessage = function (message) {
                 onLog(message.data);
             };

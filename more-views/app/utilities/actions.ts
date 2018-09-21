@@ -15,6 +15,13 @@ export function setIsFetchingStacks(isFetching: boolean) {
     }
 }
 
+export function addActiveStack(stack: Stack) {
+    return {
+        type: ActionTypeKeys.ADD_ACTIVE_STACK,
+        stack
+    }
+}
+
 export function addTasks(tasks: Array<Task>) {
     return {
         type: ActionTypeKeys.ADD_TASKS,

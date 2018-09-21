@@ -21,7 +21,7 @@ class Stacks extends React.Component<ParentProps> {
             <ul>
                 {this.props.stacks.map(stack => (
                     <li key={stack.id}>
-                        <Link to={`${this.props.stackPath}/${stack.id}`}>{stack.name}</Link>
+                        <NavLink to={`${this.props.stackPath}/${stack.id}`}>{stack.name}</NavLink>
                     </li>
                 ))}
             </ul>

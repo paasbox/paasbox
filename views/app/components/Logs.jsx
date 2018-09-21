@@ -221,7 +221,7 @@ class Logs extends Component {
         if (!this.props.task || !this.props.task.ports) {
             return "";
         }
-        
+
         const ports = task.ports;
 
         if (ports.length === 0) {

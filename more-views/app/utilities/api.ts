@@ -1,5 +1,5 @@
 import http from './http';
-import { APIStacks, APIStack } from './types';
+import { APIStacks, APIStack, APITasks } from './types';
 
 export default class API {
 
@@ -15,7 +15,7 @@ export default class API {
         return http.get(`/api/stacks/${stackID}/tasks/${taskID}`);
     }
     
-    static getStackTasks(stackID: string) {
+    static getStackTasks(stackID: string): Promise<APITasks> {
         return http.get(`/api/stacks/${stackID}/tasks`);
     }
 

@@ -10,7 +10,7 @@ class RedirectToStack extends Component {
 
     componentWillMount() {
         const stacks = this.props.stacks;
-        browserHistory.push(`/${stacks[0].id}`)
+        browserHistory.replace(`/${stacks[0].id}`)
 
     }
 
