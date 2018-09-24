@@ -51,7 +51,7 @@ class TaskInstancesController extends React.Component<Props> {
                 instance={{
                     id: instance.id,
                     isRunning: instance.isRunning,
-                    logsURI: `/muffins`
+                    logsURI: `/logs/${this.props.match.params.stackID}/${this.props.taskID}/${instance.id}`
                 }}
             />
         ))
