@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Task, Healthcheck, HealthcheckInstance } from '../../utilities/types';
 import "./task.css";
+import TaskInstancesController from '../taskInstances/TaskInstancesController';
 
 type Props = Task;
 
@@ -14,6 +15,10 @@ enum HealthStatus {
 class TaskItem extends React.Component<Props> {
     constructor(props: Props) {
         super(props);
+    }
+
+    componentDidCatch(error: Error | null, info: React.ErrorInfo) {
+        console.warn("Error rendering TaskItem", this.props, {error, info});
     }
 
     renderPorts() {
@@ -49,6 +54,10 @@ class TaskItem extends React.Component<Props> {
         let passedChecks: number = 0;
 
         for (const healthcheck of this.props.healthchecks) {
+            if (!healthcheck.instances) {
+                console.warn("Healthcheck with no instances ¯\_(ツ)_/¯", healthcheck);
+            }
+
             if (healthcheck.instances[instanceIndex].healthy) {
                 passedChecks++
             }
@@ -122,6 +131,7 @@ class TaskItem extends React.Component<Props> {
                 {this.props.ports &&
                     this.renderPorts()
                 }
+                <TaskInstancesController taskID={this.props.id} instanceIDs={this.props.current_instances}/>
             </div>
         )
     }

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as Redux from 'redux';
 import { connect } from 'react-redux';
 import { RouteComponentProps, Route, withRouter } from 'react-router-dom';
 
@@ -7,17 +8,31 @@ import { Stack } from '../../utilities/types';
 import Stacks from './Stacks';
 import Loader from '../../components/loader/Loader';
 import TasksController from '../tasks/TasksController';
+import { addActiveStack } from '../../utilities/actions';
 
 interface ReduxProps {
     stacks: Array<Stack>,
     isFetchingStacks: boolean
 }
 
-type Props = ReduxProps & RouteComponentProps<any>
+interface DispatchProps {
+    addActiveStack: (stack: Stack) => void
+}
+
+type Props = ReduxProps & DispatchProps & RouteComponentProps<any>
 
 class StacksController extends React.Component<Props> {
     constructor(props: Props) {
         super(props);
+    }
+
+    componentDidUpdate(prevProps: Props) {
+        // if (this.props.match.params.stackID !== prevProps.match.params.stackID) {
+        //     this.props.addActiveStack({
+        //         id: this.props.match.params.stackID,
+        //         name: ""
+        //     });
+        // }
     }
 
     render() {
@@ -45,4 +60,10 @@ function mapStateToProps(state: State): ReduxProps {
     }
 }
 
-export default withRouter<any>(connect<ReduxProps>(mapStateToProps)(StacksController));
+function mapDispatchToProps(dispatch: Redux.Dispatch): DispatchProps {
+    return {
+        addActiveStack: (stack: Stack) => dispatch(addActiveStack(stack))
+    }
+}
+
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(StacksController));

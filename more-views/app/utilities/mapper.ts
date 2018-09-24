@@ -1,4 +1,4 @@
-import { Stack, APIStack, Task, APITask, Instance } from "./types";
+import { Stack, APIStack, Task, APITask, APITaskInstance, Instance, APIInstance } from "./types";
 
 export default class Mapper {
     
@@ -18,8 +18,16 @@ export default class Mapper {
             is_service: response.is_service || false,
             instances: response.instances || 0,
             driver: response.driver || "",
-            current_instances: response.current_instances ? response.current_instances.map((instance: Instance) => instance.id) : [],
+            current_instances: response.current_instances ? response.current_instances.map((instance: APITaskInstance) => instance.id) : [],
             healthchecks: response.healthchecks
+        }
+    }
+
+    static instanceResponse(response: APIInstance): Instance {
+        return {
+            id: response.id,
+            isRunning: response.running,
+            environmentVars: response.env
         }
     }
 }

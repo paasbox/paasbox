@@ -1,5 +1,5 @@
 import { ActionTypes, ActionTypeKeys } from "./utilities/actionTypes";
-import { Stack, Task } from "./utilities/types";
+import { Stack, Task, Instance } from "./utilities/types";
 
 export interface State {
     stacks: {
@@ -97,6 +97,18 @@ export default function reducer(state: State = initialState, action: ActionTypes
                 }
             }
         }
+        case (ActionTypeKeys.EMPTY_TASKS): {
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    all: {
+                        ...state.tasks.all,
+                        items: []
+                    }
+                }
+            }
+        }
         case (ActionTypeKeys.SET_IS_FETCHING_TASKS): {
             return {
                 ...state,
@@ -105,6 +117,46 @@ export default function reducer(state: State = initialState, action: ActionTypes
                     all: {
                         ...state.tasks.all,
                         isBeingFetched: action.isFetching
+                    }
+                }
+            }
+        }
+        case(ActionTypeKeys.SET_IS_FETCHING_CURRENT_INSTANCES_DETAILS): {
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    all: {
+                        ...state.tasks.all,
+                        items: state.tasks.all.items.map(task => {
+                            if (task.id !== action.taskID) {
+                                return task
+                            }
+                            return {
+                                ...task,
+                                is_fetching_current_instances_details: action.isFetching
+                            }
+                        })
+                    }
+                }
+            }
+        }
+        case(ActionTypeKeys.ADD_CURRENT_INSTANCES_DETAILS): {
+            return {
+                ...state,
+                tasks: {
+                    ...state.tasks,
+                    all: {
+                        ...state.tasks.all,
+                        items: state.tasks.all.items.map(task => {
+                            if (task.id !== action.taskID) {
+                                return task
+                            }
+                            return {
+                                ...task,
+                                current_instances_details: [...action.instances]
+                            }
+                        })
                     }
                 }
             }

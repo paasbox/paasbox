@@ -24,7 +24,9 @@ export type Task = {
     instances: number,
     driver: string,
     healthchecks: Healthcheck[]
-    current_instances: Array<string>
+    current_instances: Array<string>,
+    current_instances_details?: Instance[],
+    is_fetching_current_instances_details?: boolean
 }
 
 export type APITasks = {
@@ -37,7 +39,7 @@ export type APITask = {
     is_started: boolean,
     is_service: boolean,
     ports: Array<number>,
-    current_instances: Array<Instance>,
+    current_instances: Array<APITaskInstance>,
     dev_mode: boolean,
     instances: number,
     driver: string,
@@ -47,9 +49,34 @@ export type APITask = {
     command: string
 }
 
-export type Instance = {
+
+export type APITaskInstance = {
     id: string,
     url: string
+}
+
+export type APIInstances = {
+    instances: APIInstance[],
+    next_page: string
+}
+
+export type APIInstance = {
+    id: string,
+    stdout: string,
+    stdout_url: string,
+    stderr: string,
+    stderr_url: string,
+    pid: number,
+    running: boolean,
+    driver: string,
+    command: string,
+    args: string[],
+    env: string[],
+    pwd: string,
+    ports: number[],
+    instance_url: string,
+    task_url: string,
+    stack_url: string
 }
 
 export type Healthcheck = {
@@ -66,4 +93,10 @@ export type HealthcheckInstance = {
     healthy: boolean
     instance_id: string
     score: number
+}
+
+export type Instance = {
+    id: string,
+    isRunning: boolean,
+    environmentVars: string[]
 }

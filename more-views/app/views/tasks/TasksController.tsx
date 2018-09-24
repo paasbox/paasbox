@@ -2,13 +2,13 @@ import * as React from 'react';
 import * as Redux from 'redux';
 import { connect } from 'react-redux';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
-import { Task, APITask, APITasks, Stack, APIStacks } from '../../utilities/types';
+import { Task, APITasks, Stack, APIStacks } from '../../utilities/types';
 import { State } from '../../reducer';
-import { setIsFetchingTasks, addTasks, setIsFetchingStacks, addStacks, addActiveStack } from '../../utilities/actions';
+import { setIsFetchingTasks, addTasks, setIsFetchingStacks, addStacks, addActiveStack, emptyTasks } from '../../utilities/actions';
 import API from '../../utilities/api';
 import Mapper from '../../utilities/mapper';
 import Loader from '../../components/loader/Loader';
-import TaskItem from './Task';
+import TaskItem from './TaskItem';
 
 interface ReduxProps {
     tasks: Array<Task>,
@@ -20,6 +20,7 @@ interface ReduxProps {
 interface DispatchProps {
     addTasks: (tasks: Array<Task>) => void,
     setIsFetchingTasks: (isFetching: boolean) => void,
+    emptyTasks: () => void,
     addStacks: (stacks: Array<Stack>) => void,
     setIsFetchingStacks: (isFetching: boolean) => void,
     addActiveStack: (stack: Stack) => void
@@ -36,9 +37,16 @@ class TasksController extends React.Component<Props> {
         this.updateStack(this.props.match.params.stackID);
     }
 
+    // componentWillReceiveProps(nextProps: Props) {
+    //     if (this.props.match.params.stackID !== nextProps.match.params.stackID) {
+    //         this.props.emptyTasks();
+    //         this.updateStack(nextProps.match.params.stackID);
+    //     }
+    // }
+
     componentDidUpdate(prevProps: Props) {
         if (this.props.match.params.stackID !== prevProps.match.params.stackID) {
-            console.log("New task ID", this.props.match.params.stackID);
+            // this.props.emptyTasks();
             this.updateStack(this.props.match.params.stackID);
         }
     }
@@ -79,7 +87,7 @@ class TasksController extends React.Component<Props> {
 
     render() {
         return (
-            <div key={this.props.match.params.stackID}>
+            <div>
                 {this.props.activeStack ?
                     <h2>{this.props.activeStack.name}</h2>
                     :
@@ -108,6 +116,7 @@ function mapDispatchToProps(dispatch: Redux.Dispatch): DispatchProps {
     return {
         addTasks: (tasks: Array<Task>) => dispatch(addTasks(tasks)),
         setIsFetchingTasks: (isFetching: boolean) => dispatch(setIsFetchingTasks(isFetching)),
+        emptyTasks: () => dispatch(emptyTasks()),
         addStacks: (stacks: Array<Stack>) => dispatch(addStacks(stacks)),
         setIsFetchingStacks: (isFetching: boolean) => dispatch(setIsFetchingStacks(isFetching)),
         addActiveStack: (stack: Stack) => dispatch(addActiveStack(stack))

@@ -1,5 +1,5 @@
 import http from './http';
-import { APIStacks, APIStack, APITasks } from './types';
+import { APIStacks, APIStack, APITasks, APIInstance } from './types';
 
 export default class API {
 
@@ -17,6 +17,10 @@ export default class API {
     
     static getStackTasks(stackID: string): Promise<APITasks> {
         return http.get(`/api/stacks/${stackID}/tasks`);
+    }
+
+    static getTaskInstance(stackID: string, taskID: string, instanceID: string): Promise<APIInstance> {
+        return http.get(`/api/stacks/${stackID}/tasks/${taskID}/instances/${instanceID}`);
     }
 
     static restartTask(stackID: string, taskID: string) {
