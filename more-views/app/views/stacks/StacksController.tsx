@@ -26,15 +26,6 @@ class StacksController extends React.Component<Props> {
         super(props);
     }
 
-    componentDidUpdate(prevProps: Props) {
-        // if (this.props.match.params.stackID !== prevProps.match.params.stackID) {
-        //     this.props.addActiveStack({
-        //         id: this.props.match.params.stackID,
-        //         name: ""
-        //     });
-        // }
-    }
-
     render() {
         return (
             <div>

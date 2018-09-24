@@ -37,16 +37,8 @@ class TasksController extends React.Component<Props> {
         this.updateStack(this.props.match.params.stackID);
     }
 
-    // componentWillReceiveProps(nextProps: Props) {
-    //     if (this.props.match.params.stackID !== nextProps.match.params.stackID) {
-    //         this.props.emptyTasks();
-    //         this.updateStack(nextProps.match.params.stackID);
-    //     }
-    // }
-
     componentDidUpdate(prevProps: Props) {
         if (this.props.match.params.stackID !== prevProps.match.params.stackID) {
-            // this.props.emptyTasks();
             this.updateStack(this.props.match.params.stackID);
         }
     }

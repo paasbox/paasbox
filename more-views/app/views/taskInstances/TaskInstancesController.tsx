@@ -31,7 +31,6 @@ class TaskInstancesController extends React.Component<Props> {
     }
 
     componentWillMount = async () => {
-        console.log("MOUNT!", this.props.match.params.stackID);
         this.props.setIsFetchingCurrentInstancesDetails(true, this.props.taskID);
         const responses: APIInstance[] = await Promise.all(this.props.instanceIDs.map(instanceID => (
             API.getTaskInstance(this.props.match.params.stackID, this.props.taskID, instanceID)
